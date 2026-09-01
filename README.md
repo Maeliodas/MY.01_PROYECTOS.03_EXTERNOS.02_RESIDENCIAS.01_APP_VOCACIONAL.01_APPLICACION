@@ -1,17 +1,9 @@
-# app_vocacional
+# APP VOCACIONAL ITTUX
 
-A new Flutter project.
+APLICACIÓN PARA ANDROID SOBRE EL TEST VOCACIONAL COMO PARTE DEL PROYECTO DE RESIDENCIAS EN EL DEPARTAMNTO DE ESCOLARES DEL ITTUX
 
-## Getting Started
+## DATOS
 
-This project is a starting point for a Flutter application.
+EN CONSTRUCCIÓN
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+APLICACIÓN EN PROCESO DE DESARROLLO, ESPERELO
