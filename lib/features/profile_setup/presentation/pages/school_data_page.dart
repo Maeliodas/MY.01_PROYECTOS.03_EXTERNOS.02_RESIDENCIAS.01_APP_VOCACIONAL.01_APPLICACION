@@ -56,7 +56,7 @@ class _S extends ConsumerState<SchoolDataPage> {
               }),
             ),
             loading: () => const LinearProgressIndicator(),
-            error: (_, __) =>
+            error: (_, _) =>
                 const Text('No se pudo cargar el catálogo de escuelas'),
           ),
 
@@ -104,7 +104,7 @@ class _S extends ConsumerState<SchoolDataPage> {
                 ],
               ),
               loading: () => const LinearProgressIndicator(),
-              error: (_, __) =>
+              error: (_, _) =>
                   const Text('No se pudo cargar el catálogo de lenguas'),
             ),
 

@@ -1,2 +1,42 @@
-import 'package:flutter/material.dart';import 'package:flutter_riverpod/flutter_riverpod.dart';import 'package:go_router/go_router.dart';import '../providers/test_provider.dart';import '../../../../core/widgets/primary_button.dart';
-class TestIntroPage extends ConsumerWidget{const TestIntroPage({super.key});@override Widget build(BuildContext c,WidgetRef r)=>Scaffold(appBar:AppBar(title:const Text('Antes de comenzar')),body:Padding(padding:const EdgeInsets.all(24),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Text('30 preguntas',style:Theme.of(c).textTheme.headlineMedium),const SizedBox(height:12),const Text('La escala va de 0 a 9. El control inicia visualmente en 5, pero debes moverlo para registrar una respuesta'),const SizedBox(height:24),PrimaryButton(label:'Iniciar test nuevo',onPressed:()async{final s=await r.read(testRepositoryProvider).startNewSession();if(c.mounted)c.go('/test?session=${s.id}');}),const SizedBox(height:12),TextButton(onPressed:()async{final s=await r.read(testRepositoryProvider).active();if(s!=null&&c.mounted)c.go('/test?session=${s.id}');},child:const Text('Continuar test pendiente'))]));}
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../providers/test_provider.dart';
+import '../../../../core/widgets/primary_button.dart';
+
+class TestIntroPage extends ConsumerWidget {
+  const TestIntroPage({super.key});
+  @override
+  Widget build(BuildContext c, WidgetRef r) => Scaffold(
+    appBar: AppBar(title: const Text('Antes de comenzar')),
+    body: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('30 preguntas', style: Theme.of(c).textTheme.headlineMedium),
+          const SizedBox(height: 12),
+          const Text(
+            'La escala va de 0 a 9. El control inicia visualmente en 5, pero debes moverlo para registrar una respuesta',
+          ),
+          const SizedBox(height: 24),
+          PrimaryButton(
+            label: 'Iniciar test nuevo',
+            onPressed: () async {
+              final s = await r.read(testRepositoryProvider).startNewSession();
+              if (c.mounted) c.go('/test?session=${s.id}');
+            },
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () async {
+              final s = await r.read(testRepositoryProvider).active();
+              if (s != null && c.mounted) c.go('/test?session=${s.id}');
+            },
+            child: const Text('Continuar test pendiente'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
