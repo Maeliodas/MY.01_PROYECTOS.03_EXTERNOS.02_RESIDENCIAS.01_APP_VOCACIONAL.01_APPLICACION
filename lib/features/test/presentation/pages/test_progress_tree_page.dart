@@ -1,0 +1,1 @@
+import 'package:flutter/material.dart';class TestProgressTreePage extends StatelessWidget{const TestProgressTreePage({super.key});@override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:const Text('Progreso')),body:ListView.builder(itemCount:30,itemBuilder:(c,i)=>ListTile(leading:CircleAvatar(child:Text('${i+1}')),title:Text('Pregunta ${i+1}'))));}

@@ -1,44 +1,25 @@
 name: app_vocacional
 description: Aplicación móvil del proyecto de Residencias Profesionales.
-publish_to: "none"
-
+publish_to: none
 version: 1.0.0+1
-
 environment:
-  sdk: ">=3.12.0 <4.0.0"
-
+  sdk: '>=3.12.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
-
-  # Estado
   flutter_riverpod: ^3.4.2
-
-  # Navegación
   go_router: ^18.0.0
-
-  # Base de datos local
   sqflite: ^2.4.3
   path: ^1.9.1
-
-  # Preferencias simples
   shared_preferences: ^2.5.5
-
-  # Comunicación con servidor
   http: ^1.5.0
-
-  # Iconos
   cupertino_icons: ^1.0.8
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^6.0.0
-
 flutter:
   uses-material-design: true
-
   assets:
     - assets/images/
     - assets/avatars/

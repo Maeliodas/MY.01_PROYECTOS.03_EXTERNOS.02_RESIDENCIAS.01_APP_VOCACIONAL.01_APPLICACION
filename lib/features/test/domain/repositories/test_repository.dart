@@ -1,0 +1,2 @@
+import '../models/question.dart'; import '../models/test_session.dart';
+abstract class TestRepository { Future<TestSession> startNewSession(); Future<TestSession?> active(); Future<List<Question>> questions(); Future<int?> answer(String sessionId,String questionId); Future<void> saveAnswer(String sessionId,String questionId,int value,int position); Future<void> position(String sessionId,int position); Future<void> complete(String sessionId); }
