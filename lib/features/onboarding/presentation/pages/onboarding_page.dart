@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
+
+class OnboardingItem {
+  final String title;
+  final String description;
+  final IconData icon;
+
+  OnboardingItem({
+    required this.title,
+    required this.description,
+    required this.icon,
+  });
+}
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -13,145 +24,118 @@ class OnboardingPage extends StatefulWidget {
 
 class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
-  int _currentPage = 0;
+  int _currentIndex = 0;
 
-  final List<Map<String, String>> _slides = [
-    {
-      'title': 'Descubre tu Vocación',
-      'subtitle':
-          'Explora tus intereses y habilidades con un test vocacional adaptado al TecNM Tuxtepec.',
-      'icon': 'school_rounded',
-    },
-    {
-      'title': 'Conoce tus Opciones',
-      'subtitle':
-          'Recibe un análisis detallado del nivel de afinidad con la oferta académica de la institución.',
-      'icon': 'analytics_rounded',
-    },
-    {
-      'title': 'Sin Necesidad de Conexión',
-      'subtitle':
-          'Realiza la evaluación en cualquier lugar. Toda la prueba funciona de forma 100% local.',
-      'icon': 'wifi_off_rounded',
-    },
+  final List<OnboardingItem> _pages = [
+    OnboardingItem(
+      title: 'Tu futuro empieza aquí',
+      description:
+          'Descubre en 5 minutos qué carrera del TecNM Tuxtepec es para ti.',
+      icon: Icons.explore_outlined,
+    ),
+    OnboardingItem(
+      title: 'Aprende sobre ti',
+      description:
+          'Evaluamos tus intereses y habilidades con un divertido test.',
+      icon: Icons.psychology_outlined,
+    ),
+    OnboardingItem(
+      title: 'Logra tus metas',
+      description: 'Evita la deserción y elige el camino que te apasiona.',
+      icon: Icons.emoji_events_outlined,
+    ),
   ];
-
-  IconData _getIconData(String name) {
-    switch (name) {
-      case 'school_rounded':
-        return Icons.school_rounded;
-      case 'analytics_rounded':
-        return Icons.analytics_rounded;
-      case 'wifi_off_rounded':
-        return Icons.wifi_off_rounded;
-      default:
-        return Icons.explore_rounded;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => context.go('/profile-setup'),
-                  child: Text(
-                    'Omitir',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textGrey,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  onPressed: () => context.go('/choose-avatar'),
+                  child: const Text('SALTAR',
+                      style: TextStyle(color: AppColors.textGrey)),
                 ),
               ),
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  itemCount: _slides.length,
+                  onPageChanged: (index) =>
+                      setState(() => _currentIndex = index),
+                  itemCount: _pages.length,
                   itemBuilder: (context, index) {
-                    final slide = _slides[index];
+                    final page = _pages[index];
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 140,
-                          height: 140,
+                          width: 120,
+                          height: 120,
                           decoration: BoxDecoration(
-                            color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primaryGreen.withOpacity(0.15),
-                                blurRadius: 30,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
+                            color: AppColors.primaryGreenLight
+                                .withValues(alpha: 0.2),
                           ),
-                          child: Icon(
-                            _getIconData(slide['icon']!),
-                            size: 70,
-                            color: AppColors.primaryGreen,
-                          ),
+                          child: Icon(page.icon,
+                              size: 60, color: AppColors.primaryGreen),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 32),
                         Text(
-                          slide['title']!,
-                          style: AppTextStyles.titleLarge,
+                          page.title,
                           textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Text(
-                          slide['subtitle']!,
-                          style: AppTextStyles.bodyMedium,
+                          page.description,
                           textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 15, color: AppColors.textGrey),
                         ),
                       ],
                     );
                   },
                 ),
               ),
+
+              // Indicador de Puntos
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  _slides.length,
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                  _pages.length,
+                  (index) => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: _currentIndex == index ? 24 : 8,
                     height: 8,
-                    width: _currentPage == index ? 24 : 8,
                     decoration: BoxDecoration(
-                      color: _currentPage == index
+                      color: _currentIndex == index
                           ? AppColors.primaryGreen
-                          : AppColors.dividerColor,
+                          : AppColors.textLightGrey,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+
               PrimaryButton(
-                text: _currentPage == _slides.length - 1
-                    ? 'Comenzar'
-                    : 'Siguiente',
+                text: _currentIndex == _pages.length - 1
+                    ? '¡Empezar!'
+                    : 'Continuar →',
                 onPressed: () {
-                  if (_currentPage < _slides.length - 1) {
+                  if (_currentIndex < _pages.length - 1) {
                     _pageController.nextPage(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
                     );
                   } else {
-                    context.go('/profile-setup');
+                    context.go('/choose-avatar');
                   }
                 },
               ),
