@@ -1,60 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../test/presentation/pages/test_progress_tree_page.dart';
+import '../../result/presentation/pages/result_unlocked_page.dart';
+import '../../profile/presentation/pages/profile_page.dart';
 
-class PathHomePage extends StatelessWidget {
+class PathHomePage extends ConsumerStatefulWidget {
   const PathHomePage({super.key});
+
   @override
-  Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Inicio'),
-      actions: [
-        IconButton(
-          onPressed: () => c.push('/profile'),
-          icon: const Icon(Icons.person_outline),
-        ),
-        IconButton(
-          onPressed: () => c.push('/settings'),
-          icon: const Icon(Icons.settings_outlined),
-        ),
-      ],
-    ),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        _A(
-          'Realizar test vocacional',
-          Icons.quiz_outlined,
-          () => c.push('/test/intro'),
-        ),
-        _A(
-          'Mis resultados',
-          Icons.insights_outlined,
-          () => c.push('/result/detail'),
-        ),
-        _A('Historial', Icons.history, () => c.push('/history')),
-        _A(
-          'Contacto con el instituto',
-          Icons.contact_mail_outlined,
-          () => c.push('/path/contact'),
-        ),
-        _A('Misiones', Icons.flag_outlined, () => c.push('/path/missions')),
-      ],
-    ),
-  );
+  ConsumerState<PathHomePage> createState() => _PathHomePageState();
 }
 
-class _A extends StatelessWidget {
-  final String t;
-  final IconData i;
-  final VoidCallback f;
-  const _A(this.t, this.i, this.f);
+class _PathHomePageState extends ConsumerState<PathHomePage> {
+  int _currentIndex = 0;
+
+  final List<Widget> _pages = const [
+    TestProgressTreePage(),
+    ResultUnlockedPage(),
+    ProfilePage(),
+  ];
+
   @override
-  Widget build(BuildContext c) => Card(
-    child: ListTile(
-      leading: Icon(i),
-      title: Text(t),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: f,
-    ),
-  );
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: AppColors.primaryGreen,
+        unselectedItemColor: AppColors.textGrey,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
+            label: 'Mapa',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.emoji_events_outlined),
+            activeIcon: Icon(Icons.emoji_events),
+            label: 'Resultados',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
+      ),
+    );
+  }
 }
