@@ -1,27 +1,44 @@
 name: app_vocacional
-description: Aplicación móvil del proyecto de Residencias Profesionales.
-publish_to: none
+description: "Aplicación vocacional offline-first para el TecNM Tuxtepec"
+publish_to: 'none'
 version: 1.0.0+1
+
 environment:
-  sdk: '>=3.12.0 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
+
 dependencies:
   flutter:
     sdk: flutter
-  flutter_riverpod: ^3.4.2
-  go_router: ^18.0.0
-  sqflite: ^2.4.3
-  path: ^1.9.1
-  shared_preferences: ^2.5.5
-  http: ^1.5.0
-  cupertino_icons: ^1.0.8
+
+  # Gestor de estado
+  flutter_riverpod: ^2.5.1
+
+  # Navegación declarativa
+  go_router: ^13.2.0
+
+  # Base de datos local (Offline-first)
+  sqflite: ^2.3.2
+  path: ^1.9.0
+
+  # Almacenamiento clave-valor ligero (Preferencias, Tema)
+  shared_preferences: ^2.2.2
+
+  # Peticiones HTTP para sincronización anónima en segundo plano
+  http: ^1.2.0
+
+  # Tipografía y diseño de Figma
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.10+1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0
+
 flutter:
   uses-material-design: true
+
   assets:
     - assets/images/
     - assets/avatars/
     - assets/icons/
-    - assets/lottie/
