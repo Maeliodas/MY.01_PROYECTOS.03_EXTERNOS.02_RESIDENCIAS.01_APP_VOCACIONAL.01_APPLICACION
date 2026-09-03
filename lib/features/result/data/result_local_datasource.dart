@@ -1,63 +1,60 @@
 import 'dart:convert';
+import 'package:sqflite/sqflite.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/tables.dart';
-import '../../../core/utils/date_utils.dart';
-import '../domain/models/career_match.dart';
-import '../domain/models/riasec_result.dart';
-import '../../../../core/constants/riasec_constants.dart';
 
-class ResultLocalDataSource {
-  final AppDatabase db;
-  ResultLocalDataSource({AppDatabase? database})
-    : db = database ?? AppDatabase.instance;
-  Future<void> save({
-    required String id,
+class ResultLocalDatasource {
+  final AppDatabase _dbProvider = AppDatabase.instance;
+
+  Future<void> saveResult({
     required String sessionId,
-    required RiasecResult result,
-    required List<CareerMatch> careers,
-    required String? openResponse,
-    required Map<String, dynamic> profile,
+    required double scoreR,
+    required double scoreI,
+    required double scoreA,
+    required double scoreS,
+    required double scoreE,
+    required double scoreC,
+    required String hollandCode,
+    required String topCareerId,
+    required String topCareerName,
+    required double topCareerAffinity,
+    required List<Map<String, dynamic>> fullRanking,
   }) async {
-    final d = await db.database;
-    await d.insert(Tables.results, {
-      'id': id,
-      'sessionId': sessionId,
-      'createdAt': AppDateUtils.now(),
-      'riasecJson': jsonEncode(
-        result.scores.map((k, v) => MapEntry(k.code, v)),
-      ),
-      'hollandCode': result.hollandCode,
-      'careersJson': jsonEncode(
-        careers
-            .map(
-              (c) => {'id': c.careerId, 'name': c.careerName, 'score': c.score},
-            )
-            .toList(),
-      ),
-      'openResponse': openResponse,
-      'profileSnapshotJson': jsonEncode(profile),
-    });
+    final db = await _dbProvider.database;
+    await db.insert(
+      DbTables.testResults,
+      {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'session_id': sessionId,
+        'score_r': scoreR,
+        'score_i': scoreI,
+        'score_a': scoreA,
+        'score_s': scoreS,
+        'score_e': scoreE,
+        'score_c': scoreC,
+        'holland_code': hollandCode,
+        'top_career_id': topCareerId,
+        'top_career_name': topCareerName,
+        'top_career_affinity': topCareerAffinity,
+        'full_ranking_json': jsonEncode(fullRanking),
+        'is_synced': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  Future<Map<String, dynamic>?> latest() async {
-    final d = await db.database;
-    final r = await d.query(
-      Tables.results,
-      orderBy: 'createdAt DESC',
+  Future<Map<String, dynamic>?> getLatestResult() async {
+    final db = await _dbProvider.database;
+    final results = await db.query(
+      DbTables.testResults,
+      orderBy: 'created_at DESC',
       limit: 1,
     );
-    return r.isEmpty ? null : _decode(r.first);
-  }
 
-  Future<List<Map<String, dynamic>>> history() async {
-    final d = await db.database;
-    final r = await d.query(Tables.results, orderBy: 'createdAt DESC');
-    return r.map(_decode).toList();
+    if (results.isNotEmpty) {
+      return results.first;
+    }
+    return null;
   }
-
-  Map<String, dynamic> _decode(Map<String, Object?> r) => {
-    ...r,
-    'riasec': jsonDecode(r['riasecJson'] as String),
-    'careers': jsonDecode(r['careersJson'] as String),
-  };
 }

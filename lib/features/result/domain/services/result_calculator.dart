@@ -5,30 +5,99 @@ import '../models/career_match.dart';
 import '../models/riasec_result.dart';
 
 class ResultCalculator {
-  RiasecResult calculate(Map<String, int> answers) {
-    final s = {for (final t in RiasecType.values) t: 0};
-    for (final q in questionsData) {
-      final v = answers[q.id];
-      if (v != null) s[q.dimension] = s[q.dimension]! + v;
-    }
-    return RiasecResult(s);
+  static RiasecResult calculate(Map<int, int> answers) {
+    double r = 0, i = 0, a = 0, s = 0, e = 0, c = 0;
+
+    answers.forEach((qId, val) {
+      final question = QuestionsData.questions.firstWhere((q) => q.id == qId);
+      switch (question.dimension) {
+        case RiasecDimension.realistic:
+          r += val;
+          break;
+        case RiasecDimension.investigative:
+          i += val;
+          break;
+        case RiasecDimension.artistic:
+          a += val;
+          break;
+        case RiasecDimension.social:
+          s += val;
+          break;
+        case RiasecDimension.enterprising:
+          e += val;
+          break;
+        case RiasecDimension.conventional:
+          c += val;
+          break;
+      }
+    });
+
+    final scores = {
+      'R': r,
+      'I': i,
+      'A': a,
+      'S': s,
+      'E': e,
+      'C': c,
+    };
+
+    final sorted = scores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final hollandCode = '${sorted[0].key}${sorted[1].key}${sorted[2].key}';
+
+    return RiasecResult(
+      scoreR: r,
+      scoreI: i,
+      scoreA: a,
+      scoreS: s,
+      scoreE: e,
+      scoreC: c,
+      hollandCode: hollandCode,
+    );
   }
 
-  List<CareerMatch> rank(RiasecResult r) {
-    final list = careersData.map((c) {
-      var n = 0.0, d = 0.0;
-      for (final t in RiasecType.values) {
-        final w = c.weights[t] ?? 0;
-        n += r.percentage(t) * w;
-        d += w;
-      }
-      return CareerMatch(
-        careerId: c.id,
-        careerName: c.name,
-        score: d == 0 ? 0 : n / d,
-      );
-    }).toList();
-    list.sort((a, b) => b.score.compareTo(a.score));
-    return list;
+  static List<CareerMatch> calculateCareerMatches(RiasecResult result) {
+    final matches = <CareerMatch>[];
+
+    for (final career in CareersData.ittuxCareers) {
+      double score = 0;
+      career.riasecWeights.forEach((dim, weight) {
+        switch (dim) {
+          case 'R':
+            score += result.scoreR * weight;
+            break;
+          case 'I':
+            score += result.scoreI * weight;
+            break;
+          case 'A':
+            score += result.scoreA * weight;
+            break;
+          case 'S':
+            score += result.scoreS * weight;
+            break;
+          case 'E':
+            score += result.scoreE * weight;
+            break;
+          case 'C':
+            score += result.scoreC * weight;
+            break;
+        }
+      });
+
+      // Normalizar porcentaje sobre 45 máximo teórico por dimensión
+      final affinity = ((score / 45.0) * 100).clamp(0.0, 100.0);
+
+      matches.add(CareerMatch(
+        careerId: career.id,
+        name: career.name,
+        affinityPercentage: affinity,
+        demandTag: career.demandTag,
+      ));
+    }
+
+    matches
+        .sort((a, b) => b.affinityPercentage.compareTo(a.affinityPercentage));
+    return matches;
   }
 }

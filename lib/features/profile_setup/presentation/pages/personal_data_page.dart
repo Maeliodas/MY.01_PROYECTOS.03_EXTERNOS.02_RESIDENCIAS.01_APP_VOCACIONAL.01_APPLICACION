@@ -1,165 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/avatar_circle.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../avatar/presentation/providers/avatar_provider.dart';
 
-class PersonalDataPage extends StatefulWidget {
+class PersonalDataPage extends ConsumerStatefulWidget {
   const PersonalDataPage({super.key});
 
   @override
-  State<PersonalDataPage> createState() => _PersonalDataPageState();
+  ConsumerState<PersonalDataPage> createState() => _PersonalDataPageState();
 }
 
-class _PersonalDataPageState extends State<PersonalDataPage> {
+class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
-  String _selectedGender = 'Prefiero no decirlo';
-
-  final List<String> _genderOptions = [
-    'Masculino',
-    'Femenino',
-    'Otro',
-    'Prefiero no decirlo',
-  ];
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _ageController.dispose();
-    super.dispose();
-  }
-
-  void _onContinue() {
-    if (_formKey.currentState!.validate()) {
-      context.go('/school-data');
-    }
-  }
+  final _nameController = TextEditingController();
+  final _ageController = TextEditingController();
+  String _selectedGender = 'Masculino';
 
   @override
   Widget build(BuildContext context) {
+    final avatarConfig = ref.watch(avatarProvider);
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Datos Personales', style: AppTextStyles.titleMedium),
-      ),
+      appBar: AppBar(title: const Text('Datos Personales')),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Cuéntanos sobre ti',
-                  style: AppTextStyles.titleLarge,
+                AvatarCircle(
+                  avatarPath: avatarConfig.avatarPath,
+                  radius: 50,
+                  onTap: () => context.pop(),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Esta información permite personalizar tus resultados de prueba.',
-                  style: AppTextStyles.bodyMedium,
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre completo',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) => AppValidators.validateRequired(val,
+                      fieldName: 'El nombre'),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _ageController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Edad',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: AppValidators.validateAge,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedGender,
+                  decoration: const InputDecoration(
+                    labelText: 'Género',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'Masculino', child: Text('Masculino')),
+                    DropdownMenuItem(
+                        value: 'Femenino', child: Text('Femenino')),
+                    DropdownMenuItem(value: 'Otro', child: Text('Otro')),
+                  ],
+                  onChanged: (val) => setState(() => _selectedGender = val!),
                 ),
                 const SizedBox(height: 32),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Nombre Completo',
-                            style: AppTextStyles.bodyLarge
-                                .copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            hintText: 'Ej. Juan Pérez',
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Por favor ingresa tu nombre';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        Text('Edad',
-                            style: AppTextStyles.bodyLarge
-                                .copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _ageController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            hintText: 'Ej. 17',
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Ingresa tu edad';
-                            }
-                            final parsed = int.tryParse(value);
-                            if (parsed == null || parsed < 12 || parsed > 99) {
-                              return 'Ingresa una edad válida';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        Text('Género',
-                            style: AppTextStyles.bodyLarge
-                                .copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedGender,
-                              isExpanded: true,
-                              items: _genderOptions.map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value,
-                                      style: AppTextStyles.bodyLarge),
-                                );
-                              }).toList(),
-                              onChanged: (newValue) {
-                                if (newValue != null) {
-                                  setState(() {
-                                    _selectedGender = newValue;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
                 PrimaryButton(
                   text: 'Siguiente',
-                  onPressed: _onContinue,
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      context.push(
+                        '/school-data',
+                        extra: {
+                          'name': _nameController.text.trim(),
+                          'age': int.parse(_ageController.text.trim()),
+                          'gender': _selectedGender,
+                        },
+                      );
+                    }
+                  },
                 ),
               ],
             ),

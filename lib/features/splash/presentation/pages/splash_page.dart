@@ -1,73 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/constants/app_constants.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _navigateToNext();
+    _checkInitialRoute();
   }
 
-  void _navigateToNext() async {
-    await Future.delayed(
-        const Duration(seconds: AppConstants.splashDelaySeconds));
+  Future<void> _checkInitialRoute() async {
+    await Future.delayed(const Duration(seconds: 2));
+    final profile = await ref.read(profileRepositoryProvider).getProfile();
+
     if (mounted) {
-      context.go('/onboarding');
+      if (profile != null) {
+        context.go('/path-home');
+      } else {
+        context.go('/onboarding');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.backgroundLight,
-              AppColors.backgroundGradientBottom
-            ],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryGreen.withOpacity(0.2),
-                      blurRadius: 25,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.explore_rounded,
-                    size: 60, color: AppColors.primaryGreen),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen,
+                borderRadius: BorderRadius.circular(24),
               ),
-              const SizedBox(height: 25),
-              Text(AppConstants.appName, style: AppTextStyles.titleLarge),
-              const SizedBox(height: 5),
-              Text('DESCUBRE TU CAMINO',
-                  style: AppTextStyles.badgeText.copyWith(letterSpacing: 1.5)),
-            ],
-          ),
+              child: const Icon(Icons.explore, size: 60, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Aevum Iter',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const Text(
+              'DESCUBRE TU CAMINO',
+              style: TextStyle(
+                  fontSize: 12, letterSpacing: 1.5, color: AppColors.textGrey),
+            ),
+          ],
         ),
       ),
     );

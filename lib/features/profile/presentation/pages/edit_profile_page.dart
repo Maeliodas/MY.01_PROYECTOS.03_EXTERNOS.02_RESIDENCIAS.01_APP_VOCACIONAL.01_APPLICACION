@@ -1,62 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../providers/profile_provider.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
+
   @override
-  ConsumerState<EditProfilePage> createState() => _S();
+  ConsumerState<EditProfilePage> createState() => _EditProfilePageState();
 }
 
-class _S extends ConsumerState<EditProfilePage> {
-  final name = TextEditingController();
-  bool init = false;
+class _EditProfilePageState extends ConsumerState<EditProfilePage> {
+  late TextEditingController _nameController;
+  late TextEditingController _schoolController;
+
   @override
-  void dispose() {
-    name.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    final profile = ref.read(profileProvider);
+    _nameController = TextEditingController(text: profile?.name ?? '');
+    _schoolController = TextEditingController(text: profile?.school ?? '');
   }
 
   @override
-  Widget build(BuildContext c) {
-    final p = ref.watch(profileProvider);
-    if (!init && p.hasValue && p.value != null) {
-      name.text = p.value!.name;
-      init = true;
-    }
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar perfil')),
-      body: p.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Text('$e'),
-        data: (x) => x == null
-            ? const Text('Perfil no disponible')
-            : Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: name,
-                      decoration: const InputDecoration(labelText: 'Nombre'),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () async {
-                          await ref
-                              .read(profileRepositoryProvider)
-                              .save(x.copyWith(name: name.text.trim()));
-                          ref.invalidate(profileProvider);
-                          if (c.mounted) c.go('/profile');
-                        },
-                        child: const Text('Guardar cambios'),
-                      ),
-                    ),
-                  ],
-                ),
+      appBar: AppBar(title: const Text('Editar Perfil')),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Nombre',
+                border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _schoolController,
+              decoration: const InputDecoration(
+                labelText: 'Escuela',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 32),
+            PrimaryButton(
+              text: 'Guardar Cambios',
+              onPressed: () async {
+                final current = ref.read(profileProvider);
+                if (current != null) {
+                  final updated = UserProfile(
+                    id: current.id,
+                    name: _nameController.text,
+                    age: current.age,
+                    gender: current.gender,
+                    school: _schoolController.text,
+                    speaksLanguages: current.speaksLanguages,
+                    languagesList: current.languagesList,
+                    avatarConfig: current.avatarConfig,
+                    createdAt: current.createdAt,
+                  );
+                  await ref.read(profileProvider.notifier).saveProfile(updated);
+                  if (context.mounted) context.pop();
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

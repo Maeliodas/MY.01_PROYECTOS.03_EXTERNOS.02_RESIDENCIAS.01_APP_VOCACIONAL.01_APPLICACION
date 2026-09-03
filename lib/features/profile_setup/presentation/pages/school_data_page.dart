@@ -1,143 +1,110 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/widgets/primary_button.dart';
 
-class SchoolDataPage extends StatefulWidget {
+import '../../../../core/widgets/primary_button.dart';
+import '../../../avatar/presentation/providers/avatar_provider.dart';
+import '../../profile/domain/entities/user_profile.dart';
+import '../../profile/presentation/providers/profile_provider.dart';
+
+class SchoolDataPage extends ConsumerStatefulWidget {
   const SchoolDataPage({super.key});
 
   @override
-  State<SchoolDataPage> createState() => _SchoolDataPageState();
+  ConsumerState<SchoolDataPage> createState() => _SchoolDataPageState();
 }
 
-class _SchoolDataPageState extends State<SchoolDataPage> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _schoolController = TextEditingController();
-  String _selectedLanguage = 'Español';
+class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
+  final _schoolController = TextEditingController();
+  bool _speaksLanguages = false;
+  final List<String> _selectedLanguages = [];
 
-  final List<String> _languageOptions = [
-    'Español',
+  final List<String> _predefinedLanguages = [
     'Chinanteco',
     'Mazateco',
     'Zapoteco',
     'Mixe',
-    'Otro',
+    'Inglés',
   ];
 
   @override
-  void dispose() {
-    _schoolController.dispose();
-    super.dispose();
-  }
-
-  void _onContinue() {
-    if (_formKey.currentState!.validate()) {
-      context.go('/choose-avatar');
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final extraData =
+        GoRouterState.of(context).extra as Map<String, dynamic>? ?? {};
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Procedencia', style: AppTextStyles.titleMedium),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.primaryGreen, size: 20),
-          onPressed: () => context.go('/profile-setup'),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Datos Escolares')),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Origen Académico',
-                  style: AppTextStyles.titleLarge,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _schoolController,
+                decoration: const InputDecoration(
+                  labelText: 'Escuela de procedencia',
+                  border: OutlineInputBorder(),
+                  hintText: 'Ej. CBTis 107, COBAO 07',
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Datos estadísticos para el análisis de cobertura de la institución.',
-                  style: AppTextStyles.bodyMedium,
-                ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Escuela de Procedencia',
-                            style: AppTextStyles.bodyLarge
-                                .copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _schoolController,
-                          decoration: InputDecoration(
-                            hintText: 'Ej. CBTis 107 / COBAO 07',
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Por favor ingresa tu escuela de procedencia';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        Text('Lengua Materna / Originaria',
-                            style: AppTextStyles.bodyLarge
-                                .copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedLanguage,
-                              isExpanded: true,
-                              items: _languageOptions.map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value,
-                                      style: AppTextStyles.bodyLarge),
-                                );
-                              }).toList(),
-                              onChanged: (newValue) {
-                                if (newValue != null) {
-                                  setState(() {
-                                    _selectedLanguage = newValue;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                PrimaryButton(
-                  text: 'Siguiente',
-                  onPressed: _onContinue,
+              ),
+              const SizedBox(height: 24),
+              SwitchListTile(
+                title:
+                    const Text('¿Hablas alguna lengua materna o extranjera?'),
+                value: _speaksLanguages,
+                onChanged: (val) => setState(() => _speaksLanguages = val),
+              ),
+              if (_speaksLanguages) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  children: _predefinedLanguages.map((lang) {
+                    final isSelected = _selectedLanguages.contains(lang);
+                    return FilterChip(
+                      label: Text(lang),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedLanguages.add(lang);
+                          } else {
+                            _selectedLanguages.remove(lang);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
               ],
-            ),
+              const SizedBox(height: 32),
+              PrimaryButton(
+                text: 'Guardar y Comenzar Test',
+                onPressed: () async {
+                  final avatarConfig = ref.read(avatarProvider);
+                  final userProfile = UserProfile(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    name: extraData['name'] ?? 'Aspirante',
+                    age: extraData['age'] ?? 18,
+                    gender: extraData['gender'] ?? 'Otro',
+                    school: _schoolController.text.trim().isEmpty
+                        ? 'No especificada'
+                        : _schoolController.text.trim(),
+                    speaksLanguages: _speaksLanguages,
+                    languagesList: _selectedLanguages,
+                    avatarConfig: avatarConfig,
+                    createdAt: DateTime.now(),
+                  );
+
+                  await ref
+                      .read(profileProvider.notifier)
+                      .saveProfile(userProfile);
+                  if (context.mounted) {
+                    context.go('/test-intro');
+                  }
+                },
+              ),
+            ],
           ),
         ),
       ),

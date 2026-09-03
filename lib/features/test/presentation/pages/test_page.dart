@@ -1,87 +1,96 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_constants.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/app_slider.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/progress_header.dart';
+import '../../data/questions_data.dart';
 import '../providers/test_provider.dart';
 
 class TestPage extends ConsumerStatefulWidget {
   const TestPage({super.key});
+
   @override
-  ConsumerState<TestPage> createState() => _S();
+  ConsumerState<TestPage> createState() => _TestPageState();
 }
 
-class _S extends ConsumerState<TestPage> {
-  bool loading = true;
-  int index = 0;
-  int? value;
-  String? sid;
-  List<dynamic> qs = [];
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (loading) _load();
-  }
-
-  Future<void> _load() async {
-    sid = GoRouterState.of(context).uri.queryParameters['session'];
-    final s = await ref.read(testRepositoryProvider).active();
-    if (s == null || s.id != sid) {
-      if (mounted) context.go('/test/intro');
-      return;
-    }
-    final all = await ref.read(testRepositoryProvider).questions();
-    qs = s.questionOrder
-        .map((id) => all.firstWhere((q) => q.id == id))
-        .toList();
-    index = s.currentIndex.clamp(0, qs.length - 1);
-    value = await ref.read(testRepositoryProvider).answer(s.id, qs[index].id);
-    if (mounted) setState(() => loading = false);
-  }
-
-  Future<void> _next() async {
-    if (value == null) return;
-    final repo = ref.read(testRepositoryProvider);
-    await repo.saveAnswer(sid!, qs[index].id, value!, index);
-    if (index == AppConstants.testQuestionCount - 1) {
-      await repo.complete(sid!);
-      if (mounted) context.go('/test/open-question?session=$sid');
-      return;
-    }
-    index++;
-    await repo.position(sid!, index);
-    value = await repo.answer(sid!, qs[index].id);
-    if (mounted) setState(() {});
-  }
+class _TestPageState extends ConsumerState<TestPage> {
+  double _sliderValue = 5.0;
 
   @override
-  Widget build(BuildContext c) {
-    if (loading) {
+  Widget build(BuildContext context) {
+    final testState = ref.watch(testProvider);
+    if (testState.session == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final q = qs[index];
+
+    final questionId = testState.session!.questionOrder[testState.currentIndex];
+    final question =
+        QuestionsData.questions.firstWhere((q) => q.id == questionId);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Test vocacional')),
+      appBar: AppBar(
+        title: const Text('Aevum Iter'),
+        actions: [
+          // Botón obligatorio para guardar progreso
+          IconButton(
+            icon:
+                const Icon(Icons.save_outlined, color: AppColors.primaryGreen),
+            onPressed: () {
+              context.go('/path-home');
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ProgressHeader(current: index + 1, total: 30),
-              const SizedBox(height: 40),
-              Text(q.text, style: Theme.of(c).textTheme.headlineSmall),
+              ProgressHeader(
+                currentStep: testState.currentIndex + 1,
+                totalSteps: 30,
+              ),
               const Spacer(),
-              AppSlider(
-                value: value,
-                onChanged: (v) => setState(() => value = v),
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        question.text,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 32),
+                      AppSlider(
+                        value: _sliderValue,
+                        onChanged: (val) => setState(() => _sliderValue = val),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const Spacer(),
               PrimaryButton(
-                label: index == 29 ? 'Finalizar' : 'Siguiente',
-                onPressed: value == null ? null : _next,
+                text: 'Continuar',
+                onPressed: () async {
+                  final notifier = ref.read(testProvider.notifier);
+                  await notifier.answerQuestion(
+                      question.id, _sliderValue.round());
+
+                  if (testState.currentIndex < 29) {
+                    notifier.nextQuestion();
+                    setState(() => _sliderValue = 5.0);
+                  } else {
+                    context.go('/open-question');
+                  }
+                },
               ),
             ],
           ),
