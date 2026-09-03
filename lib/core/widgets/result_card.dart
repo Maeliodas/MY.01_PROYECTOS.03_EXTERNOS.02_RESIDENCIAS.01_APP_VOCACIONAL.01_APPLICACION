@@ -22,7 +22,6 @@ class ResultCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        onRadius: 16,
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
@@ -43,15 +42,17 @@ class ResultCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryGreenLight.withOpacity(0.2),
+                        color:
+                            AppColors.primaryGreenLight.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         demandTag,
                         style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryGreenDark),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreenDark,
+                        ),
                       ),
                     ),
                   ],
@@ -63,13 +64,15 @@ class ResultCard extends StatelessWidget {
                   Text(
                     '${affinityPercentage.round()}%',
                     style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryGreen),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryGreen,
+                    ),
                   ),
-                  const Text('Afinidad',
-                      style:
-                          TextStyle(fontSize: 10, color: AppColors.textGrey)),
+                  const Text(
+                    'Afinidad',
+                    style: TextStyle(fontSize: 10, color: AppColors.textGrey),
+                  ),
                 ],
               ),
             ],
