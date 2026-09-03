@@ -1,41 +1,41 @@
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import '../constants/app_constants.dart';
 import 'tables.dart';
 
 class AppDatabase {
-  AppDatabase._();
-  static final instance = AppDatabase._();
-  Database? _db;
+  static final AppDatabase instance = AppDatabase._init();
+  static Database? _database;
+
+  AppDatabase._init();
+
   Future<Database> get database async {
-    if (_db != null) return _db!;
-    final dir = await getDatabasesPath();
-    _db = await openDatabase(
-      p.join(dir, 'app_vocacional.db'),
-      version: 1,
-      onCreate: (db, v) async {
-        await db.execute(
-          'CREATE TABLE ${Tables.profile}(id INTEGER PRIMARY KEY,name TEXT NOT NULL,age INTEGER,gender TEXT,schoolId TEXT,schoolNameSnapshot TEXT,languageIds TEXT,languageNamesSnapshot TEXT,otherLanguage TEXT,avatarId TEXT,updatedAt TEXT NOT NULL)',
-        );
-        await db.execute(
-          'CREATE TABLE ${Tables.schools}(id TEXT PRIMARY KEY,name TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,updatedAt TEXT NOT NULL)',
-        );
-        await db.execute(
-          'CREATE TABLE ${Tables.languages}(id TEXT PRIMARY KEY,name TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,updatedAt TEXT NOT NULL)',
-        );
-        await db.execute(
-          'CREATE TABLE ${Tables.testSessions}(id TEXT PRIMARY KEY,startedAt TEXT NOT NULL,completedAt TEXT,questionOrder TEXT NOT NULL,currentIndex INTEGER NOT NULL DEFAULT 0,openResponse TEXT,status TEXT NOT NULL)',
-        );
-        await db.execute(
-          'CREATE TABLE ${Tables.answers}(id INTEGER PRIMARY KEY AUTOINCREMENT,sessionId TEXT NOT NULL,questionId TEXT NOT NULL,value INTEGER,position INTEGER NOT NULL,updatedAt TEXT NOT NULL,UNIQUE(sessionId,questionId))',
-        );
-        await db.execute(
-          'CREATE TABLE ${Tables.results}(id TEXT PRIMARY KEY,sessionId TEXT NOT NULL,createdAt TEXT NOT NULL,riasecJson TEXT NOT NULL,hollandCode TEXT NOT NULL,careersJson TEXT NOT NULL,openResponse TEXT,profileSnapshotJson TEXT NOT NULL)',
-        );
-        await db.execute(
-          'CREATE TABLE ${Tables.syncQueue}(id INTEGER PRIMARY KEY AUTOINCREMENT,entityType TEXT NOT NULL,entityId TEXT NOT NULL,payloadJson TEXT NOT NULL,createdAt TEXT NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,lastError TEXT)',
-        );
-      },
+    if (_database != null) return _database!;
+    _database = await _initDB(AppConstants.dbName);
+    return _database!;
+  }
+
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
+    return await openDatabase(
+      path,
+      version: AppConstants.dbVersion,
+      onCreate: _createDB,
     );
-    return _db!;
+  }
+
+  Future<void> _createDB(Database db, int version) async {
+    await db.execute(Tables.createUserProfileTable);
+    await db.execute(Tables.createTestSessionsTable);
+    await db.execute(Tables.createTestAnswersTable);
+    await db.execute(Tables.createTestResultsTable);
+    await db.execute(Tables.createSyncQueueTable);
+  }
+
+  Future<void> close() async {
+    final db = await instance.database;
+    db.close();
   }
 }

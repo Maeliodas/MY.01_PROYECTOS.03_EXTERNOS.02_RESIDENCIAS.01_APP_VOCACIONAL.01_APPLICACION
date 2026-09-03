@@ -1,10 +1,7 @@
-class AppConstants {
-  static const testQuestionCount = 30;
-  static const questionsPerDimension = 5;
-  static const minSliderValue = 0;
-  static const maxSliderValue = 9;
-  static const analyticsApiBaseUrl = String.fromEnvironment(
-    'ANALYTICS_API_BASE_URL',
-    defaultValue: '',
-  );
+abstract class AppConstants {
+  static const String appName = 'Aevum Iter';
+  static const int splashDelaySeconds = 2;
+  static const int totalTestQuestions = 30;
+  static const String dbName = 'aevum_iter.db';
+  static const int dbVersion = 1;
 }

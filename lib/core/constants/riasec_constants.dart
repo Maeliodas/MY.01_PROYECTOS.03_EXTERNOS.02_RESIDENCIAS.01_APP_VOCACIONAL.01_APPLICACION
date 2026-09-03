@@ -1,20 +1,20 @@
-enum RiasecType {
-  realistic,
-  investigative,
-  artistic,
-  social,
-  enterprising,
-  conventional,
-}
+enum RiasecDimension {
+  R('Realistic', 'Realista',
+      'Preferencia por trabajo práctico, objetos, herramientas y exteriores.'),
+  I('Investigative', 'Investigador',
+      'Interés en resolver problemas abstractos y análisis científico.'),
+  A('Artistic', 'Artístico',
+      'Inclinación por la expresión creativa, diseño y formas estéticas.'),
+  S('Social', 'Social',
+      'Enfoque en ayudar, enseñar, orientar y colaborar con otros.'),
+  E('Enterprising', 'Emprendedor',
+      'Gusto por el liderazgo, la persuasión, negocios y proyectos.'),
+  C('Conventional', 'Convencional',
+      'Preferencia por el orden, datos, procesos y estructuras claras.');
 
-extension RiasecTypeX on RiasecType {
-  String get code => ['R', 'I', 'A', 'S', 'E', 'C'][index];
-  String get name => [
-    'Realista',
-    'Investigador',
-    'Artístico',
-    'Social',
-    'Emprendedor',
-    'Convencional',
-  ][index];
+  final String code;
+  final String labelEs;
+  final String description;
+
+  const RiasecDimension(this.code, this.labelEs, this.description);
 }

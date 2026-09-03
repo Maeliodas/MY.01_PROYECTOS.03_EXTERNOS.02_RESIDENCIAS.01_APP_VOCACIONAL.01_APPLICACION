@@ -1,12 +1,45 @@
 import 'package:flutter/material.dart';
+import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 
 class PrimaryButton extends StatelessWidget {
-  final String label;
+  final String text;
   final VoidCallback? onPressed;
-  const PrimaryButton({super.key, required this.label, this.onPressed});
+  final bool isLoading;
+
+  const PrimaryButton({
+    super.key,
+    required this.text,
+    required this.onPressed,
+    this.isLoading = false,
+  });
+
   @override
-  Widget build(BuildContext c) => SizedBox(
-    width: double.infinity,
-    child: FilledButton(onPressed: onPressed, child: Text(label)),
-  );
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryGreen,
+          disabledBackgroundColor: AppColors.primaryGreen.withOpacity(0.4),
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shadowColor: AppColors.primaryGreen.withOpacity(0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100), // Píldora exacta de Figma
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2.5),
+              )
+            : Text(text, style: AppTextStyles.buttonText),
+      ),
+    );
+  }
 }

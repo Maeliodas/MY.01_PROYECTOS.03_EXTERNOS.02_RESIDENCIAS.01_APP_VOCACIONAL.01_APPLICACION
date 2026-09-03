@@ -1,31 +1,34 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
+import 'app_text_styles.dart';
 
-class AppTheme {
-  static ThemeData light() {
-    final s = ColorScheme.fromSeed(seedColor: AppColors.primary);
+abstract class AppTheme {
+  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: s,
-      scaffoldBackgroundColor: AppColors.surface,
-      inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
+      scaffoldBackgroundColor: AppColors.backgroundLight,
+      primaryColor: AppColors.primaryGreen,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primaryGreen,
+        primary: AppColors.primaryGreen,
+        surface: AppColors.cardBackground,
+        background: AppColors.backgroundLight,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: IconThemeData(color: AppColors.primaryGreen),
+      ),
+      textTheme: TextTheme(
+        headlineLarge: AppTextStyles.titleLarge,
+        headlineMedium: AppTextStyles.titleMedium,
+        titleMedium: AppTextStyles.subtitle,
+        bodyLarge: AppTextStyles.bodyLarge,
+        bodyMedium: AppTextStyles.bodyMedium,
       ),
     );
   }
 
-  static ThemeData dark() {
-    final s = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: Brightness.dark,
-    );
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: s,
-      scaffoldBackgroundColor: AppColors.darkSurface,
-      inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
-      ),
-    );
-  }
+  static ThemeData get darkTheme => lightTheme;
 }
