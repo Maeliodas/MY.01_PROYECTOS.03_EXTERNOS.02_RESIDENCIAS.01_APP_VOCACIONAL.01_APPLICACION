@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
 
 class AppSlider extends StatelessWidget {
   final double value;
@@ -16,58 +15,65 @@ class AppSlider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Icon(Icons.thumb_down_alt_outlined,
-                color: AppColors.textGrey, size: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundLight,
-                borderRadius: BorderRadius.circular(16),
+        // Indicador numérico circular según Figma
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            border: Border.all(color: AppColors.primaryGreen, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
               ),
-              child: Text(
-                value.toInt().toString(),
-                style: AppTextStyles.titleMedium
-                    .copyWith(color: AppColors.primaryGreen),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              '${value.round()}',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryGreen,
               ),
             ),
-            const Icon(Icons.thumb_up_alt_outlined,
-                color: AppColors.textGrey, size: 24),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Slider con etiquetas
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: const [
+            Text('NADA',
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textLightGrey)),
+            Text('MUCHO',
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textLightGrey)),
           ],
         ),
-        const SizedBox(height: 15),
         SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 6,
+          data: SliderThemeData(
             activeTrackColor: AppColors.primaryGreen,
-            inactiveTrackColor: AppColors.dividerColor,
+            inactiveTrackColor: AppColors.primaryGreenLight.withOpacity(0.3),
             thumbColor: AppColors.primaryGreen,
             overlayColor: AppColors.primaryGreen.withOpacity(0.2),
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-            tickMarkShape: const RoundSliderTickMarkShape(tickMarkRadius: 2),
+            trackHeight: 6,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
           ),
           child: Slider(
             value: value,
-            min: 0.0,
-            max: 9.0,
+            min: 0,
+            max: 9,
             divisions: 9,
             onChanged: onChanged,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('NADA',
-                  style: AppTextStyles.badgeText
-                      .copyWith(color: AppColors.textGrey)),
-              Text('MUCHO',
-                  style: AppTextStyles.badgeText
-                      .copyWith(color: AppColors.textGrey)),
-            ],
           ),
         ),
       ],

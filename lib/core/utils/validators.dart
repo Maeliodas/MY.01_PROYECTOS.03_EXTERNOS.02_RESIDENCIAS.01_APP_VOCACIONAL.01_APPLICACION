@@ -1,18 +1,18 @@
-abstract class Validators {
-  static String? validateRequired(String? value, {String fieldName = 'campo'}) {
+abstract class AppValidators {
+  static String? validateRequired(String? value, {String? fieldName}) {
     if (value == null || value.trim().isEmpty) {
-      return 'El $fieldName es requerido.';
+      return '${fieldName ?? "Este campo"} es obligatorio';
     }
     return null;
   }
 
   static String? validateAge(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Por favor ingresa tu edad.';
+      return 'Ingresa tu edad';
     }
     final age = int.tryParse(value);
     if (age == null || age < 12 || age > 99) {
-      return 'Ingresa una edad válida (12-99 años).';
+      return 'Ingresa una edad válida (12-99)';
     }
     return null;
   }

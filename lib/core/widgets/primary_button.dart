@@ -6,39 +6,49 @@ class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
+  final IconData? icon;
 
   const PrimaryButton({
     super.key,
     required this.text,
     required this.onPressed,
     this.isLoading = false,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 55,
+      height: 54,
       child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryGreen,
-          disabledBackgroundColor: AppColors.primaryGreen.withOpacity(0.4),
-          foregroundColor: AppColors.cardBackground,
-          elevation: 4,
-          shadowColor: AppColors.primaryGreen.withOpacity(0.3),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: AppColors.primaryGreen.withOpacity(0.5),
+          elevation: 2,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100),
+            borderRadius: BorderRadius.circular(28),
           ),
         ),
+        onPressed: isLoading ? null : onPressed,
         child: isLoading
             ? const SizedBox(
-                height: 24,
                 width: 24,
+                height: 24,
                 child: CircularProgressIndicator(
-                    color: AppColors.cardBackground, strokeWidth: 2.5),
+                    color: Colors.white, strokeWidth: 2.5),
               )
-            : Text(text, style: AppTextStyles.buttonText),
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(text, style: AppTextStyles.buttonText),
+                  if (icon != null) ...[
+                    const SizedBox(width: 8),
+                    Icon(icon, color: Colors.white, size: 20),
+                  ],
+                ],
+              ),
       ),
     );
   }

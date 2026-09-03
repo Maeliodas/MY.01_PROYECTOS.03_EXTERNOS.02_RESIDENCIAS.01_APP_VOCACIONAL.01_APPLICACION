@@ -1,70 +1,55 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
 
 class ProgressHeader extends StatelessWidget {
-  final int currentIndex;
-  final int total;
-  final VoidCallback? onBackPressed;
-  final VoidCallback? onMapPressed;
+  final int currentStep;
+  final int totalSteps;
 
   const ProgressHeader({
     super.key,
-    required this.currentIndex,
-    required this.total,
-    this.onBackPressed,
-    this.onMapPressed,
+    required this.currentStep,
+    required this.totalSteps,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (currentIndex + 1) / total;
+    final progress = currentStep / totalSteps;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.primaryGreen, size: 20),
-              onPressed: onBackPressed,
+            const Text(
+              'PROGRESO VOCACIONAL',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+                color: AppColors.textGrey,
+              ),
             ),
-            Row(
-              children: [
-                Text('PROGRESO VOCACIONAL ',
-                    style: AppTextStyles.badgeText
-                        .copyWith(color: AppColors.textGrey)),
-                Text('ETAPA ${currentIndex + 1} DE $total',
-                    style: AppTextStyles.badgeText
-                        .copyWith(color: AppColors.primaryGreen)),
-              ],
-            ),
-            IconButton(
-              icon: const Icon(Icons.map_outlined,
-                  color: AppColors.primaryGreen, size: 22),
-              onPressed: onMapPressed,
+            Text(
+              'ETAPA $currentStep DE $totalSteps',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+                color: AppColors.textGrey,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        Container(
-          height: 8,
-          decoration: BoxDecoration(
-            color: AppColors.dividerColor,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: progress.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor: AppColors.primaryGreenLight.withOpacity(0.2),
+            valueColor:
+                const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
           ),
         ),
       ],

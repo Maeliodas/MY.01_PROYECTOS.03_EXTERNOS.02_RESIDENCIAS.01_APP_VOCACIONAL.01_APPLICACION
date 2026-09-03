@@ -1,10 +1,38 @@
 import 'package:flutter/material.dart';
+import '../../app/theme/app_colors.dart';
 
 class AvatarCircle extends StatelessWidget {
-  final String id;
+  final String avatarPath;
   final double radius;
-  const AvatarCircle({super.key, required this.id, this.radius = 32});
+  final VoidCallback? onTap;
+
+  const AvatarCircle({
+    super.key,
+    required this.avatarPath,
+    this.radius = 40,
+    this.onTap,
+  });
+
   @override
-  Widget build(BuildContext c) =>
-      CircleAvatar(radius: radius, child: Text(id.isEmpty ? '?' : id));
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: CircleAvatar(
+        radius: radius + 2,
+        backgroundColor: AppColors.primaryGreen,
+        child: CircleAvatar(
+          radius: radius,
+          backgroundColor: Colors.white,
+          backgroundImage: avatarPath.startsWith('assets/')
+              ? AssetImage(avatarPath) as ImageProvider
+              : NetworkImage(avatarPath),
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.person,
+            size: radius,
+            color: AppColors.primaryGreen,
+          ),
+        ),
+      ),
+    );
+  }
 }
