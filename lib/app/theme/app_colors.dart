@@ -1,29 +1,28 @@
 import 'package:flutter/material.dart';
 
-abstract class AppColors {
-  // Verdes Institucionales y Gradientes Figma
-  static const Color primaryGreen = Color(0xFF67A94F);
-  static const Color primaryGreenDark = Color(0xFF488A36);
-  static const Color primaryGreenLight = Color(0xFF8DC675);
+class AppColors {
+  // Verdes principales (Figma UI)
+  static const Color primary = Color(0xFF76C81A);
+  static const Color primaryDark = Color(0xFF5A9E10);
+  static const Color primaryLight = Color(0xFFE3F4C9);
 
-  // Fondos Pastel (Modo Claro)
-  static const Color backgroundLight = Color(0xFFF0F8F1);
-  static const Color cardBackground = Colors.white;
+  // Fondos Pastel
+  static const Color background = Color(0xFFF3F7EC);
+  static const Color cardBackground = Color(0xFFFFFFFF);
 
-  // Fondos Modo Oscuro
-  static const Color backgroundDark = Color(0xFF121212);
-  static const Color cardBackgroundDark = Color(0xFF1E1E1E);
+  // Acentos de Tarjetas de Carreras y Tags
+  static const Color accentBlue = Color(0xFF3880B8);
+  static const Color lightBlueMatch = Color(0xFFD6EEFF);
+  static const Color textBlueMatch = Color(0xFF1D6DA4);
 
-  // Textos
-  static const Color textBlack = Color(0xFF1D1D1D);
-  static const Color textWhite = Color(0xFFF5F5F5);
-  static const Color textGrey = Color(0xFF757575);
-  static const Color textLightGrey = Color(0xFFA5A5A5);
+  static const Color accentPurple = Color(0xFF9D65E6);
+  static const Color lightPurpleMatch = Color(0xFFF1E8FF);
+  static const Color textPurpleMatch = Color(0xFF7A3EBF);
 
-  // Acentos de Tarjetas de Resultados
-  static const Color accentPurple = Color(0xFF8B5CF6);
-  static const Color accentBlue = Color(0xFF3B82F6);
-
-  static const Color dividerColor = Color(0xFFE5E7EB);
-  static const Color shadowColor = Color(0x0D000000);
+  // Grises y Textos
+  static const Color textPrimary = Color(0xFF1F2937);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color borderGray = Color(0xFFE5E7EB);
+  static const Color destructiveRed = Color(0xFFDC2626);
+  static const Color logoutBg = Color(0xFFFEE2E2);
 }

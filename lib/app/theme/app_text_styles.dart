@@ -1,55 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-abstract class AppTextStyles {
-  static TextStyle titleLarge(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 26,
-        fontWeight: FontWeight.bold,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.textWhite
-            : AppColors.textBlack,
-        height: 1.2,
-      );
+class AppTextStyles {
+  static const TextStyle titleLarge = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: AppColors.textPrimary,
+  );
 
-  static TextStyle titleMedium(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.textWhite
-            : AppColors.textBlack,
-        height: 1.3,
-      );
+  static const TextStyle titleMedium = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    color: AppColors.textPrimary,
+  );
 
-  static TextStyle subtitle(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textGrey,
-      );
+  static const TextStyle body = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textPrimary,
+  );
 
-  static TextStyle bodyLarge(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 16,
-        fontWeight: FontWeight.normal,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.textWhite
-            : AppColors.textBlack,
-      );
+  static const TextStyle caption = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textSecondary,
+  );
 
-  static TextStyle bodyMedium(BuildContext context) => GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-        color: AppColors.textGrey,
-      );
-
-  static TextStyle get buttonText => GoogleFonts.poppins(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-      );
-
-  static TextStyle get badgeText => GoogleFonts.poppins(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: AppColors.primaryGreen,
-      );
+  static const TextStyle badgeText = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+  );
 }
