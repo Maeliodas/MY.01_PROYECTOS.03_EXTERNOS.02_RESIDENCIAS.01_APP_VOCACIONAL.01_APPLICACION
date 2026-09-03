@@ -20,8 +20,9 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Incrementado de 1 a 2
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -33,8 +34,17 @@ class AppDatabase {
     await db.execute(DbQueries.createSyncQueueTable);
   }
 
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Migración para bases de datos existentes creadas en versión 1
+      await db.execute(
+        'ALTER TABLE ${DbTables.userProfile} ADD COLUMN school TEXT NOT NULL DEFAULT "No especificada";',
+      );
+    }
+  }
+
   Future<void> close() async {
     final db = await instance.database;
-    db.close();
+    await db.close();
   }
 }
