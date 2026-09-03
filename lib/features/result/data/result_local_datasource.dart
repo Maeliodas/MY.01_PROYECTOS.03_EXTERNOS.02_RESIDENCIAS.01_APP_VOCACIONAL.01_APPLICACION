@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/tables.dart';
@@ -58,3 +59,8 @@ class ResultLocalDatasource {
     return null;
   }
 }
+
+// Declaración del provider global expuesto para el feature 'result'
+final resultDatasourceProvider = Provider<ResultLocalDatasource>((ref) {
+  return ResultLocalDatasource();
+});

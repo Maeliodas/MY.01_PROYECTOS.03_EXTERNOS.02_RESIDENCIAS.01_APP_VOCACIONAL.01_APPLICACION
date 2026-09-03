@@ -1,4 +1,4 @@
-import '../../avatar/domain/models/avatar_config.dart';
+import '../../../avatar/domain/models/avatar_config.dart';
 
 class UserProfile {
   final String id;

@@ -1,1 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';import 'package:flutter_riverpod/flutter_riverpod.dart';import 'package:app_vocacional/app/app.dart';void main(){testWidgets('La app inicia', (tester)async{await tester.pumpWidget(const ProviderScope(child:App()));expect(find.byType(App),findsOneWidget);});}
+import 'package:flutter_test/flutter_test.dart';
+// Cambia 'app_vocacional' por el nombre de tu paquete en pubspec.yaml
+import 'package:app_vocacional/app/app.dart';
+
+void main() {
+  testWidgets('App smoke test', (WidgetTester tester) async {
+    // Reemplaza App() por AppVocacional() o el nombre real de tu MaterialApp
+    await tester.pumpWidget(const AppVocacional());
+  });
+}

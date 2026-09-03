@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+
+// Importación del tema
 import '../../../../app/theme/app_colors.dart';
-import '../../test/presentation/pages/test_progress_tree_page.dart';
-import '../../result/presentation/pages/result_unlocked_page.dart';
-import '../../profile/presentation/pages/profile_page.dart';
+
+// Importaciones con ruta relativa ajustada correctamente (subiendo 4 niveles a la raíz de 'features')
+import '../../../test/presentation/pages/test_progress_tree_page.dart';
+import '../../../result/presentation/pages/result_unlocked_page.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
+
+// NOTA: Se eliminó 'go_router' porque no se utiliza en este archivo.
 
 class PathHomePage extends ConsumerStatefulWidget {
   const PathHomePage({super.key});

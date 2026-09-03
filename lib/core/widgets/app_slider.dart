@@ -25,7 +25,7 @@ class AppSlider extends StatelessWidget {
             border: Border.all(color: AppColors.primaryGreen, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
@@ -44,9 +44,9 @@ class AppSlider extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         // Slider con etiquetas
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
+          children: [
             Text('NADA',
                 style: TextStyle(
                     fontSize: 10,
@@ -62,9 +62,9 @@ class AppSlider extends StatelessWidget {
         SliderTheme(
           data: SliderThemeData(
             activeTrackColor: AppColors.primaryGreen,
-            inactiveTrackColor: AppColors.primaryGreenLight.withOpacity(0.3),
+            inactiveTrackColor: AppColors.primaryGreenLight.withValues(alpha: 0.3),
             thumbColor: AppColors.primaryGreen,
-            overlayColor: AppColors.primaryGreen.withOpacity(0.2),
+            overlayColor: AppColors.primaryGreen.withValues(alpha: 0.2),
             trackHeight: 6,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
           ),

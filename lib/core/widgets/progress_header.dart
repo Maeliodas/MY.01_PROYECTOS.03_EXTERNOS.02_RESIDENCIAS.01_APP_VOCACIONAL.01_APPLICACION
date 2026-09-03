@@ -47,7 +47,7 @@ class ProgressHeader extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress,
             minHeight: 6,
-            backgroundColor: AppColors.primaryGreenLight.withOpacity(0.2),
+            backgroundColor: AppColors.primaryGreenLight.withValues(alpha: 0.2),
             valueColor:
                 const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
           ),
