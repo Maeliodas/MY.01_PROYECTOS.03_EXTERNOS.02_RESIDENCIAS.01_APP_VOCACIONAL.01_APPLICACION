@@ -1,76 +1,85 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../core/constants/riasec_constants.dart';
-import '../../../../core/widgets/result_card.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../providers/result_provider.dart';
 
 class ResultDetailPage extends ConsumerWidget {
   const ResultDetailPage({super.key});
+
   @override
-  Widget build(BuildContext c, WidgetRef r) {
-    final x = r.watch(latestResultProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resultAsync = ref.watch(latestResultProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis resultados')),
-      body: x.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
-        data: (d) {
-          if (d == null) return const Center(child: Text('No hay resultados'));
-          final ri = riasecFromJson(
-                (d['riasec'] as Map).cast<String, dynamic>(),
-              ),
-              cs = careersFromJson(d['careers'] as List);
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Text(
-                'Código Holland: ${d['hollandCode']}',
-                style: Theme.of(c).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 24),
-              Text('Perfil RIASEC', style: Theme.of(c).textTheme.titleLarge),
-              ...RiasecType.values.map(
-                (t) => Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${t.name} (${t.code})'),
-                      LinearProgressIndicator(value: ri.percentage(t) / 100),
-                      Text('${ri.scores[t]}/45'),
-                    ],
-                  ),
+      appBar: AppBar(title: const Text('Detalle Vocacional')),
+      body: resultAsync.when(
+        data: (data) {
+          if (data == null) return const SizedBox();
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.topCareer.name,
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Tus principales coincidencias',
-                style: Theme.of(c).textTheme.titleLarge,
-              ),
-              ...cs
-                  .take(3)
-                  .toList()
-                  .asMap()
-                  .entries
-                  .map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: ResultCard(
-                        position: e.key + 1,
-                        title: e.value.careerName,
-                        score: e.value.score,
-                      ),
-                    ),
-                  ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => c.push('/result/careers'),
-                child: const Text('Ver ranking completo'),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Afinidad Total: ${data.topCareer.affinityPercentage.round()}%',
+                  style: const TextStyle(
+                      fontSize: 18,
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Desglose RIASEC',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                _RiasecBar(label: 'Realista (R)', value: data.riasec.scoreR),
+                _RiasecBar(
+                    label: 'Investigador (I)', value: data.riasec.scoreI),
+                _RiasecBar(label: 'Artístico (A)', value: data.riasec.scoreA),
+                _RiasecBar(label: 'Social (S)', value: data.riasec.scoreS),
+                _RiasecBar(label: 'Emprendedor (E)', value: data.riasec.scoreE),
+                _RiasecBar(
+                    label: 'Convencional (C)', value: data.riasec.scoreC),
+              ],
+            ),
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const SizedBox(),
+      ),
+    );
+  }
+}
+
+class _RiasecBar extends StatelessWidget {
+  final String label;
+  final double value;
+
+  const _RiasecBar({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 4),
+          LinearProgressIndicator(
+            value: (value / 45.0).clamp(0.0, 1.0),
+            minHeight: 8,
+            color: AppColors.primaryGreen,
+            backgroundColor: AppColors.primaryGreenLight.withValues(alpha: 0.2),
+          ),
+        ],
       ),
     );
   }
