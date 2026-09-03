@@ -88,7 +88,10 @@ class _TestPageState extends ConsumerState<TestPage> {
                     notifier.nextQuestion();
                     setState(() => _sliderValue = 5.0);
                   } else {
-                    context.go('/open-question');
+                    // Verificación de montaje antes de usar BuildContext
+                    if (context.mounted) {
+                      context.go('/open-question');
+                    }
                   }
                 },
               ),
