@@ -15,6 +15,8 @@ class AvatarCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAsset = avatarPath.startsWith('assets/');
+
     return GestureDetector(
       onTap: onTap,
       child: CircleAvatar(
@@ -23,13 +25,30 @@ class AvatarCircle extends StatelessWidget {
         child: CircleAvatar(
           radius: radius,
           backgroundColor: Colors.white,
-          backgroundImage: avatarPath.startsWith('assets/')
-              ? AssetImage(avatarPath) as ImageProvider
-              : NetworkImage(avatarPath),
-          errorBuilder: (_, __, ___) => Icon(
-            Icons.person,
-            size: radius,
-            color: AppColors.primaryGreen,
+          child: ClipOval(
+            child: isAsset
+                ? Image.asset(
+                    avatarPath,
+                    width: radius * 2,
+                    height: radius * 2,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.person,
+                      size: radius,
+                      color: AppColors.primaryGreen,
+                    ),
+                  )
+                : Image.network(
+                    avatarPath,
+                    width: radius * 2,
+                    height: radius * 2,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.person,
+                      size: radius,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
           ),
         ),
       ),
