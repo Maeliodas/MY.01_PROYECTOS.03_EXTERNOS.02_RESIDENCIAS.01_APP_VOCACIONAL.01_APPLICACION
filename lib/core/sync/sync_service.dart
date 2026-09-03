@@ -1,46 +1,48 @@
-import 'dart:convert';
-import '../database/app_database.dart';
-import '../database/tables.dart';
 import '../network/analytics_api.dart';
 import '../network/network_info.dart';
+import 'sync_queue.dart';
 
 class SyncService {
-  final AppDatabase db;
-  final AnalyticsApi api;
-  final NetworkInfo net;
-  SyncService({
-    AppDatabase? database,
-    AnalyticsApi? api,
-    NetworkInfo? networkInfo,
-  }) : db = database ?? AppDatabase.instance,
-       api = api ?? AnalyticsApi(),
-       net = networkInfo ?? NetworkInfo();
-  Future<void> syncInBackground() async {
-    try {
-      if (!await net.isConnected) return;
-      final d = await db.database;
-      final rows = await d.query(
-        Tables.syncQueue,
-        orderBy: 'id ASC',
-        limit: 20,
-      );
-      for (final row in rows) {
-        try {
-          await api.send(jsonDecode(row['payloadJson'] as String));
-          await d.delete(
-            Tables.syncQueue,
-            where: 'id=?',
-            whereArgs: [row['id']],
-          );
-        } catch (e) {
-          await d.update(
-            Tables.syncQueue,
-            {'attempts': (row['attempts'] as int) + 1, 'lastError': '$e'},
-            where: 'id=?',
-            whereArgs: [row['id']],
-          );
-        }
+  final AnalyticsApi _api = AnalyticsApi();
+  final SyncQueue _queue = SyncQueue();
+
+  /// Sincronización inmediata no bloqueante o encolamiento
+  Future<bool> processSessionResult({
+    required String id,
+    required String sessionId,
+    required Map<String, dynamic> anonymousPayload,
+  }) async {
+    final bool isConnected = await NetworkInfo.hasConnection();
+
+    if (isConnected) {
+      final bool success = await _api.sendAnonymousResult(anonymousPayload);
+      if (success) {
+        return true;
       }
-    } catch (_) {}
+    }
+
+    // Si no hay red o falló el envío, encolar en SQLite
+    await _queue.addToQueue(
+      id: id,
+      sessionId: sessionId,
+      payload: anonymousPayload,
+    );
+
+    return false;
+  }
+
+  /// Intenta vaciar la cola pendiente en segundo plano
+  Future<void> syncPendingQueue() async {
+    if (!await NetworkInfo.hasConnection()) return;
+
+    final pending = await _queue.getPendingItems();
+    for (final item in pending) {
+      final success = await _api.sendAnonymousResult(item.payload);
+      if (success) {
+        await _queue.remove(item.id);
+      } else {
+        await _queue.incrementAttempts(item.id, item.attempts);
+      }
+    }
   }
 }

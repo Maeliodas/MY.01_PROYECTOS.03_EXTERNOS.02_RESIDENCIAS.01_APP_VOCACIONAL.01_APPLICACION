@@ -1,5 +1,5 @@
 name: app_vocacional
-description: "Aplicación vocacional offline-first para el TecNM Tuxtepec"
+description: "Aplicación vocacional offline-first para aspirantes del TecNM Tuxtepec"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,25 +10,22 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Gestor de estado
+  # Gestor de Estado
   flutter_riverpod: ^2.5.1
 
-  # Navegación declarativa
+  # Navegación Declarativa
   go_router: ^13.2.0
 
-  # Base de datos local (Offline-first)
+  # Persistencia Local (Offline-first)
   sqflite: ^2.3.2
   path: ^1.9.0
-
-  # Almacenamiento clave-valor ligero (Preferencias, Tema)
   shared_preferences: ^2.2.2
 
-  # Peticiones HTTP para sincronización anónima en segundo plano
+  # Red y Utilidades
   http: ^1.2.0
-
-  # Tipografía y diseño de Figma
   google_fonts: ^6.1.0
   flutter_svg: ^2.0.10+1
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
@@ -42,3 +39,4 @@ flutter:
     - assets/images/
     - assets/avatars/
     - assets/icons/
+    - assets/lottie/

@@ -7,18 +7,17 @@ import 'core/database/app_database.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Orientación vertical para coincidir con la interfaz móvil de Figma
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Inicialización de SQLite previo al renderizado
+  // Inicialización de SQLite previo al arranque de UI
   await AppDatabase.instance.database;
 
   runApp(
     const ProviderScope(
-      child: AevumIterApp(),
+      child: AppVocacional(),
     ),
   );
 }

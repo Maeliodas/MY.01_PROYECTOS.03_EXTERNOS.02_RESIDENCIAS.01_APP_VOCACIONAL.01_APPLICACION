@@ -1,146 +1,145 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../profile/presentation/providers/profile_provider.dart';
-import '../providers/profile_setup_provider.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
 
-class SchoolDataPage extends ConsumerStatefulWidget {
+class SchoolDataPage extends StatefulWidget {
   const SchoolDataPage({super.key});
 
   @override
-  ConsumerState<SchoolDataPage> createState() => _S();
+  State<SchoolDataPage> createState() => _SchoolDataPageState();
 }
 
-class _S extends ConsumerState<SchoolDataPage> {
-  String? school;
-  String? lang;
+class _SchoolDataPageState extends State<SchoolDataPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _schoolController = TextEditingController();
+  String _selectedLanguage = 'Español';
 
-  final other = TextEditingController();
-
-  bool speaks = false;
+  final List<String> _languageOptions = [
+    'Español',
+    'Chinanteco',
+    'Mazateco',
+    'Zapoteco',
+    'Mixe',
+    'Otro',
+  ];
 
   @override
   void dispose() {
-    other.dispose();
+    _schoolController.dispose();
     super.dispose();
   }
 
+  void _onContinue() {
+    if (_formKey.currentState!.validate()) {
+      context.go('/choose-avatar');
+    }
+  }
+
   @override
-  Widget build(BuildContext c) {
-    final schools = ref.watch(catalogSchoolsProvider);
-    final langs = ref.watch(catalogLanguagesProvider);
-
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Datos escolares')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          schools.when(
-            data: (x) => DropdownButtonFormField<String>(
-              initialValue: school,
-              decoration: const InputDecoration(
-                labelText: 'Escuela de procedencia',
-              ),
-              items: x
-                  .map(
-                    (e) => DropdownMenuItem<String>(
-                      value: e['id'],
-                      child: Text(e['name']!),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() {
-                school = v;
-              }),
-            ),
-            loading: () => const LinearProgressIndicator(),
-            error: (_, _) =>
-                const Text('No se pudo cargar el catálogo de escuelas'),
-          ),
-
-          const SizedBox(height: 16),
-
-          SwitchListTile(
-            title: const Text('¿Hablas alguna lengua materna?'),
-            value: speaks,
-            onChanged: (v) => setState(() {
-              speaks = v;
-
-              if (!speaks) {
-                lang = null;
-                other.clear();
-              }
-            }),
-          ),
-
-          if (speaks)
-            langs.when(
-              data: (x) => Column(
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: lang,
-                    decoration: const InputDecoration(labelText: 'Lengua'),
-                    items: x
-                        .map(
-                          (e) => DropdownMenuItem<String>(
-                            value: e['id'],
-                            child: Text(e['name']!),
+      appBar: AppBar(
+        title: Text('Procedencia', style: AppTextStyles.titleMedium),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.primaryGreen, size: 20),
+          onPressed: () => context.go('/profile-setup'),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Origen Académico',
+                  style: AppTextStyles.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Datos estadísticos para el análisis de cobertura de la institución.',
+                  style: AppTextStyles.bodyMedium,
+                ),
+                const SizedBox(height: 32),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Escuela de Procedencia',
+                            style: AppTextStyles.bodyLarge
+                                .copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _schoolController,
+                          decoration: InputDecoration(
+                            hintText: 'Ej. CBTis 107 / COBAO 07',
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() {
-                      lang = v;
-                    }),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Por favor ingresa tu escuela de procedencia';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        Text('Lengua Materna / Originaria',
+                            style: AppTextStyles.bodyLarge
+                                .copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedLanguage,
+                              isExpanded: true,
+                              items: _languageOptions.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value,
+                                      style: AppTextStyles.bodyLarge),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _selectedLanguage = newValue;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-
-                  const SizedBox(height: 12),
-
-                  TextField(
-                    controller: other,
-                    decoration: const InputDecoration(labelText: 'Otra lengua'),
-                  ),
-                ],
-              ),
-              loading: () => const LinearProgressIndicator(),
-              error: (_, _) =>
-                  const Text('No se pudo cargar el catálogo de lenguas'),
+                ),
+                PrimaryButton(
+                  text: 'Siguiente',
+                  onPressed: _onContinue,
+                ),
+              ],
             ),
-
-          const SizedBox(height: 24),
-
-          PrimaryButton(
-            label: 'Continuar',
-            onPressed: () {
-              final ss = ref.read(profileSetupProvider);
-
-              final schoolData = (schools.asData?.value ?? [])
-                  .where((e) => e['id'] == school)
-                  .toList();
-
-              final languageData = (langs.asData?.value ?? [])
-                  .where((e) => e['id'] == lang)
-                  .toList();
-
-              ref.read(profileSetupProvider.notifier).state = ss.copyWith(
-                schoolId: school,
-                schoolName: schoolData.isEmpty
-                    ? null
-                    : schoolData.first['name'],
-                languageIds: lang == null ? [] : [lang!],
-                languageNames: languageData.isEmpty
-                    ? []
-                    : [languageData.first['name']!],
-                otherLanguage: other.text.trim().isEmpty
-                    ? null
-                    : other.text.trim(),
-              );
-
-              context.push('/avatar');
-            },
           ),
-        ],
+        ),
       ),
     );
   }

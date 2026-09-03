@@ -1,6 +1,5 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import '../constants/app_constants.dart';
 import 'tables.dart';
 
 class AppDatabase {
@@ -11,7 +10,7 @@ class AppDatabase {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB(AppConstants.dbName);
+    _database = await _initDB('app_vocacional.db');
     return _database!;
   }
 
@@ -21,17 +20,17 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: AppConstants.dbVersion,
+      version: 1,
       onCreate: _createDB,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
-    await db.execute(Tables.createUserProfileTable);
-    await db.execute(Tables.createTestSessionsTable);
-    await db.execute(Tables.createTestAnswersTable);
-    await db.execute(Tables.createTestResultsTable);
-    await db.execute(Tables.createSyncQueueTable);
+    await db.execute(DbQueries.createUserProfileTable);
+    await db.execute(DbQueries.createTestSessionsTable);
+    await db.execute(DbQueries.createTestAnswersTable);
+    await db.execute(DbQueries.createTestResultsTable);
+    await db.execute(DbQueries.createSyncQueueTable);
   }
 
   Future<void> close() async {

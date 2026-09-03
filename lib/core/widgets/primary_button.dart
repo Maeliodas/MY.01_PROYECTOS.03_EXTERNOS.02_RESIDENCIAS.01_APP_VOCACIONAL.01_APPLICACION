@@ -24,11 +24,11 @@ class PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryGreen,
           disabledBackgroundColor: AppColors.primaryGreen.withOpacity(0.4),
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.cardBackground,
           elevation: 4,
           shadowColor: AppColors.primaryGreen.withOpacity(0.3),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100), // Píldora exacta de Figma
+            borderRadius: BorderRadius.circular(100),
           ),
         ),
         child: isLoading
@@ -36,7 +36,7 @@ class PrimaryButton extends StatelessWidget {
                 height: 24,
                 width: 24,
                 child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2.5),
+                    color: AppColors.cardBackground, strokeWidth: 2.5),
               )
             : Text(text, style: AppTextStyles.buttonText),
       ),

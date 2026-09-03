@@ -3,33 +3,39 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 abstract class AppTextStyles {
-  static TextStyle get titleLarge => GoogleFonts.poppins(
+  static TextStyle titleLarge(BuildContext context) => GoogleFonts.poppins(
         fontSize: 26,
         fontWeight: FontWeight.bold,
-        color: AppColors.textBlack,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.textWhite
+            : AppColors.textBlack,
         height: 1.2,
       );
 
-  static TextStyle get titleMedium => GoogleFonts.poppins(
+  static TextStyle titleMedium(BuildContext context) => GoogleFonts.poppins(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-        color: AppColors.textBlack,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.textWhite
+            : AppColors.textBlack,
         height: 1.3,
       );
 
-  static TextStyle get subtitle => GoogleFonts.poppins(
+  static TextStyle subtitle(BuildContext context) => GoogleFonts.poppins(
         fontSize: 16,
         fontWeight: FontWeight.w500,
         color: AppColors.textGrey,
       );
 
-  static TextStyle get bodyLarge => GoogleFonts.poppins(
+  static TextStyle bodyLarge(BuildContext context) => GoogleFonts.poppins(
         fontSize: 16,
         fontWeight: FontWeight.normal,
-        color: AppColors.textBlack,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.textWhite
+            : AppColors.textBlack,
       );
 
-  static TextStyle get bodyMedium => GoogleFonts.poppins(
+  static TextStyle bodyMedium(BuildContext context) => GoogleFonts.poppins(
         fontSize: 14,
         fontWeight: FontWeight.normal,
         color: AppColors.textGrey,

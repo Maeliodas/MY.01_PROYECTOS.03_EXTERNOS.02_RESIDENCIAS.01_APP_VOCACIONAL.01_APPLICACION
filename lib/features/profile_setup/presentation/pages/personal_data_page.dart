@@ -1,70 +1,171 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/primary_button.dart';
-import '../providers/profile_setup_provider.dart';
 
-class PersonalDataPage extends ConsumerStatefulWidget {
+class PersonalDataPage extends StatefulWidget {
   const PersonalDataPage({super.key});
+
   @override
-  ConsumerState<PersonalDataPage> createState() => _S();
+  State<PersonalDataPage> createState() => _PersonalDataPageState();
 }
 
-class _S extends ConsumerState<PersonalDataPage> {
-  final n = TextEditingController(), a = TextEditingController();
-  String? g;
+class _PersonalDataPageState extends State<PersonalDataPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
+  String _selectedGender = 'Prefiero no decirlo';
+
+  final List<String> _genderOptions = [
+    'Masculino',
+    'Femenino',
+    'Otro',
+    'Prefiero no decirlo',
+  ];
+
   @override
   void dispose() {
-    n.dispose();
-    a.dispose();
+    _nameController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext c) => Scaffold(
-    appBar: AppBar(title: const Text('Datos personales')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        TextField(
-          controller: n,
-          decoration: const InputDecoration(labelText: 'Nombre'),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: a,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Edad'),
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: 'Género'),
-          items: const [
-            DropdownMenuItem(value: 'Femenino', child: Text('Femenino')),
-            DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-            DropdownMenuItem(
-              value: 'No especificar',
-              child: Text('No especificar'),
-            ),
-          ],
-          onChanged: (v) => setState(() => g = v),
-        ),
-        const SizedBox(height: 24),
-        PrimaryButton(label: 'Continuar', onPressed: () => _next()),
-      ],
-    ),
-  );
-  void _next() {
-    final age = int.tryParse(a.text);
-    if (n.text.trim().isEmpty || age == null || g == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Completa los datos solicitados')),
-      );
-      return;
+  void _onContinue() {
+    if (_formKey.currentState!.validate()) {
+      context.go('/school-data');
     }
-    ref.read(profileSetupProvider.notifier).state = ref
-        .read(profileSetupProvider)
-        .copyWith(name: n.text.trim(), age: age, gender: g);
-    context.push('/profile/school');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Datos Personales', style: AppTextStyles.titleMedium),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cuéntanos sobre ti',
+                  style: AppTextStyles.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Esta información permite personalizar tus resultados de prueba.',
+                  style: AppTextStyles.bodyMedium,
+                ),
+                const SizedBox(height: 32),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Nombre Completo',
+                            style: AppTextStyles.bodyLarge
+                                .copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            hintText: 'Ej. Juan Pérez',
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Por favor ingresa tu nombre';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        Text('Edad',
+                            style: AppTextStyles.bodyLarge
+                                .copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _ageController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Ej. 17',
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Ingresa tu edad';
+                            }
+                            final parsed = int.tryParse(value);
+                            if (parsed == null || parsed < 12 || parsed > 99) {
+                              return 'Ingresa una edad válida';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        Text('Género',
+                            style: AppTextStyles.bodyLarge
+                                .copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedGender,
+                              isExpanded: true,
+                              items: _genderOptions.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value,
+                                      style: AppTextStyles.bodyLarge),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _selectedGender = newValue;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                PrimaryButton(
+                  text: 'Siguiente',
+                  onPressed: _onContinue,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

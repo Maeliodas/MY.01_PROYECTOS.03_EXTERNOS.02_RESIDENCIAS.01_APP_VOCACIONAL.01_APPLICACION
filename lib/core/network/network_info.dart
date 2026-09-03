@@ -1,11 +1,11 @@
 import 'dart:io';
 
 class NetworkInfo {
-  Future<bool> get isConnected async {
+  static Future<bool> hasConnection() async {
     try {
-      final r = await InternetAddress.lookup('example.com');
-      return r.isNotEmpty && r.first.rawAddress.isNotEmpty;
-    } on SocketException {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
       return false;
     }
   }

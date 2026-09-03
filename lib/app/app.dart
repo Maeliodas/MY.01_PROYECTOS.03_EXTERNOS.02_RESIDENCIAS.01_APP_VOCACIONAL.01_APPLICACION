@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app/app.dart';
-import '../core/database/app_database.dart';
+import 'routes/app_router.dart';
+import 'theme/app_theme.dart';
+import '../features/settings/presentation/providers/settings_provider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+class AppVocacional extends ConsumerWidget {
+  const AppVocacional({super.key});
 
-  // Orientación vertical para coincidir con la interfaz móvil de Figma
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
-  // Inicialización de SQLite previo al renderizado
-  await AppDatabase.instance.database;
-
-  runApp(
-    const ProviderScope(
-      child: AevumIterApp(),
-    ),
-  );
+    return MaterialApp.router(
+      title: 'Aevum Iter',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      routerConfig: router,
+    );
+  }
 }
