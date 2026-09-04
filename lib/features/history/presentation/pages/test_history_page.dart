@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/tables.dart';
@@ -24,77 +25,125 @@ class _TestHistoryPageState extends ConsumerState<TestHistoryPage> {
   }
 
   Future<void> _loadHistory() async {
-    final db = await AppDatabase.instance.database;
-    final results = await db.query(
-      DbTables.testResults,
-      orderBy: 'created_at DESC',
-    );
+    try {
+      final db = await AppDatabase.instance.database;
+      final results = await db.query(
+        Tables.results, // asegúrate de que este nombre exista en tables.dart
+        orderBy: 'created_at DESC',
+      );
 
-    setState(() {
-      _historyItems = results;
-      _isLoading = false;
-    });
+      if (mounted) {
+        setState(() {
+          _historyItems = results;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _historyItems = [];
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Historial de Tests'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Historial de Tests',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGreen))
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : _historyItems.isEmpty
-              ? const EmptyState(
-                  message: 'Aún no has completado ningún test vocacional.')
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _historyItems.length,
-                  itemBuilder: (context, index) {
-                    final item = _historyItems[index];
-                    final date = DateTime.tryParse(item['created_at'] ?? '') ??
-                        DateTime.now();
+          ? const EmptyState(
+              message: 'Aún no has completado ningún test vocacional.',
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _historyItems.length,
+              itemBuilder: (context, index) {
+                final item = _historyItems[index];
+                final date =
+                    DateTime.tryParse(item['created_at']?.toString() ?? '') ??
+                    DateTime.now();
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text(
-                          item['top_career_name'] ?? 'Carrera no disponible',
+                final affinity =
+                    (item['top_career_affinity'] as num?)?.round() ?? 0;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  color: AppColors.cardBackground,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: AppColors.borderGray),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    title: Text(
+                      item['top_career_name']?.toString() ??
+                          'Carrera no disponible',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text(
+                          'Código Holland: ${item['holland_code'] ?? '—'}',
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text('Código Holland: ${item['holland_code']}'),
-                            Text('Fecha: ${AppDateUtils.formatFullDate(date)}'),
-                          ],
-                        ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreenLight
-                                .withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
                           ),
-                          child: Text(
-                            '${(item['top_career_affinity'] as num).round()}%',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryGreenDark,
-                            ),
+                        ),
+                        Text(
+                          'Fecha: ${AppDateUtils.formatFullDate(date)}',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
                           ),
+                        ),
+                      ],
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '$affinity%',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryDark,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

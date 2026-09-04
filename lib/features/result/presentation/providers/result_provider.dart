@@ -1,46 +1,58 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../data/result_local_datasource.dart';
 import '../../domain/models/career_match.dart';
 import '../../domain/models/riasec_result.dart';
+import '../../domain/services/result_calculator.dart';
 
 class ResultData {
   final RiasecResult riasec;
   final CareerMatch topCareer;
   final List<CareerMatch> ranking;
 
-  ResultData({
+  const ResultData({
     required this.riasec,
     required this.topCareer,
     required this.ranking,
   });
+
+  List<CareerMatch> get topThree {
+    return ranking.take(3).toList();
+  }
 }
 
 final latestResultProvider = FutureProvider<ResultData?>((ref) async {
   final resultDs = ref.watch(resultDatasourceProvider);
+
   final map = await resultDs.getLatestResult();
 
-  if (map == null) return null;
+  if (map == null) {
+    return null;
+  }
 
   final riasec = RiasecResult(
-    scoreR: (map['score_r'] as num).toDouble(),
-    scoreI: (map['score_i'] as num).toDouble(),
-    scoreA: (map['score_a'] as num).toDouble(),
-    scoreS: (map['score_s'] as num).toDouble(),
-    scoreE: (map['score_e'] as num).toDouble(),
-    scoreC: (map['score_c'] as num).toDouble(),
-    hollandCode: map['holland_code'],
+    scoreR: _readDouble(map['score_r']),
+    scoreI: _readDouble(map['score_i']),
+    scoreA: _readDouble(map['score_a']),
+    scoreS: _readDouble(map['score_s']),
+    scoreE: _readDouble(map['score_e']),
+    scoreC: _readDouble(map['score_c']),
+    hollandCode: map['holland_code']?.toString() ?? '',
   );
 
-  final topCareer = CareerMatch(
-    careerId: map['top_career_id'],
-    name: map['top_career_name'],
-    affinityPercentage: (map['top_career_affinity'] as num).toDouble(),
-    demandTag: 'Recomendación Principal',
-  );
+  final ranking = ResultCalculator.calculateCareerMatches(riasec);
 
-  return ResultData(
-    riasec: riasec,
-    topCareer: topCareer,
-    ranking: [topCareer],
-  );
+  if (ranking.isEmpty) {
+    return null;
+  }
+
+  return ResultData(riasec: riasec, topCareer: ranking.first, ranking: ranking);
 });
+
+double _readDouble(dynamic value) {
+  if (value is num) {
+    return value.toDouble();
+  }
+
+  return double.tryParse(value?.toString() ?? '') ?? 0.0;
+}

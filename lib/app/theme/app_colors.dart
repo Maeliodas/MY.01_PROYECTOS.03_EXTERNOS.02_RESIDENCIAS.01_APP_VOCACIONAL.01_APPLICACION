@@ -25,4 +25,12 @@ class AppColors {
   static const Color borderGray = Color(0xFFE5E7EB);
   static const Color destructiveRed = Color(0xFFDC2626);
   static const Color logoutBg = Color(0xFFFEE2E2);
+
+  // --- Aliases de compatibilidad ---
+  static const Color textGrey = textSecondary;
+  static const Color textLightGrey = borderGray;
+  static const Color primaryGreen = primary;
+  static const Color primaryGreenLight = primaryLight;
+  static const Color error = destructiveRed;
+  static const Color card = cardBackground;
 }

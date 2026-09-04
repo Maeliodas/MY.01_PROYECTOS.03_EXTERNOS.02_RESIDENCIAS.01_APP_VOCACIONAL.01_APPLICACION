@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/secondary_button.dart';
@@ -15,28 +16,38 @@ class ChooseAvatarPage extends ConsumerWidget {
     final avatarNotifier = ref.read(avatarProvider.notifier);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Aevum Iter'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => context.pop(),
+        ),
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
                 'Elige tu avatar',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
                 '¿Cómo quieres que te vean en tu camino profesional?',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textGrey, fontSize: 14),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 24),
 
-              // Grid de Avatares
+              // Grid de avatares (2 columnas, como Figma)
               Expanded(
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -52,12 +63,13 @@ class ChooseAvatarPage extends ConsumerWidget {
 
                     return GestureDetector(
                       onTap: () => avatarNotifier.selectAvatar(avatarPath),
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isSelected
-                                ? AppColors.primaryGreen
+                                ? AppColors.primary
                                 : Colors.transparent,
                             width: 3,
                           ),
@@ -76,10 +88,14 @@ class ChooseAvatarPage extends ConsumerWidget {
                             avatarPath,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.primaryGreenLight
-                                  .withValues(alpha: 0.2),
-                              child: const Icon(Icons.person,
-                                  size: 60, color: AppColors.primaryGreen),
+                              color: AppColors.primaryLight.withValues(
+                                alpha: 0.2,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ),
@@ -90,17 +106,21 @@ class ChooseAvatarPage extends ConsumerWidget {
               ),
 
               const SizedBox(height: 16),
-              // Botón opcional para personalizar
+
+              // Personalizar (secundario)
               SecondaryButton(
-                text: 'Personalizar Avatar',
+                text: 'Personalizar',
                 onPressed: () => context.push('/avatar-editor'),
               ),
+
               const SizedBox(height: 12),
-              // Continuar a Datos Personales
+
+              // Continuar
               PrimaryButton(
                 text: 'Continuar',
                 onPressed: () => context.push('/personal-data'),
               ),
+              const SizedBox(height: 8),
             ],
           ),
         ),

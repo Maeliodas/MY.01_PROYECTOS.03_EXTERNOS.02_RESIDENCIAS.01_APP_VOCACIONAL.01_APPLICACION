@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/tables.dart';
 import '../models/test_session.dart';
@@ -8,8 +9,9 @@ class TestRepository {
 
   Future<void> saveSession(TestSession session) async {
     final db = await _dbProvider.database;
+
     await db.insert(
-      DbTables.testSessions,
+      Tables.sessions,
       session.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -17,8 +19,9 @@ class TestRepository {
 
   Future<TestSession?> getActiveSession(String userId) async {
     final db = await _dbProvider.database;
+
     final results = await db.query(
-      DbTables.testSessions,
+      Tables.sessions,
       where: 'user_id = ? AND status = ?',
       whereArgs: [userId, 'in_progress'],
       orderBy: 'created_at DESC',
@@ -28,6 +31,7 @@ class TestRepository {
     if (results.isNotEmpty) {
       return TestSession.fromMap(results.first);
     }
+
     return null;
   }
 }

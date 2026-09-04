@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/models/avatar_config.dart';
 
-final defaultAvatars = [
+/// Lista de avatares predefinidos (rutas de assets)
+const List<String> defaultAvatars = [
   'assets/avatars/avatar_1.png',
   'assets/avatars/avatar_2.png',
   'assets/avatars/avatar_3.png',
@@ -10,32 +12,49 @@ final defaultAvatars = [
   'assets/avatars/avatar_6.png',
 ];
 
-class AvatarNotifier extends StateNotifier<AvatarConfig> {
-  AvatarNotifier()
-      : super(AvatarConfig(avatarPath: 'assets/avatars/avatar_1.png'));
-
-  void selectAvatar(String path) {
-    state = state.copyWith(avatarPath: path);
+class AvatarNotifier extends Notifier<AvatarConfig> {
+  @override
+  AvatarConfig build() {
+    return AvatarConfig.initial();
   }
 
-  void updateHair(String hair) {
-    state = state.copyWith(hairStyle: hair);
+  /// Selecciona un avatar predefinido
+  void selectAvatar(String avatarPath) {
+    final id = avatarPath.split('/').last.replaceAll('.png', '');
+    state = state.copyWith(baseAvatarId: id, avatarPath: avatarPath);
   }
 
-  void updateClothes(String clothes) {
-    state = state.copyWith(clothesStyle: clothes);
+  void updateHair(String hairStyle) {
+    state = state.copyWith(hairStyle: hairStyle);
+  }
+
+  void updateHairColor(String hairColor) {
+    state = state.copyWith(hairColor: hairColor);
+  }
+
+  void updateOutfit(String outfit) {
+    state = state.copyWith(outfit: outfit);
   }
 
   void updateAccessory(String accessory) {
     state = state.copyWith(accessory: accessory);
   }
 
-  void updateColor(String hex) {
-    state = state.copyWith(colorHex: hex);
+  void updateSkinTone(String skinTone) {
+    state = state.copyWith(skinTone: skinTone);
+  }
+
+  void resetCustomization() {
+    state = state.copyWith(
+      hairStyle: 'default',
+      hairColor: 'black',
+      outfit: 'student',
+      accessory: 'none',
+      skinTone: 'medium',
+    );
   }
 }
 
-final avatarProvider =
-    StateNotifierProvider<AvatarNotifier, AvatarConfig>((ref) {
-  return AvatarNotifier();
-});
+final avatarProvider = NotifierProvider<AvatarNotifier, AvatarConfig>(
+  AvatarNotifier.new,
+);

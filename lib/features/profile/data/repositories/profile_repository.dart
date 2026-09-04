@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/tables.dart';
 import '../../domain/entities/user_profile.dart';
@@ -9,7 +10,7 @@ class ProfileRepository {
   Future<void> saveProfile(UserProfile profile) async {
     final db = await _dbProvider.database;
     await db.insert(
-      DbTables.userProfile,
+      Tables.profile, // ← correcto
       profile.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -17,7 +18,10 @@ class ProfileRepository {
 
   Future<UserProfile?> getProfile() async {
     final db = await _dbProvider.database;
-    final results = await db.query(DbTables.userProfile, limit: 1);
+    final results = await db.query(
+      Tables.profile, // ← correcto
+      limit: 1,
+    );
     if (results.isNotEmpty) {
       return UserProfile.fromMap(results.first);
     }
