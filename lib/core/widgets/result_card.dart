@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../app/theme/app_colors.dart';
 
 class ResultCard extends StatelessWidget {
@@ -35,15 +36,18 @@ class ResultCard extends StatelessWidget {
                     Text(
                       careerName,
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color:
-                            AppColors.primaryGreenLight.withValues(alpha: 0.2),
+                        color: AppColors.primaryLight.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -51,7 +55,7 @@ class ResultCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreenDark,
+                          color: AppColors.primaryDark,
                         ),
                       ),
                     ),
@@ -66,12 +70,15 @@ class ResultCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primary,
                     ),
                   ),
                   const Text(
                     'Afinidad',
-                    style: TextStyle(fontSize: 10, color: AppColors.textGrey),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),

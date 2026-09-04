@@ -5,11 +5,7 @@ class AppSlider extends StatelessWidget {
   final double value;
   final ValueChanged<double> onChanged;
 
-  const AppSlider({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+  const AppSlider({super.key, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +18,7 @@ class AppSlider extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            border: Border.all(color: AppColors.primaryGreen, width: 2),
+            border: Border.all(color: AppColors.primary, width: 2),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -37,34 +33,44 @@ class AppSlider extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryGreen,
+                color: AppColors.primary,
               ),
             ),
           ),
         ),
+
         const SizedBox(height: 16),
-        // Slider con etiquetas
+
+        // Etiquetas del slider
         const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('NADA',
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textLightGrey)),
-            Text('MUCHO',
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textLightGrey)),
+          children: const [
+            Text(
+              'NADA',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              'MUCHO',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
+
+        // Slider
         SliderTheme(
           data: SliderThemeData(
-            activeTrackColor: AppColors.primaryGreen,
-            inactiveTrackColor: AppColors.primaryGreenLight.withValues(alpha: 0.3),
-            thumbColor: AppColors.primaryGreen,
-            overlayColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+            activeTrackColor: AppColors.primary,
+            inactiveTrackColor: AppColors.primaryLight.withValues(alpha: 0.3),
+            thumbColor: AppColors.primary,
+            overlayColor: AppColors.primary.withValues(alpha: 0.2),
             trackHeight: 6,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
           ),

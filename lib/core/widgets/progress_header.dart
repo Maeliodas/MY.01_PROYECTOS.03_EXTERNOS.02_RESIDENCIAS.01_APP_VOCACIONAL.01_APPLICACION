@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../app/theme/app_colors.dart';
 
 class ProgressHeader extends StatelessWidget {
@@ -13,7 +14,9 @@ class ProgressHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = currentStep / totalSteps;
+    final progress = totalSteps > 0
+        ? (currentStep / totalSteps).clamp(0.0, 1.0)
+        : 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,7 +30,7 @@ class ProgressHeader extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.1,
-                color: AppColors.textGrey,
+                color: AppColors.textSecondary,
               ),
             ),
             Text(
@@ -36,7 +39,7 @@ class ProgressHeader extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.1,
-                color: AppColors.textGrey,
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -47,9 +50,8 @@ class ProgressHeader extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress,
             minHeight: 6,
-            backgroundColor: AppColors.primaryGreenLight.withValues(alpha: 0.2),
-            valueColor:
-                const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+            backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
         ),
       ],

@@ -21,7 +21,7 @@ class AvatarCircle extends StatelessWidget {
       onTap: onTap,
       child: CircleAvatar(
         radius: radius + 2,
-        backgroundColor: AppColors.primaryGreen,
+        backgroundColor: AppColors.primary,
         child: CircleAvatar(
           radius: radius,
           backgroundColor: Colors.white,
@@ -35,7 +35,7 @@ class AvatarCircle extends StatelessWidget {
                     errorBuilder: (_, __, ___) => Icon(
                       Icons.person,
                       size: radius,
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primary,
                     ),
                   )
                 : Image.network(
@@ -46,7 +46,7 @@ class AvatarCircle extends StatelessWidget {
                     errorBuilder: (_, __, ___) => Icon(
                       Icons.person,
                       size: radius,
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primary,
                     ),
                   ),
           ),

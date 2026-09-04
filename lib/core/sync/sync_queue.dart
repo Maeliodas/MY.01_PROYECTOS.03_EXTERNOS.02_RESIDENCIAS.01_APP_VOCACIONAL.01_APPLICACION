@@ -35,24 +35,20 @@ class SyncQueue {
     required Map<String, dynamic> payload,
   }) async {
     final db = await _dbProvider.database;
-    await db.insert(
-      DbTables.syncQueue,
-      {
-        'id': id,
-        'session_id': sessionId,
-        'payload_json': jsonEncode(payload),
-        'attempts': 0,
-        'status': 'pending',
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(Tables.syncQueue, {
+      'id': id,
+      'session_id': sessionId,
+      'payload_json': jsonEncode(payload),
+      'attempts': 0,
+      'status': 'pending',
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<SyncItem>> getPendingItems() async {
     final db = await _dbProvider.database;
     final maps = await db.query(
-      DbTables.syncQueue,
+      Tables.syncQueue,
       where: 'status = ?',
       whereArgs: ['pending'],
       limit: 10,
@@ -62,17 +58,13 @@ class SyncQueue {
 
   Future<void> remove(String id) async {
     final db = await _dbProvider.database;
-    await db.delete(
-      DbTables.syncQueue,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete(Tables.syncQueue, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> incrementAttempts(String id, int currentAttempts) async {
     final db = await _dbProvider.database;
     await db.update(
-      DbTables.syncQueue,
+      Tables.syncQueue,
       {'attempts': currentAttempts + 1},
       where: 'id = ?',
       whereArgs: [id],

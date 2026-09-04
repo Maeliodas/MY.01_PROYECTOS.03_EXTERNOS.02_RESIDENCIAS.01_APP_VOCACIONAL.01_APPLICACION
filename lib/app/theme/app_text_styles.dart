@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'app_colors.dart';
 
 class AppTextStyles {
@@ -29,5 +30,11 @@ class AppTextStyles {
   static const TextStyle badgeText = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.bold,
+  );
+
+  static const TextStyle buttonText = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
   );
 }
