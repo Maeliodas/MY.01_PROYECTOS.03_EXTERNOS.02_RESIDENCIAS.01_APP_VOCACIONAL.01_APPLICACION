@@ -1,101 +1,49 @@
-import 'dart:convert';
-import 'dart:math';
 import 'package:sqflite/sqflite.dart';
+
 import '../../../core/database/app_database.dart';
 import '../../../core/database/tables.dart';
-import '../../../core/utils/date_utils.dart';
-import '../domain/models/test_session.dart';
 
-class TestLocalDataSource {
-  final AppDatabase db;
-  TestLocalDataSource({AppDatabase? database})
-    : db = database ?? AppDatabase.instance;
-  Future<TestSession> create(List<String> ids) async {
-    final order = [...ids]..shuffle(Random.secure());
-    final id = DateTime.now().microsecondsSinceEpoch.toString();
-    final start = DateTime.now();
-    final d = await db.database;
-    await d.insert(Tables.testSessions, {
-      'id': id,
-      'startedAt': start.toUtc().toIso8601String(),
-      'questionOrder': jsonEncode(order),
-      'currentIndex': 0,
-      'status': 'active',
-    });
-    return TestSession(
-      id: id,
-      startedAt: start,
-      questionOrder: order,
-      currentIndex: 0,
-      status: 'active',
-    );
-  }
+class TestLocalDatasource {
+  final AppDatabase _dbProvider = AppDatabase.instance;
 
-  Future<TestSession?> active() async {
-    final d = await db.database;
-    final r = await d.query(
-      Tables.testSessions,
-      where: 'status=?',
-      whereArgs: ['active'],
-      orderBy: 'startedAt DESC',
-      limit: 1,
-    );
-    if (r.isEmpty) return null;
-    final x = r.first;
-    return TestSession(
-      id: x['id'] as String,
-      startedAt: DateTime.parse(x['startedAt'] as String),
-      questionOrder: (jsonDecode(x['questionOrder'] as String) as List)
-          .cast<String>(),
-      currentIndex: x['currentIndex'] as int,
-      status: x['status'] as String,
-    );
-  }
+  Future<void> saveAnswer({
+    required String sessionId,
+    required int questionId,
+    required String dimension,
+    required int value,
+  }) async {
+    final db = await _dbProvider.database;
 
-  Future<int?> answer(String s, String q) async {
-    final d = await db.database;
-    final r = await d.query(
-      Tables.answers,
-      columns: ['value'],
-      where: 'sessionId=? AND questionId=?',
-      whereArgs: [s, q],
-      limit: 1,
-    );
-    return r.isEmpty ? null : r.first['value'] as int?;
-  }
-
-  Future<void> save(String s, String q, int v, int p) async {
-    final d = await db.database;
-    await d.insert(Tables.answers, {
-      'sessionId': s,
-      'questionId': q,
-      'value': v,
-      'position': p,
-      'updatedAt': AppDateUtils.now(),
+    await db.insert(Tables.answers, {
+      'id': '${sessionId}_$questionId',
+      'session_id': sessionId,
+      'question_id': questionId,
+      'dimension': dimension,
+      'value': value,
+      'updated_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> pos(String s, int p) async {
-    final d = await db.database;
-    await d.update(
-      Tables.testSessions,
-      {'currentIndex': p},
-      where: 'id=?',
-      whereArgs: [s],
-    );
-  }
+  Future<Map<int, int>> getAnswersForSession(String sessionId) async {
+    final db = await _dbProvider.database;
 
-  Future<void> complete(String s) async {
-    final d = await db.database;
-    await d.update(
-      Tables.testSessions,
-      {
-        'status': 'completed',
-        'completedAt': AppDateUtils.now(),
-        'currentIndex': 30,
-      },
-      where: 'id=?',
-      whereArgs: [s],
+    final results = await db.query(
+      Tables.answers,
+      where: 'session_id = ?',
+      whereArgs: [sessionId],
     );
+
+    final Map<int, int> answers = {};
+
+    for (final row in results) {
+      final questionId = row['question_id'];
+      final value = row['value'];
+
+      if (questionId is int && value is int) {
+        answers[questionId] = value;
+      }
+    }
+
+    return answers;
   }
 }

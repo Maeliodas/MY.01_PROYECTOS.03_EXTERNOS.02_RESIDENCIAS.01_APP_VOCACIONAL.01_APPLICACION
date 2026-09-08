@@ -3,18 +3,24 @@ import 'package:http/http.dart' as http;
 import '../constants/app_constants.dart';
 
 class AnalyticsApi {
-  final http.Client client;
-  AnalyticsApi({http.Client? client}) : client = client ?? http.Client();
-  bool get configured => AppConstants.analyticsApiBaseUrl.isNotEmpty;
-  Future<void> send(Map<String, dynamic> payload) async {
-    if (!configured) throw StateError('API no configurada');
-    final r = await client.post(
-      Uri.parse('${AppConstants.analyticsApiBaseUrl}/analytics/results'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
-    );
-    if (r.statusCode < 200 || r.statusCode >= 300) {
-      throw StateError('HTTP ${r.statusCode}');
+  final http.Client _client;
+
+  AnalyticsApi({http.Client? client}) : _client = client ?? http.Client();
+
+  /// Envía el payload estrictamente anónimo autorizado al servidor institucional
+  Future<bool> sendAnonymousResult(Map<String, dynamic> payload) async {
+    try {
+      final response = await _client
+          .post(
+            Uri.parse(AppConstants.analyticsApiUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
     }
   }
 }
