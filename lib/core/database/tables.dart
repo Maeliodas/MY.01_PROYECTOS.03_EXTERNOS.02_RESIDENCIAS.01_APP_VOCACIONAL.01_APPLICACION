@@ -1,7 +1,4 @@
 class Tables {
-  static const schools = 'schools';
-  static const languages = 'languages';
-  static const careers = 'careers';
   static const profile = 'user_profile';
   static const profileLanguages = 'user_languages';
   static const avatar = 'avatar_configuration';
