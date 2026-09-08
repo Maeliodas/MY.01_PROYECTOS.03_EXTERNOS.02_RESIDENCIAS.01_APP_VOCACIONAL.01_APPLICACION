@@ -1,4 +1,4 @@
-import '../../../../core/constants/careers_data.dart';
+import '../../../../core/constants/carrers_data.dart';
 import '../../../../core/constants/riasec_constants.dart';
 import '../../../test/data/questions_data.dart';
 import '../models/career_match.dart';
@@ -194,7 +194,8 @@ class ResultCalculator {
   /// Convierte 0–50 a 0–100.
   static double _normalize(double score) {
     return ((score.clamp(0.0, _maxDimensionScore) / _maxDimensionScore) * 100)
-        .clamp(0.0, 100.0).toDouble();
+        .clamp(0.0, 100.0)
+        .toDouble();
   }
 
   /// Calcula la afinidad final de una carrera.
@@ -234,8 +235,8 @@ class ResultCalculator {
     final affinity = specificScore == null
         ? (profileScore * 0.72) + (hollandCongruence * 0.28)
         : (profileScore * 0.58) +
-              (hollandCongruence * 0.22) +
-              (specificScore * 0.20);
+            (hollandCongruence * 0.22) +
+            (specificScore * 0.20);
 
     return affinity.clamp(0.0, 100.0).toDouble();
   }
