@@ -1,11 +1,19 @@
-import '../../../../core/constants/riasec_constants.dart';
-
 class RiasecResult {
-  final Map<RiasecType, int> scores;
-  const RiasecResult(this.scores);
-  double percentage(RiasecType t) => (scores[t] ?? 0) / 45 * 100;
-  List<RiasecType> get ordered =>
-      RiasecType.values.toList()
-        ..sort((a, b) => (scores[b] ?? 0).compareTo(scores[a] ?? 0));
-  String get hollandCode => ordered.take(3).map((x) => x.code).join();
+  final double scoreR;
+  final double scoreI;
+  final double scoreA;
+  final double scoreS;
+  final double scoreE;
+  final double scoreC;
+  final String hollandCode;
+
+  RiasecResult({
+    required this.scoreR,
+    required this.scoreI,
+    required this.scoreA,
+    required this.scoreS,
+    required this.scoreE,
+    required this.scoreC,
+    required this.hollandCode,
+  });
 }

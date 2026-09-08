@@ -1,9 +1,13 @@
 class CareerMatch {
-  final String careerId, careerName;
-  final double score;
-  const CareerMatch({
+  final String careerId;
+  final String name;
+  final double affinityPercentage;
+  final String demandTag;
+
+  CareerMatch({
     required this.careerId,
-    required this.careerName,
-    required this.score,
+    required this.name,
+    required this.affinityPercentage,
+    required this.demandTag,
   });
 }

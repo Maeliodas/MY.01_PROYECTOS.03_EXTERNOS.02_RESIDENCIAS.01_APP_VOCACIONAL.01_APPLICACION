@@ -1,147 +1,179 @@
-import 'riasec_constants.dart';
-
-class CareerData {
-  const CareerData({
-    required this.id,
-    required this.name,
-    required this.riasecProfile,
-  });
-
-  final String id;
-  final String name;
-  final Map<RiasecType, double> riasecProfile;
-}
-
-abstract final class CareersData {
-  static const List<CareerData> careers = [
-    CareerData(
-      id: 'isc',
-      name: 'Ingeniería en Sistemas Computacionales',
-      riasecProfile: {
-        RiasecType.realistic: 0.70,
-        RiasecType.investigative: 1.00,
-        RiasecType.artistic: 0.20,
-        RiasecType.social: 0.30,
-        RiasecType.enterprising: 0.40,
-        RiasecType.conventional: 0.80,
+class CareersData {
+  /// Catálogo local de carreras. Además del código Holland, cada carrera
+  /// incluye un perfil RIASEC objetivo y preguntas especialmente
+  /// representativas. Esto evita empates artificiales entre carreras que
+  /// comparten las mismas letras principales (por ejemplo, Sistemas y
+  /// Bioquímica).
+  static const initialCareers = [
+    {
+      'id': 'isc',
+      'name': 'Ingeniería en Sistemas Computacionales',
+      'description':
+          'Tecnologías de información, software y resolución de problemas computacionales.',
+      'holland_codes': 'I,R,C',
+      'riasec_weights': {
+        'R': .58,
+        'I': 1.0,
+        'A': .48,
+        'S': .28,
+        'E': .34,
+        'C': .78
       },
-    ),
-
-    CareerData(
-      id: 'ii',
-      name: 'Ingeniería en Informática',
-      riasecProfile: {
-        RiasecType.realistic: 0.60,
-        RiasecType.investigative: 0.95,
-        RiasecType.artistic: 0.30,
-        RiasecType.social: 0.35,
-        RiasecType.enterprising: 0.40,
-        RiasecType.conventional: 0.85,
+      'question_ids': [6, 10, 14, 27, 28],
+    },
+    {
+      'id': 'ii',
+      'name': 'Ingeniería Informática',
+      'description': 'Sistemas, datos, infraestructura y soluciones digitales.',
+      'holland_codes': 'I,C,R',
+      'riasec_weights': {
+        'R': .50,
+        'I': .92,
+        'A': .38,
+        'S': .30,
+        'E': .38,
+        'C': .88
       },
-    ),
-
-    CareerData(
-      id: 'ida',
-      name: 'Ingeniería en Desarrollo de Aplicaciones',
-      riasecProfile: {
-        RiasecType.realistic: 0.50,
-        RiasecType.investigative: 0.90,
-        RiasecType.artistic: 0.65,
-        RiasecType.social: 0.30,
-        RiasecType.enterprising: 0.45,
-        RiasecType.conventional: 0.70,
+      'question_ids': [6, 10, 27, 28, 29],
+    },
+    {
+      'id': 'idap',
+      'name': 'Ingeniería en Desarrollo de Aplicaciones',
+      'description': 'Desarrollo de aplicaciones y productos digitales.',
+      'holland_codes': 'I,A,R',
+      'riasec_weights': {
+        'R': .45,
+        'I': .92,
+        'A': .82,
+        'S': .30,
+        'E': .34,
+        'C': .55
       },
-    ),
-
-    CareerData(
-      id: 'iem',
-      name: 'Ingeniería Electromecánica',
-      riasecProfile: {
-        RiasecType.realistic: 1.00,
-        RiasecType.investigative: 0.80,
-        RiasecType.artistic: 0.15,
-        RiasecType.social: 0.25,
-        RiasecType.enterprising: 0.45,
-        RiasecType.conventional: 0.65,
+      'question_ids': [6, 10, 11, 14, 15],
+    },
+    {
+      'id': 'iem',
+      'name': 'Ingeniería Electromecánica',
+      'description':
+          'Diseño, mantenimiento y operación de sistemas eléctricos y mecánicos.',
+      'holland_codes': 'R,I,C',
+      'riasec_weights': {
+        'R': 1.0,
+        'I': .76,
+        'A': .22,
+        'S': .18,
+        'E': .28,
+        'C': .62
       },
-    ),
-
-    CareerData(
-      id: 'ie',
-      name: 'Ingeniería Electrónica',
-      riasecProfile: {
-        RiasecType.realistic: 0.90,
-        RiasecType.investigative: 0.90,
-        RiasecType.artistic: 0.20,
-        RiasecType.social: 0.25,
-        RiasecType.enterprising: 0.35,
-        RiasecType.conventional: 0.70,
+      'question_ids': [1, 4, 5, 28, 29],
+    },
+    {
+      'id': 'ie',
+      'name': 'Ingeniería Electrónica',
+      'description': 'Electrónica, circuitos, control y automatización.',
+      'holland_codes': 'R,I,C',
+      'riasec_weights': {
+        'R': .90,
+        'I': .88,
+        'A': .28,
+        'S': .18,
+        'E': .25,
+        'C': .62
       },
-    ),
-
-    CareerData(
-      id: 'ic',
-      name: 'Ingeniería Civil',
-      riasecProfile: {
-        RiasecType.realistic: 0.95,
-        RiasecType.investigative: 0.75,
-        RiasecType.artistic: 0.25,
-        RiasecType.social: 0.35,
-        RiasecType.enterprising: 0.55,
-        RiasecType.conventional: 0.65,
+      'question_ids': [1, 4, 5, 6, 10],
+    },
+    {
+      'id': 'ic',
+      'name': 'Ingeniería Civil',
+      'description': 'Diseño, construcción e infraestructura.',
+      'holland_codes': 'R,I,C',
+      'riasec_weights': {
+        'R': .92,
+        'I': .72,
+        'A': .48,
+        'S': .28,
+        'E': .38,
+        'C': .68
       },
-    ),
-
-    CareerData(
-      id: 'ibq',
-      name: 'Ingeniería Bioquímica',
-      riasecProfile: {
-        RiasecType.realistic: 0.65,
-        RiasecType.investigative: 1.00,
-        RiasecType.artistic: 0.15,
-        RiasecType.social: 0.30,
-        RiasecType.enterprising: 0.30,
-        RiasecType.conventional: 0.70,
+      'question_ids': [2, 3, 4, 12, 28],
+    },
+    {
+      'id': 'ibq',
+      'name': 'Ingeniería Bioquímica',
+      'description':
+          'Procesos biológicos, químicos, experimentación y laboratorio.',
+      'holland_codes': 'I,R,C',
+      'riasec_weights': {
+        'R': .48,
+        'I': 1.0,
+        'A': .20,
+        'S': .22,
+        'E': .18,
+        'C': .64
       },
-    ),
-
-    CareerData(
-      id: 'ige',
-      name: 'Ingeniería en Gestión Empresarial',
-      riasecProfile: {
-        RiasecType.realistic: 0.30,
-        RiasecType.investigative: 0.50,
-        RiasecType.artistic: 0.35,
-        RiasecType.social: 0.70,
-        RiasecType.enterprising: 1.00,
-        RiasecType.conventional: 0.75,
+      'question_ids': [7, 8, 9, 28, 29],
+    },
+    {
+      'id': 'ige',
+      'name': 'Ingeniería en Gestión Empresarial',
+      'description':
+          'Gestión, liderazgo, emprendimiento y estrategia organizacional.',
+      'holland_codes': 'E,S,C',
+      'riasec_weights': {
+        'R': .20,
+        'I': .42,
+        'A': .42,
+        'S': .72,
+        'E': 1.0,
+        'C': .76
       },
-    ),
-
-    CareerData(
-      id: 'la',
-      name: 'Licenciatura en Administración',
-      riasecProfile: {
-        RiasecType.realistic: 0.25,
-        RiasecType.investigative: 0.45,
-        RiasecType.artistic: 0.30,
-        RiasecType.social: 0.75,
-        RiasecType.enterprising: 0.95,
-        RiasecType.conventional: 0.85,
+      'question_ids': [21, 22, 23, 24, 25],
+    },
+    {
+      'id': 'la',
+      'name': 'Licenciatura en Administración',
+      'description':
+          'Administración, coordinación de personas y organizaciones.',
+      'holland_codes': 'E,S,C',
+      'riasec_weights': {
+        'R': .15,
+        'I': .30,
+        'A': .32,
+        'S': .78,
+        'E': .88,
+        'C': .86
       },
-    ),
-
-    CareerData(
-      id: 'cp',
-      name: 'Contador Público',
-      riasecProfile: {
-        RiasecType.realistic: 0.25,
-        RiasecType.investigative: 0.60,
-        RiasecType.artistic: 0.10,
-        RiasecType.social: 0.35,
-        RiasecType.enterprising: 0.50,
-        RiasecType.conventional: 1.00,
+      'question_ids': [16, 20, 21, 23, 29],
+    },
+    {
+      'id': 'cp',
+      'name': 'Contador Público',
+      'description': 'Finanzas, auditoría, registros y control contable.',
+      'holland_codes': 'C,E,I',
+      'riasec_weights': {
+        'R': .12,
+        'I': .52,
+        'A': .10,
+        'S': .30,
+        'E': .62,
+        'C': 1.0
       },
-    ),
+      'question_ids': [26, 27, 28, 29, 30],
+    },
+    {
+      'id': 'arq',
+      'name': 'Arquitectura',
+      'description': 'Diseño creativo y técnico de espacios habitables.',
+      'holland_codes': 'A,R,I',
+      'riasec_weights': {
+        'R': .70,
+        'I': .58,
+        'A': 1.0,
+        'S': .28,
+        'E': .34,
+        'C': .48
+      },
+      'question_ids': [3, 11, 12, 13, 14],
+    },
   ];
 }
