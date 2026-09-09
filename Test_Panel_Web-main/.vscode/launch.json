@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AEVUM ITER - ngrok",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define",
+        "AEVUM_API_URL=https://remindful-applied-tidbit.ngrok-free.dev/api",
+        "--dart-define",
+        "AEVUM_API_KEY=35F9451594331EB7588AE1BDCDE0CBF7A6A8CFE58832FD655C7A57F206279BFC"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AEVUM ITER · Panel institucional</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">TECNM · INSTITUTO TECNOLÓGICO DE TUXTEPEC</p>
+        <h1>Panel de orientación vocacional</h1>
+        <p class="subtitle">Indicadores consolidados de AEVUM ITER para seguimiento institucional.</p>
+      </div>
+      <div class="brand" aria-label="AEVUM ITER">AI</div>
+    </header>
+
+    <section class="kpis" aria-label="Indicadores principales">
+      <article><span>Evaluaciones</span><strong><%= data.totals.total_evaluations ?? 0 %></strong><small>tests finalizados</small></article>
+      <article><span>Edad promedio</span><strong><%= data.totals.average_age ?? '—' %></strong><small>años</small></article>
+      <article><span>Escuelas</span><strong><%= data.totals.schools ?? 0 %></strong><small>procedencias distintas</small></article>
+      <article><span>Afinidad promedio</span><strong><%= data.totals.average_affinity ?? '—' %><%= data.totals.average_affinity != null ? '%' : '' %></strong><small>carrera recomendada</small></article>
+    </section>
+
+    <section class="section-heading">
+      <div><p class="eyebrow">PANORAMA</p><h2>Distribución de resultados</h2></div>
+      <p>Las gráficas se calculan directamente con las evaluaciones almacenadas en la base institucional.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card"><div class="card-head"><h3>Carreras con mayor afinidad</h3><span>Top 10</span></div><div class="chart-wrap"><canvas id="careerChart"></canvas></div></article>
+      <article class="card"><div class="card-head"><h3>Escuelas de procedencia</h3><span>Top 10</span></div><div class="chart-wrap"><canvas id="schoolChart"></canvas></div></article>
+      <article class="card"><div class="card-head"><h3>Estados</h3><span>Top 10</span></div><div class="chart-wrap"><canvas id="stateChart"></canvas></div></article>
+      <article class="card"><div class="card-head"><h3>Municipios</h3><span>Top 10</span></div><div class="chart-wrap"><canvas id="municipalityChart"></canvas></div></article>
+      <article class="card wide"><div class="card-head"><h3>Lenguas e idiomas declarados</h3><span>Catálogo institucional</span></div><div class="chart-wrap short"><canvas id="languageChart"></canvas></div></article>
+    </section>
+
+    <section class="records card">
+      <div class="records-head">
+        <div><p class="eyebrow">REGISTROS</p><h2>Evaluaciones recientes</h2><p>Consulta rápida de los últimos 100 resultados recibidos.</p></div>
+        <label class="search"><span>Buscar</span><input id="tableSearch" type="search" placeholder="Alumno, escuela, municipio o carrera…"></label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Alumno</th><th>Edad</th><th>Procedencia</th><th>Escuela</th><th>Lenguas</th><th>Perfil</th><th>Carrera recomendada</th><th>Afinidad</th><th>Fecha</th></tr></thead>
+          <tbody id="evaluationRows">
+          <% for (const row of data.evaluations ?? []) { %>
+            <tr>
+              <td class="student"><%= row.name %></td>
+              <td><%= row.age %></td>
+              <td><%= row.municipality_name ?? 'No especificado' %><small><%= row.state_name ?? '' %></small></td>
+              <td><%= row.school_name ?? 'No especificada' %></td>
+              <td><%= row.languages?.length ? row.languages.join(', ') : '—' %></td>
+              <td><span class="code"><%= row.holland_code %></span></td>
+              <td><%= row.top_career_name %></td>
+              <td><strong><%= Number(row.top_career_affinity ?? 0).toFixed(1) %>%</strong></td>
+              <td><%= new Date(row.completed_at).toLocaleDateString('es-MX') %></td>
+            </tr>
+          <% } %>
+          <% if (!(data.evaluations ?? []).length) { %><tr><td colspan="9" class="empty">Aún no hay evaluaciones sincronizadas.</td></tr><% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer><span>AEVUM ITER</span><span>Panel institucional · Datos consolidados</span></footer>
+  </main>
+
+<script id="dashboard-data" type="application/json"><%- JSON.stringify({careers:data.careers,schools:data.schools,states:data.states,municipalities:data.municipalities,languages:data.languages}) %></script>
+<script>
+const data = JSON.parse(document.getElementById('dashboard-data').textContent);
+const chartText = '#50604b';
+const gridColor = 'rgba(45, 73, 35, .08)';
+
+function createChart(id, rows, horizontal = false) {
+  const ctx = document.getElementById(id);
+  if (!ctx || !Array.isArray(rows)) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rows.map((item) => item.label),
+      datasets: [{ label: 'Evaluaciones', data: rows.map((item) => item.value), borderWidth: 0, borderRadius: 8, backgroundColor: '#42c91a' }]
+    },
+    options: {
+      indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { displayColors: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: chartText, precision: 0 } },
+        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: chartText, precision: 0 } }
+      }
+    }
+  });
+}
+createChart('careerChart', data.careers, true);
+createChart('schoolChart', data.schools, true);
+createChart('stateChart', data.states);
+createChart('municipalityChart', data.municipalities, true);
+createChart('languageChart', data.languages);
+
+const search = document.getElementById('tableSearch');
+const rows = [...document.querySelectorAll('#evaluationRows tr')];
+search?.addEventListener('input', () => {
+  const term = search.value.trim().toLocaleLowerCase('es');
+  rows.forEach((row) => { row.hidden = term && !row.textContent.toLocaleLowerCase('es').includes(term); });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,880 @@
+{
+  "states": [
+    {
+      "id": "01",
+      "name": "Aguascalientes"
+    },
+    {
+      "id": "02",
+      "name": "Baja California"
+    },
+    {
+      "id": "03",
+      "name": "Baja California Sur"
+    },
+    {
+      "id": "04",
+      "name": "Campeche"
+    },
+    {
+      "id": "05",
+      "name": "Coahuila de Zaragoza"
+    },
+    {
+      "id": "06",
+      "name": "Colima"
+    },
+    {
+      "id": "07",
+      "name": "Chiapas"
+    },
+    {
+      "id": "08",
+      "name": "Chihuahua"
+    },
+    {
+      "id": "09",
+      "name": "Ciudad de México"
+    },
+    {
+      "id": "10",
+      "name": "Durango"
+    },
+    {
+      "id": "11",
+      "name": "Guanajuato"
+    },
+    {
+      "id": "12",
+      "name": "Guerrero"
+    },
+    {
+      "id": "13",
+      "name": "Hidalgo"
+    },
+    {
+      "id": "14",
+      "name": "Jalisco"
+    },
+    {
+      "id": "15",
+      "name": "México"
+    },
+    {
+      "id": "16",
+      "name": "Michoacán de Ocampo"
+    },
+    {
+      "id": "17",
+      "name": "Morelos"
+    },
+    {
+      "id": "18",
+      "name": "Nayarit"
+    },
+    {
+      "id": "19",
+      "name": "Nuevo León"
+    },
+    {
+      "id": "20",
+      "name": "Oaxaca"
+    },
+    {
+      "id": "21",
+      "name": "Puebla"
+    },
+    {
+      "id": "22",
+      "name": "Querétaro"
+    },
+    {
+      "id": "23",
+      "name": "Quintana Roo"
+    },
+    {
+      "id": "24",
+      "name": "San Luis Potosí"
+    },
+    {
+      "id": "25",
+      "name": "Sinaloa"
+    },
+    {
+      "id": "26",
+      "name": "Sonora"
+    },
+    {
+      "id": "27",
+      "name": "Tabasco"
+    },
+    {
+      "id": "28",
+      "name": "Tamaulipas"
+    },
+    {
+      "id": "29",
+      "name": "Tlaxcala"
+    },
+    {
+      "id": "30",
+      "name": "Veracruz de Ignacio de la Llave"
+    },
+    {
+      "id": "31",
+      "name": "Yucatán"
+    },
+    {
+      "id": "32",
+      "name": "Zacatecas"
+    }
+  ],
+  "municipalities": [
+    {
+      "id": "01-999",
+      "state_id": "01",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "02-999",
+      "state_id": "02",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "03-999",
+      "state_id": "03",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "04-999",
+      "state_id": "04",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "05-999",
+      "state_id": "05",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "06-999",
+      "state_id": "06",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "07-999",
+      "state_id": "07",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "08-999",
+      "state_id": "08",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "09-999",
+      "state_id": "09",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "10-999",
+      "state_id": "10",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "11-999",
+      "state_id": "11",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "12-999",
+      "state_id": "12",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "13-999",
+      "state_id": "13",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "14-999",
+      "state_id": "14",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "15-999",
+      "state_id": "15",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "16-999",
+      "state_id": "16",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "17-999",
+      "state_id": "17",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "18-999",
+      "state_id": "18",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "19-999",
+      "state_id": "19",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "20-999",
+      "state_id": "20",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "21-999",
+      "state_id": "21",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "22-999",
+      "state_id": "22",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "23-999",
+      "state_id": "23",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "24-999",
+      "state_id": "24",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "25-999",
+      "state_id": "25",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "26-999",
+      "state_id": "26",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "27-999",
+      "state_id": "27",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "28-999",
+      "state_id": "28",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "29-999",
+      "state_id": "29",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "30-999",
+      "state_id": "30",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "31-999",
+      "state_id": "31",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "32-999",
+      "state_id": "32",
+      "name": "Otro municipio"
+    },
+    {
+      "id": "20-184",
+      "state_id": "20",
+      "name": "San Juan Bautista Tuxtepec"
+    }
+  ],
+  "schools": [
+    {
+      "id": "cbtis107",
+      "name": "CBTis 107",
+      "state_id": "20",
+      "municipality_id": "20-184",
+      "type": "bachillerato"
+    },
+    {
+      "id": "cobao07",
+      "name": "COBAO 07",
+      "state_id": "20",
+      "municipality_id": "20-184",
+      "type": "bachillerato"
+    },
+    {
+      "id": "conalep157",
+      "name": "CONALEP 157",
+      "state_id": "20",
+      "municipality_id": "20-184",
+      "type": "bachillerato"
+    },
+    {
+      "id": "cbta51",
+      "name": "CBTA 51",
+      "state_id": "20",
+      "municipality_id": "20-184",
+      "type": "bachillerato"
+    },
+    {
+      "id": "simon_bolivar",
+      "name": "Preparatoria SIMÓN BOLÍVAR",
+      "state_id": "20",
+      "municipality_id": "20-184",
+      "type": "bachillerato"
+    },
+    {
+      "id": "other_school",
+      "name": "Otra",
+      "state_id": null,
+      "municipality_id": null,
+      "type": "otro",
+      "active": 1
+    }
+  ],
+  "languages": [
+    {
+      "id": "language_01",
+      "name": "Chinanteco",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_02",
+      "name": "Mazateco",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_03",
+      "name": "Zapoteco",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_04",
+      "name": "Mixe",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_05",
+      "name": "Cuicateco",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_06",
+      "name": "Náhuatl",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_07",
+      "name": "Mixteco",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_08",
+      "name": "Ixcateco",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_09",
+      "name": "Chichimeco",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_10",
+      "name": "Mazahua",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_11",
+      "name": "Akateko",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_12",
+      "name": "Maya",
+      "type": "language",
+      "active": 1
+    },
+    {
+      "id": "language_13",
+      "name": "Awakateko",
+      "type": "language",
+      "active": 1
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "text": "¿Te atrae reparar aparatos eléctricos o mecánicos?",
+      "dimension": "R",
+      "position": 1,
+      "active": 1
+    },
+    {
+      "id": 2,
+      "text": "¿Prefieres las actividades prácticas que requieren esfuerzo físico o trabajo en exteriores?",
+      "dimension": "R",
+      "position": 2,
+      "active": 1
+    },
+    {
+      "id": 3,
+      "text": "¿Te gustaría aprender a interpretar planos de construcción y estructuras arquitectónicas?",
+      "dimension": "R",
+      "position": 3,
+      "active": 1
+    },
+    {
+      "id": 4,
+      "text": "¿Disfrutas operar maquinaria o herramientas con alta precisión?",
+      "dimension": "R",
+      "position": 4,
+      "active": 1
+    },
+    {
+      "id": 5,
+      "text": "¿Te interesa conocer el funcionamiento interno de motores y circuitos?",
+      "dimension": "R",
+      "position": 5,
+      "active": 1
+    },
+    {
+      "id": 6,
+      "text": "¿Te apasiona encontrar la solución a problemas lógicos o algoritmos complejos?",
+      "dimension": "I",
+      "position": 6,
+      "active": 1
+    },
+    {
+      "id": 7,
+      "text": "¿Te gusta investigar el porqué de los fenómenos naturales o científicos?",
+      "dimension": "I",
+      "position": 7,
+      "active": 1
+    },
+    {
+      "id": 8,
+      "text": "¿Disfrutas analizar datos y realizar experimentos en laboratorios?",
+      "dimension": "I",
+      "position": 8,
+      "active": 1
+    },
+    {
+      "id": 9,
+      "text": "¿Te consideras curioso por comprender sistemas bioquímicos o biológicos?",
+      "dimension": "I",
+      "position": 9,
+      "active": 1
+    },
+    {
+      "id": 10,
+      "text": "¿Te agrada resolver acertijos de programación o ecuaciones complejas?",
+      "dimension": "I",
+      "position": 10,
+      "active": 1
+    },
+    {
+      "id": 11,
+      "text": "¿Prefieres crear algo nuevo desde cero en lugar de seguir un manual ya escrito?",
+      "dimension": "A",
+      "position": 11,
+      "active": 1
+    },
+    {
+      "id": 12,
+      "text": "¿Te gustaría diseñar espacios habitables que sean tanto funcionales como bellos?",
+      "dimension": "A",
+      "position": 12,
+      "active": 1
+    },
+    {
+      "id": 13,
+      "text": "¿Te expresas mejor mediante el dibujo, la música o el diseño gráfico?",
+      "dimension": "A",
+      "position": 13,
+      "active": 1
+    },
+    {
+      "id": 14,
+      "text": "¿Disfrutas proponer soluciones creativas e innovadoras fuera de lo común?",
+      "dimension": "A",
+      "position": 14,
+      "active": 1
+    },
+    {
+      "id": 15,
+      "text": "¿Te atrae el mundo visual, las tendencias estéticas y el arte contemporáneo?",
+      "dimension": "A",
+      "position": 15,
+      "active": 1
+    },
+    {
+      "id": 16,
+      "text": "¿Disfrutas de asesorar o enseñar a otros sobre temas que tú dominas?",
+      "dimension": "S",
+      "position": 16,
+      "active": 1
+    },
+    {
+      "id": 17,
+      "text": "¿Te sientes motivado al colaborar con comunidades para resolver problemas sociales?",
+      "dimension": "S",
+      "position": 17,
+      "active": 1
+    },
+    {
+      "id": 18,
+      "text": "¿Prefieres trabajar directamente con personas guiándolas y apoyándolas?",
+      "dimension": "S",
+      "position": 18,
+      "active": 1
+    },
+    {
+      "id": 19,
+      "text": "¿Tienes facilidad para escuchar y aconsejar a compañeros en situaciones difíciles?",
+      "dimension": "S",
+      "position": 19,
+      "active": 1
+    },
+    {
+      "id": 20,
+      "text": "¿Te agrada organizar eventos para promover el bienestar de tu grupo?",
+      "dimension": "S",
+      "position": 20,
+      "active": 1
+    },
+    {
+      "id": 21,
+      "text": "¿Disfrutas de las ventas, la negociación y el trato con proveedores o clientes?",
+      "dimension": "E",
+      "position": 21,
+      "active": 1
+    },
+    {
+      "id": 22,
+      "text": "¿Te consideras una persona competitiva que busca optimizar recursos para ganar más?",
+      "dimension": "E",
+      "position": 22,
+      "active": 1
+    },
+    {
+      "id": 23,
+      "text": "¿Te atrae la idea de liderar tu propia empresa o dirigir un equipo de trabajo?",
+      "dimension": "E",
+      "position": 23,
+      "active": 1
+    },
+    {
+      "id": 24,
+      "text": "¿Tienes facilidad para convencer a otros sobre la viabilidad de tus ideas?",
+      "dimension": "E",
+      "position": 24,
+      "active": 1
+    },
+    {
+      "id": 25,
+      "text": "¿Te motiva la toma de decisiones estratégicas bajo entornos de oportunidad?",
+      "dimension": "E",
+      "position": 25,
+      "active": 1
+    },
+    {
+      "id": 26,
+      "text": "¿Te interesa el mundo de los impuestos, las auditorías y las leyes financieras?",
+      "dimension": "C",
+      "position": 26,
+      "active": 1
+    },
+    {
+      "id": 27,
+      "text": "¿Disfrutas organizar archivos, bases de datos o inventarios de forma rigurosa?",
+      "dimension": "C",
+      "position": 27,
+      "active": 1
+    },
+    {
+      "id": 28,
+      "text": "¿Prefieres contar con reglas y procedimientos claros antes de iniciar una tarea?",
+      "dimension": "C",
+      "position": 28,
+      "active": 1
+    },
+    {
+      "id": 29,
+      "text": "¿Te aseguras de mantener tus finanzas y reportes de trabajo en estricto orden?",
+      "dimension": "C",
+      "position": 29,
+      "active": 1
+    },
+    {
+      "id": 30,
+      "text": "¿Te apasiona la precisión de los registros contables y el control administrativo?",
+      "dimension": "C",
+      "position": 30,
+      "active": 1
+    }
+  ],
+  "careers": [
+    {
+      "id": "isc",
+      "name": "Ingeniería en Sistemas Computacionales",
+      "description": "Tecnologías de información, software y resolución de problemas computacionales.",
+      "holland_code": "IRC",
+      "weights": {
+        "R": 0.58,
+        "I": 1.0,
+        "A": 0.48,
+        "S": 0.28,
+        "E": 0.34,
+        "C": 0.78
+      },
+      "question_ids": [
+        6,
+        10,
+        14,
+        27,
+        28
+      ],
+      "active": 1
+    },
+    {
+      "id": "ii",
+      "name": "Ingeniería Informática",
+      "description": "Sistemas, datos, infraestructura y soluciones digitales.",
+      "holland_code": "ICR",
+      "weights": {
+        "R": 0.5,
+        "I": 0.92,
+        "A": 0.38,
+        "S": 0.3,
+        "E": 0.38,
+        "C": 0.88
+      },
+      "question_ids": [
+        6,
+        10,
+        27,
+        28,
+        29
+      ],
+      "active": 1
+    },
+    {
+      "id": "idap",
+      "name": "Ingeniería en Desarrollo de Aplicaciones",
+      "description": "Desarrollo de aplicaciones y productos digitales.",
+      "holland_code": "IAR",
+      "weights": {
+        "R": 0.45,
+        "I": 0.92,
+        "A": 0.82,
+        "S": 0.3,
+        "E": 0.34,
+        "C": 0.55
+      },
+      "question_ids": [
+        6,
+        10,
+        11,
+        14,
+        15
+      ],
+      "active": 1
+    },
+    {
+      "id": "iem",
+      "name": "Ingeniería Electromecánica",
+      "description": "Diseño, mantenimiento y operación de sistemas eléctricos y mecánicos.",
+      "holland_code": "RIC",
+      "weights": {
+        "R": 1.0,
+        "I": 0.76,
+        "A": 0.22,
+        "S": 0.18,
+        "E": 0.28,
+        "C": 0.62
+      },
+      "question_ids": [
+        1,
+        4,
+        5,
+        28,
+        29
+      ],
+      "active": 1
+    },
+    {
+      "id": "ie",
+      "name": "Ingeniería Electrónica",
+      "description": "Electrónica, circuitos, control y automatización.",
+      "holland_code": "RIC",
+      "weights": {
+        "R": 0.9,
+        "I": 0.88,
+        "A": 0.28,
+        "S": 0.18,
+        "E": 0.25,
+        "C": 0.62
+      },
+      "question_ids": [
+        1,
+        4,
+        5,
+        6,
+        10
+      ],
+      "active": 1
+    },
+    {
+      "id": "ic",
+      "name": "Ingeniería Civil",
+      "description": "Diseño, construcción e infraestructura.",
+      "holland_code": "RIC",
+      "weights": {
+        "R": 0.92,
+        "I": 0.72,
+        "A": 0.48,
+        "S": 0.28,
+        "E": 0.38,
+        "C": 0.68
+      },
+      "question_ids": [
+        2,
+        3,
+        4,
+        12,
+        28
+      ],
+      "active": 1
+    },
+    {
+      "id": "ibq",
+      "name": "Ingeniería Bioquímica",
+      "description": "Procesos biológicos, químicos, experimentación y laboratorio.",
+      "holland_code": "IRC",
+      "weights": {
+        "R": 0.48,
+        "I": 1.0,
+        "A": 0.2,
+        "S": 0.22,
+        "E": 0.18,
+        "C": 0.64
+      },
+      "question_ids": [
+        7,
+        8,
+        9,
+        28,
+        29
+      ],
+      "active": 1
+    },
+    {
+      "id": "ige",
+      "name": "Ingeniería en Gestión Empresarial",
+      "description": "Gestión, liderazgo, emprendimiento y estrategia organizacional.",
+      "holland_code": "ESC",
+      "weights": {
+        "R": 0.2,
+        "I": 0.42,
+        "A": 0.42,
+        "S": 0.72,
+        "E": 1.0,
+        "C": 0.76
+      },
+      "question_ids": [
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "active": 1
+    },
+    {
+      "id": "la",
+      "name": "Licenciatura en Administración",
+      "description": "Administración, coordinación de personas y organizaciones.",
+      "holland_code": "ESC",
+      "weights": {
+        "R": 0.15,
+        "I": 0.3,
+        "A": 0.32,
+        "S": 0.78,
+        "E": 0.88,
+        "C": 0.86
+      },
+      "question_ids": [
+        16,
+        20,
+        21,
+        23,
+        29
+      ],
+      "active": 1
+    },
+    {
+      "id": "cp",
+      "name": "Contador Público",
+      "description": "Finanzas, auditoría, registros y control contable.",
+      "holland_code": "CEI",
+      "weights": {
+        "R": 0.12,
+        "I": 0.52,
+        "A": 0.1,
+        "S": 0.3,
+        "E": 0.62,
+        "C": 1.0
+      },
+      "question_ids": [
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "active": 1
+    },
+    {
+      "id": "arq",
+      "name": "Arquitectura",
+      "description": "Diseño creativo y técnico de espacios habitables.",
+      "holland_code": "ARI",
+      "weights": {
+        "R": 0.7,
+        "I": 0.58,
+        "A": 1.0,
+        "S": 0.28,
+        "E": 0.34,
+        "C": 0.48
+      },
+      "question_ids": [
+        3,
+        11,
+        12,
+        13,
+        14
+      ],
+      "active": 1
+    }
+  ]
+}
