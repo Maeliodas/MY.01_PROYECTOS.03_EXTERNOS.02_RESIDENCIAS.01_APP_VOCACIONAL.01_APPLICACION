@@ -10,12 +10,16 @@ class PersistedTestSession {
   final String openAnswer;
   final Map<int, double> answers;
 
+  /// Orden de preguntas de esta sesión (ids). Vacío si la sesión es antigua.
+  final List<int> questionOrder;
+
   const PersistedTestSession({
     required this.id,
     required this.currentIndex,
     required this.completed,
     required this.openAnswer,
     required this.answers,
+    this.questionOrder = const [],
   });
 }
 
@@ -91,12 +95,23 @@ class TestLocalDatasource {
       final value = (answer['value'] as num?)?.toDouble();
       if (questionId != null && value != null) answers[questionId] = value;
     }
+
+    final orderRaw = row['question_order']?.toString() ?? '';
+    final questionOrder = orderRaw.isEmpty
+        ? <int>[]
+        : orderRaw
+            .split(',')
+            .map((e) => int.tryParse(e.trim()))
+            .whereType<int>()
+            .toList();
+
     return PersistedTestSession(
       id: id,
       currentIndex: (row['current_index'] as num?)?.toInt() ?? 0,
       completed: row['completed_at'] != null,
       openAnswer: row['open_answer']?.toString() ?? '',
       answers: answers,
+      questionOrder: questionOrder,
     );
   }
 
@@ -142,7 +157,8 @@ class TestLocalDatasource {
     final db = await _dbProvider.database;
     await db.transaction((txn) async {
       if (id != null && id.isNotEmpty) {
-        await txn.delete(Tables.answers, where: 'session_id = ?', whereArgs: [id]);
+        await txn
+            .delete(Tables.answers, where: 'session_id = ?', whereArgs: [id]);
         await txn.delete(Tables.sessions, where: 'id = ?', whereArgs: [id]);
       }
       await txn.delete(

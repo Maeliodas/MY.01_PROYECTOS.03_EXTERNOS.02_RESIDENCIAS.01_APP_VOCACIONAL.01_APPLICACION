@@ -14,6 +14,7 @@ import '../../features/result/presentation/pages/result_unlocked_page.dart';
 import '../../features/result/presentation/pages/result_analysis_page.dart';
 import '../../features/result/presentation/pages/career_ranking_page.dart';
 import '../../features/result/presentation/pages/result_detail_page.dart';
+import '../../features/result/presentation/pages/career_info_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/history/presentation/pages/test_history_page.dart';
@@ -24,10 +25,14 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (_, __) => const SplashPage()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingPage()),
-    GoRoute(path: '/personal-data', builder: (_, __) => const PersonalDataPage()),
+    GoRoute(
+        path: '/personal-data', builder: (_, __) => const PersonalDataPage()),
     GoRoute(path: '/school-data', builder: (_, __) => const SchoolDataPage()),
-    GoRoute(path: '/choose-avatar', builder: (_, __) => const ChooseAvatarPage()),
-    GoRoute(path: '/avatar-editor', builder: (_, __) => const SimpleAvatarEditorPage()),
+    GoRoute(
+        path: '/choose-avatar', builder: (_, __) => const ChooseAvatarPage()),
+    GoRoute(
+        path: '/avatar-editor',
+        builder: (_, __) => const SimpleAvatarEditorPage()),
     GoRoute(
       path: '/path-home',
       builder: (_, state) => PathHomePage(
@@ -36,12 +41,44 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/test-intro', builder: (_, __) => const TestIntroPage()),
     GoRoute(path: '/test', builder: (_, __) => const TestPage()),
-    GoRoute(path: '/open-question', builder: (_, __) => const OpenQuestionPage()),
+    GoRoute(
+        path: '/open-question', builder: (_, __) => const OpenQuestionPage()),
     GoRoute(path: '/thank-you', builder: (_, __) => const ThankYouPage()),
-    GoRoute(path: '/result-analysis', builder: (_, __) => const ResultAnalysisPage()),
-    GoRoute(path: '/result-unlocked', builder: (_, __) => const ResultUnlockedPage()),
-    GoRoute(path: '/career-ranking', builder: (_, __) => const CareerRankingPage()),
-    GoRoute(path: '/result-detail', builder: (_, __) => const ResultDetailPage()),
+    GoRoute(
+        path: '/result-analysis',
+        builder: (_, __) => const ResultAnalysisPage()),
+    GoRoute(
+        path: '/result-unlocked',
+        builder: (_, __) => const ResultUnlockedPage()),
+    GoRoute(
+        path: '/career-ranking', builder: (_, __) => const CareerRankingPage()),
+    GoRoute(
+        path: '/result-detail', builder: (_, __) => const ResultDetailPage()),
+    GoRoute(
+      path: '/career-info',
+      builder: (context, state) {
+        final extra = state.extra;
+        String careerId = '';
+        String name = 'Carrera';
+        double? affinity;
+        int? rank;
+        if (extra is Map) {
+          careerId = extra['careerId']?.toString() ?? '';
+          name = extra['name']?.toString() ?? 'Carrera';
+          final a = extra['affinity'];
+          if (a is num) affinity = a.toDouble();
+          final r = extra['rank'];
+          if (r is int) rank = r;
+          if (r is num) rank = r.toInt();
+        }
+        return CareerInfoPage(
+          careerId: careerId,
+          careerName: name,
+          affinity: affinity,
+          rank: rank,
+        );
+      },
+    ),
     GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
     GoRoute(path: '/edit-profile', builder: (_, __) => const EditProfilePage()),
     GoRoute(path: '/history', builder: (_, __) => const TestHistoryPage()),

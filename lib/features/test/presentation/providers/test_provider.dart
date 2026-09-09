@@ -74,30 +74,65 @@ class TestNotifier extends StateNotifier<TestState> {
   final TestLocalDatasource _local = TestLocalDatasource();
   final Uuid _uuid = const Uuid();
 
+  /// Aplica el orden guardado de ids sobre la lista canónica de preguntas.
+  /// Si el orden está vacío o incompleto, devuelve la lista original.
+  List<Question> _applyOrder(List<Question> canonical, List<int> order) {
+    if (order.isEmpty) return List<Question>.from(canonical);
+    final byId = {for (final q in canonical) q.id: q};
+    final ordered = <Question>[];
+    for (final id in order) {
+      final q = byId[id];
+      if (q != null) ordered.add(q);
+    }
+    // Si faltan preguntas (catálogo actualizado), se agregan al final.
+    if (ordered.length < canonical.length) {
+      final seen = ordered.map((q) => q.id).toSet();
+      for (final q in canonical) {
+        if (!seen.contains(q.id)) ordered.add(q);
+      }
+    }
+    return ordered;
+  }
+
+  /// Baraja una copia de la lista (Fisher–Yates).
+  List<Question> _shuffle(List<Question> source) {
+    final list = List<Question>.from(source);
+    list.shuffle();
+    return list;
+  }
+
   Future<void> _initialize() async {
     try {
-      final questions = await _questions.getActiveQuestions();
+      final canonical = await _questions.getActiveQuestions();
       final persisted = await _local.loadActiveSession();
+
       if (persisted == null) {
+        // Sin sesión activa: lista canónica.
+        // El orden aleatorio se genera al llamar startNewTestSession().
         state = TestState(
           currentIndex: 0,
-          questions: questions,
+          questions: canonical,
           answers: const {},
           openAnswer: '',
           isCompleted: false,
           restored: true,
+          isLoading: false,
         );
         return;
       }
-      final maxIndex = questions.isEmpty ? 0 : questions.length - 1;
+
+      // Restaurar sesión: respetar el orden guardado.
+      final ordered = _applyOrder(canonical, persisted.questionOrder);
+      final maxIndex = ordered.isEmpty ? 0 : ordered.length - 1;
       state = TestState(
         sessionId: persisted.id,
         currentIndex: persisted.currentIndex.clamp(0, maxIndex).toInt(),
-        questions: questions,
+        questions: ordered,
         answers: persisted.answers,
         openAnswer: persisted.openAnswer,
         isCompleted: persisted.completed,
         restored: true,
+        isLoading: false,
       );
     } catch (e) {
       state = state.copyWith(
@@ -108,24 +143,25 @@ class TestNotifier extends StateNotifier<TestState> {
     }
   }
 
+  /// Inicia (o reinicia) un test desde cero con orden aleatorio nuevo.
   Future<void> startNewTestSession() async {
-    final questions = state.questions.isEmpty
-        ? await _questions.getActiveQuestions()
-        : state.questions;
+    final canonical = await _questions.getActiveQuestions();
+    final shuffled = _shuffle(canonical);
     await _local.clearCurrentProgress();
     final id = _uuid.v4();
     await _local.createSession(
       sessionId: id,
-      questionOrder: questions.map((q) => q.id).toList(),
+      questionOrder: shuffled.map((q) => q.id).toList(),
     );
     state = TestState(
       sessionId: id,
       currentIndex: 0,
-      questions: questions,
+      questions: shuffled,
       answers: const {},
       openAnswer: '',
       isCompleted: false,
       restored: true,
+      isLoading: false,
     );
   }
 
@@ -183,6 +219,7 @@ class TestNotifier extends StateNotifier<TestState> {
     state = state.copyWith(openAnswer: answer);
   }
 
+  /// Reinicio explícito: nuevo orden aleatorio.
   Future<void> resetTest() => startNewTestSession();
 }
 
