@@ -610,5 +610,5 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`AEVUM ITER Panel: http://localhost:${port}`);
+  console.log(`App Vocacional ITTUX Panel: http://localhost:${port}`);
 });
