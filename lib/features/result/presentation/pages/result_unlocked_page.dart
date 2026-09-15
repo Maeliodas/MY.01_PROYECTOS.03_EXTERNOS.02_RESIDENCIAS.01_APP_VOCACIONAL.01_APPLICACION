@@ -20,7 +20,7 @@ class ResultUnlockedPage extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
               children: [
-                const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))),
+                const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))),
                 const SizedBox(height: 28),
                 Center(child: Container(width: 108, height: 108, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: const Icon(Icons.star_rounded, color: Colors.white, size: 58))),
                 const SizedBox(height: 20),

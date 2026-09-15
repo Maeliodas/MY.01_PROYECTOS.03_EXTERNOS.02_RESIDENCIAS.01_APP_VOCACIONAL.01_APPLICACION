@@ -152,7 +152,7 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                   ),
                   const SizedBox(height: 28),
                   const Text(
-                    'RIASEC · AEVUM ITER',
+                    'RIASEC · App Vocacional ITTUX',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,

@@ -15,7 +15,7 @@ class CareerRankingPage extends ConsumerWidget {
     final async = ref.watch(latestResultProvider);
     final catalogs = ref.watch(careersCatalogProvider).valueOrNull ?? const [];
     return Scaffold(
-      appBar: AppBar(title: const Text('Aevum Iter')),
+      appBar: AppBar(title: const Text('App Vocacional ITTUX')),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
         error: (_, __) => const Center(child: Text('Error al cargar las carreras.')),
@@ -92,7 +92,7 @@ class CareerRankingPage extends ConsumerWidget {
                                   icon: Icons.language_rounded,
                                   title: 'Página no disponible',
                                   content: const Text(
-                                    'La página oficial de esta carrera todavía no está disponible. Puedes volver a consultarla más adelante desde AEVUM ITER.',
+                                    'La página oficial de esta carrera todavía no está disponible. Puedes volver a consultarla más adelante desde App Vocacional ITTUX.',
                                     textAlign: TextAlign.center,
                                   ),
                                 );

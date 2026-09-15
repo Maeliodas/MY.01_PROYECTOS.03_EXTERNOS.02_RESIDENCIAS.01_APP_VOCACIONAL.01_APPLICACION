@@ -27,7 +27,7 @@ class ProfilePage extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.fromLTRB(22, 16, 22, 30), children: [
-          Row(children: [const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))), const Spacer(), IconButton(onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined))]),
+          Row(children: [const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))), const Spacer(), IconButton(onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined))]),
           const SizedBox(height: 16),
           Center(child: Stack(clipBehavior: Clip.none, children: [Container(width: 118, height: 118, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: avatar)), Positioned(right: -2, bottom: 3, child: Material(color: AppColors.primary, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () { final avatarPath = profile.avatarConfig.avatarPath; if (avatarPath.startsWith('/') || avatarPath.contains('emulated')) { ref.read(avatarProvider.notifier).selectCustomPhoto(avatarPath); } else { ref.read(avatarProvider.notifier).selectAvatar(avatarPath); } context.push('/choose-avatar?return=profile'); }, child: const SizedBox(width: 38, height: 38, child: Icon(Icons.edit_rounded, color: Colors.white, size: 19))))) ])),
           const SizedBox(height: 12),
