@@ -1,6 +1,6 @@
-import '../../../../core/constants/careers_data.dart';
 import '../../../../core/constants/riasec_constants.dart';
-import '../../../test/data/questions_data.dart';
+import '../../../catalog/domain/models/catalog_models.dart';
+import '../../../test/domain/models/question.dart';
 import '../models/career_match.dart';
 import '../models/riasec_result.dart';
 
@@ -10,61 +10,60 @@ class ResultCalculator {
   /// R → I → A → S → E → C → R
   static const List<String> _riasecOrder = ['R', 'I', 'A', 'S', 'E', 'C'];
 
-  /// Máximo posible por dimensión:
-  ///
-  /// 5 preguntas × 10 puntos = 50.
+  /// Escala estándar persistida por dimensión. Aunque el número de preguntas
+  /// cambie, cada dimensión se normaliza a 0–50 para conservar compatibilidad
+  /// con resultados históricos y vistas existentes.
   static const double _maxDimensionScore = 50.0;
 
   /// Calcula las seis dimensiones RIASEC y el código Holland.
-  static RiasecResult calculate(Map<int, double> answers) {
-    double r = 0;
-    double i = 0;
-    double a = 0;
-    double s = 0;
-    double e = 0;
-    double c = 0;
+  static RiasecResult calculate(
+    Map<int, double> answers,
+    List<Question> questions,
+  ) {
+    final sums = <String, double>{'R': 0, 'I': 0, 'A': 0, 'S': 0, 'E': 0, 'C': 0};
+    final counts = <String, int>{'R': 0, 'I': 0, 'A': 0, 'S': 0, 'E': 0, 'C': 0};
 
-    for (final entry in answers.entries) {
-      final question = QuestionsData.questions.firstWhere(
-        (question) => question.id == entry.key,
-      );
-
-      final value = entry.value.clamp(0, 10).toDouble();
-
-      switch (question.dimension) {
-        case RiasecDimension.realistic:
-          r += value;
-          break;
-
-        case RiasecDimension.investigative:
-          i += value;
-          break;
-
-        case RiasecDimension.artistic:
-          a += value;
-          break;
-
-        case RiasecDimension.social:
-          s += value;
-          break;
-
-        case RiasecDimension.enterprising:
-          e += value;
-          break;
-
-        case RiasecDimension.conventional:
-          c += value;
-          break;
+    String codeFor(RiasecDimension dimension) {
+      switch (dimension) {
+        case RiasecDimension.realistic: return 'R';
+        case RiasecDimension.investigative: return 'I';
+        case RiasecDimension.artistic: return 'A';
+        case RiasecDimension.social: return 'S';
+        case RiasecDimension.enterprising: return 'E';
+        case RiasecDimension.conventional: return 'C';
       }
     }
 
+    // Solo se consideran respuestas cuyo ID pertenece al cuestionario activo.
+    // Así una pregunta desactivada no altera evaluaciones nuevas.
+    final byId = {for (final question in questions) question.id: question};
+    for (final entry in answers.entries) {
+      final question = byId[entry.key];
+      if (question == null) continue;
+      final code = codeFor(question.dimension);
+      sums[code] = (sums[code] ?? 0) + entry.value.clamp(0, 10).toDouble();
+      counts[code] = (counts[code] ?? 0) + 1;
+    }
+
+    // Normalización dinámica. Si una dimensión tiene 8 preguntas y otra 5,
+    // ninguna obtiene ventaja por tener más reactivos. El promedio 0–10 se
+    // transforma a la escala histórica 0–50.
+    double standardized(String code) {
+      final count = counts[code] ?? 0;
+      if (count == 0) return 0;
+      final average = (sums[code] ?? 0) / count;
+      return (average * 5).clamp(0.0, 50.0).toDouble();
+    }
+
+    final r = standardized('R');
+    final i = standardized('I');
+    final a = standardized('A');
+    final social = standardized('S');
+    final e = standardized('E');
+    final c = standardized('C');
+
     final scores = <String, double>{
-      'R': r,
-      'I': i,
-      'A': a,
-      'S': s,
-      'E': e,
-      'C': c,
+      'R': r, 'I': i, 'A': a, 'S': social, 'E': e, 'C': c,
     };
 
     final sortedScores = scores.entries.toList()
@@ -86,7 +85,7 @@ class ResultCalculator {
       scoreR: r,
       scoreI: i,
       scoreA: a,
-      scoreS: s,
+      scoreS: social,
       scoreE: e,
       scoreC: c,
       hollandCode: hollandCode,
@@ -105,9 +104,11 @@ class ResultCalculator {
   /// 1. Intensidad de las seis dimensiones RIASEC del estudiante.
   /// 2. Perfil RIASEC objetivo específico de cada carrera.
   /// 3. Congruencia según el hexágono Holland.
-  /// 4. Respuestas a preguntas especialmente representativas de la carrera.
+  /// Las asociaciones pregunta-carrera son metadatos administrativos y NO
+  /// otorgan puntos directos a una carrera.
   static List<CareerMatch> calculateCareerMatches(
-    RiasecResult result, {
+    RiasecResult result,
+    List<CareerCatalog> careers, {
     Map<int, double>? answers,
   }) {
     final userScores = <String, double>{
@@ -127,14 +128,12 @@ class ResultCalculator {
 
     final matches = <CareerMatch>[];
 
-    for (final career in CareersData.initialCareers) {
-      final careerId = career['id']?.toString() ?? '';
-      final careerName = career['name']?.toString() ?? '';
-      final hollandCodes = career['holland_codes']?.toString() ?? '';
-
-      final careerCode = hollandCodes
-          .split(',')
-          .map((code) => code.trim().toUpperCase())
+    for (final career in careers) {
+      final careerId = career.id;
+      final careerName = career.name;
+      final careerCode = career.hollandCode
+          .toUpperCase()
+          .split('')
           .where(_riasecOrder.contains)
           .toList();
 
@@ -142,27 +141,12 @@ class ResultCalculator {
         continue;
       }
 
-      final rawWeights = career['riasec_weights'];
-      final careerWeights = rawWeights is Map
-          ? rawWeights.map(
-              (key, value) => MapEntry(
-                key.toString(),
-                (value as num?)?.toDouble() ?? 0.0,
-              ),
-            )
-          : <String, double>{};
-
-      final rawQuestionIds = career['question_ids'];
-      final questionIds = rawQuestionIds is List
-          ? rawQuestionIds.whereType<int>().toList()
-          : <int>[];
-
       final affinity = _calculateAffinity(
         userScores: userScores,
         userCode: userCode,
         careerCode: careerCode,
-        careerWeights: careerWeights,
-        questionIds: questionIds,
+        careerWeights: career.weights,
+        questionIds: career.questionIds,
         answers: answers,
       );
 
@@ -226,17 +210,9 @@ class ResultCalculator {
       careerCode: careerCode,
     );
 
-    final specificScore = _calculateQuestionSpecificScore(
-      answers: answers,
-      questionIds: questionIds,
-    );
-
-    final affinity = specificScore == null
-        ? (profileScore * 0.72) + (hollandCongruence * 0.28)
-        : (profileScore * 0.58) +
-              (hollandCongruence * 0.22) +
-              (specificScore * 0.20);
-
+    // Las preguntas relacionadas con una carrera sirven para trazabilidad y
+    // administración del instrumento; nunca suman puntos directos a esa carrera.
+    final affinity = (profileScore * 0.72) + (hollandCongruence * 0.28);
     return affinity.clamp(0.0, 100.0).toDouble();
   }
 
@@ -248,32 +224,13 @@ class ResultCalculator {
     double weightTotal = 0;
 
     for (final dimension in _riasecOrder) {
-      final weight = (careerWeights[dimension] ?? 0).clamp(0.0, 1.0).toDouble();
+      final weight = (careerWeights[dimension] ?? 0).clamp(0.0, 10.0).toDouble();
       weightedStrength += (userScores[dimension] ?? 0) * weight;
       weightTotal += weight;
     }
 
     if (weightTotal == 0) return 0;
     return (weightedStrength / weightTotal).clamp(0.0, 100.0).toDouble();
-  }
-
-  static double? _calculateQuestionSpecificScore({
-    required Map<int, double>? answers,
-    required List<int> questionIds,
-  }) {
-    if (answers == null || answers.isEmpty || questionIds.isEmpty) return null;
-
-    var total = 0.0;
-    var count = 0;
-    for (final id in questionIds) {
-      final answer = answers[id];
-      if (answer == null) continue;
-      total += answer.clamp(0.0, 10.0).toDouble();
-      count++;
-    }
-
-    if (count == 0) return null;
-    return ((total / count) * 10).clamp(0.0, 100.0).toDouble();
   }
 
   /// Determina qué tan fuerte es el perfil del estudiante

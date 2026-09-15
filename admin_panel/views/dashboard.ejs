@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>App Vocacional ITTUX · Administración</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">A</span><div><strong>App Vocacional ITTUX</strong><small>Administración</small></div></div>
+      <nav>
+        <button class="nav-btn active" data-view="dashboard">Resultados</button>
+        <button class="nav-btn" data-view="catalogs">Catálogos</button>
+        <button class="nav-btn" data-view="suggestions">Sugerencias <b><%= (catalogs.suggestions ?? []).filter(x=>x.status==='pending').length %></b></button>
+      </nav>
+      <div class="sidebar-foot"><form method="post" action="/logout"><button class="logout-btn" type="submit">Cerrar sesión</button></form><small>Versión de catálogos</small><strong>#<%= catalogs.meta?.version ?? 1 %></strong><span>Los cambios aprobados se sincronizan con la app.</span></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><p class="eyebrow">INSTITUTO TECNOLÓGICO DE TUXTEPEC</p><h1>Panel de orientación vocacional</h1></div>
+        <div class="status"><i></i><span>Servidor conectado</span></div>
+      </header>
+
+      <section id="view-dashboard" class="view active">
+        <form class="filters card" method="get" action="/">
+          <div class="filter-head"><div><p class="eyebrow">FILTROS</p><h2>Explorar resultados</h2></div><a class="clear-link" href="/">Limpiar filtros</a></div>
+          <div class="filter-grid">
+            <label>Estado
+              <select name="state" id="filterState">
+                <option value="">Todos</option>
+                <% for (const row of catalogs.states ?? []) { if(row.active) { %><option value="<%= row.id %>" <%= filters.state===row.id?'selected':'' %>><%= row.name %></option><% } } %>
+              </select>
+            </label>
+            <label>Municipio
+              <select name="municipality" id="filterMunicipality">
+                <option value="">Todos</option>
+                <% for (const row of catalogs.municipalities ?? []) { if(row.active) { %><option data-state="<%= row.state_id %>" value="<%= row.id %>" <%= filters.municipality===row.id?'selected':'' %>><%= row.name %></option><% } } %>
+              </select>
+            </label>
+            <label>Escuela
+              <select name="school" id="filterSchool">
+                <option value="">Todas</option>
+                <% for (const row of catalogs.schools ?? []) { if(row.active) { %><option data-municipality="<%= row.municipality_id ?? '' %>" value="<%= row.id %>" <%= filters.school===row.id?'selected':'' %>><%= row.name %></option><% } } %>
+              </select>
+            </label>
+            <label>Perfil
+              <select name="profile"><option value="">Todos</option><% for (const code of ['RIA','RIC','IRC','ICR','IAS','SAE','ESC','CEI']) { %><option value="<%= code %>" <%= filters.profile===code?'selected':'' %>><%= code %></option><% } %></select>
+            </label>
+            <label>Carrera
+              <select name="career"><option value="">Todas</option><% for (const row of catalogs.careers ?? []) { if(row.active) { %><option value="<%= row.id %>" <%= filters.career===row.id?'selected':'' %>><%= row.name %></option><% } } %></select>
+            </label>
+            <label>Desde<input type="date" name="from" value="<%= filters.from ?? '' %>"></label>
+            <label>Hasta<input type="date" name="to" value="<%= filters.to ?? '' %>"></label>
+            <button class="primary" type="submit">Aplicar filtros</button>
+          </div>
+        </form>
+
+        <section class="kpis">
+          <article><span>Evaluaciones</span><strong><%= data.totals.total_evaluations ?? 0 %></strong><small>según filtros actuales</small></article>
+          <article><span>Escuelas</span><strong><%= data.totals.schools ?? 0 %></strong><small>con registros</small></article>
+          <article><span>Perfiles</span><strong><%= data.totals.profiles ?? 0 %></strong><small>códigos Holland</small></article>
+          <article><span>Afinidad media</span><strong><%= data.totals.average_affinity ?? '—' %><%= data.totals.average_affinity != null ? '%' : '' %></strong><small>carrera principal</small></article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="card span-2"><div class="card-head"><div><h3>Carreras recomendadas</h3><p>Distribución de recomendaciones principales</p></div></div><div class="chart chart-wide"><canvas id="careerChart"></canvas></div></article>
+          <article class="card"><div class="card-head"><div><h3>Perfiles Holland</h3><p>Frecuencia por código</p></div></div><div class="chart"><canvas id="profileChart"></canvas></div></article>
+          <article class="card"><div class="card-head"><div><h3>Rangos de afinidad</h3><p>Concentración porcentual</p></div></div><div class="chart"><canvas id="affinityChart"></canvas></div></article>
+          <article class="card"><div class="card-head"><div><h3>Procedencia</h3><p>Municipio y estado</p></div></div><div class="chart"><canvas id="provenanceChart"></canvas></div></article>
+          <article class="card"><div class="card-head"><div><h3>Escuelas</h3><p>Procedencias con mayor participación</p></div></div><div class="chart"><canvas id="schoolChart"></canvas></div></article>
+          <article class="card"><div class="card-head"><div><h3>Lenguas originarias</h3><p>Lenguas declaradas</p></div></div><div class="chart"><canvas id="languageChart"></canvas></div></article>
+          <article class="card"><div class="card-head"><div><h3>Idiomas</h3><p>Idiomas adicionales</p></div></div><div class="chart"><canvas id="idiomChart"></canvas></div></article>
+        </section>
+
+        <section class="records card">
+          <div class="records-head"><div><p class="eyebrow">EVALUACIONES</p><h2>Registros</h2><p>Procedencia, escuela, lenguas, idioma, perfil, carrera, afinidad y fecha.</p></div><label class="search">Buscar<input id="tableSearch" type="search" placeholder="Escuela, municipio, carrera…"></label></div>
+          <div class="table-wrap"><table><thead><tr><th>Procedencia</th><th>Escuela</th><th>Lenguas</th><th>Idioma</th><th>Perfil</th><th>Carrera recomendada</th><th>Afinidad</th><th>Fecha</th><th>Respuestas</th></tr></thead><tbody id="evaluationRows">
+          <% for (const row of data.evaluations ?? []) { %><tr><td><strong><%= row.municipality_name ?? 'No especificado' %></strong><small><%= row.state_name ?? '' %></small></td><td><%= row.school_name ?? 'No especificada' %></td><td><%= row.lenguas || '—' %></td><td><%= row.idiomas || '—' %></td><td><span class="code"><%= row.holland_code %></span></td><td><%= row.top_career_name %></td><td><span class="affinity"><%= Number(row.top_career_affinity ?? 0).toFixed(1) %>%</span></td><td><%= new Date(row.completed_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) %></td><td><% if((row.open_answers??[]).length){ %><details class="open-answer-details"><summary>Ver <%= row.open_answers.length %></summary><div class="open-answer-list"><% for(const a of row.open_answers){ %><article><strong><%= a.career_name %></strong><small><%= a.question_text || 'Pregunta complementaria' %></small><p><%= a.answer %></p></article><% } %></div></details><% } else { %>—<% } %></td></tr><% } %>
+          <% if (!(data.evaluations ?? []).length) { %><tr><td colspan="9" class="empty">No hay evaluaciones para los filtros seleccionados.</td></tr><% } %>
+          </tbody></table></div>
+        </section>
+      </section>
+
+      <section id="view-catalogs" class="view">
+        <div class="section-title"><div><p class="eyebrow">BASE DE DATOS</p><h2>Administración de catálogos</h2><p>Altas, cambios y bajas lógicas. La app recibe estos cambios al sincronizar.</p></div></div>
+        <div class="catalog-tabs">
+          <button class="catalog-tab active" data-catalog="states">Estados</button><button class="catalog-tab" data-catalog="municipalities">Municipios</button><button class="catalog-tab" data-catalog="schools">Escuelas</button><button class="catalog-tab" data-catalog="languages">Lenguas e idiomas</button><button class="catalog-tab" data-catalog="careers">Carreras</button><button class="catalog-tab" data-catalog="questions">Preguntas</button>
+        </div>
+
+        <div class="catalog-panel active" id="catalog-states"><%- include('partials/catalog_states', {catalogs}) %></div>
+        <div class="catalog-panel" id="catalog-municipalities"><%- include('partials/catalog_municipalities', {catalogs}) %></div>
+        <div class="catalog-panel" id="catalog-schools"><%- include('partials/catalog_schools', {catalogs}) %></div>
+        <div class="catalog-panel" id="catalog-languages"><%- include('partials/catalog_languages', {catalogs}) %></div>
+        <div class="catalog-panel" id="catalog-careers"><%- include('partials/catalog_careers', {catalogs}) %></div>
+        <div class="catalog-panel" id="catalog-questions"><%- include('partials/catalog_questions', {catalogs}) %></div>
+      </section>
+
+      <section id="view-suggestions" class="view">
+        <div class="section-title"><div><p class="eyebrow">SUGERENCIAS DESDE LA APP</p><h2>Lenguas e idiomas pendientes</h2><p>Al aprobar una sugerencia se incorpora al catálogo maestro y aumenta su versión.</p></div></div>
+        <div class="card suggestions-list">
+          <% for (const row of catalogs.suggestions ?? []) { %>
+            <div class="suggestion-row"><div><span class="pill"><%= row.kind %></span><strong><%= row.name %></strong><small><%= new Date(row.created_at).toLocaleString('es-MX') %></small></div><div><span class="status-label <%= row.status %>"><%= row.status %></span><% if(row.status==='pending'){ %><button class="small-btn approve" data-suggestion="<%= row.id %>" data-action="approve">Aprobar</button><button class="small-btn danger" data-suggestion="<%= row.id %>" data-action="reject">Rechazar</button><% } %></div></div>
+          <% } %>
+          <% if(!(catalogs.suggestions ?? []).length){ %><p class="empty">No hay sugerencias todavía.</p><% } %>
+        </div>
+      </section>
+
+      <footer><strong>App Vocacional ITTUX</strong><span>Administración de resultados y catálogos</span></footer>
+    </main>
+  </div>
+
+  <script id="dashboard-data" type="application/json"><%- JSON.stringify({careers:data.careers,schools:data.schools,provenance:data.provenance,profiles:data.profiles,affinity:data.affinity,languages:data.languages,idioms:data.idioms,municipalities:catalogs.municipalities,schoolCatalog:catalogs.schools}) %></script>
+  <script src="/admin.js"></script>
+</body>
+</html>

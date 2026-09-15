@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../../data/result_local_datasource.dart';
 import '../../domain/models/career_match.dart';
 import '../../domain/models/riasec_result.dart';
@@ -42,7 +43,10 @@ final latestResultProvider = FutureProvider<ResultData?>((ref) async {
   final savedRanking = _decodeRanking(map['full_ranking_json']);
   final ranking = savedRanking.isNotEmpty
       ? savedRanking
-      : ResultCalculator.calculateCareerMatches(riasec);
+      : ResultCalculator.calculateCareerMatches(
+          riasec,
+          await ref.watch(careersCatalogProvider.future),
+        );
 
   if (ranking.isEmpty) return null;
   return ResultData(riasec: riasec, topCareer: ranking.first, ranking: ranking);
@@ -53,14 +57,16 @@ List<CareerMatch> _decodeRanking(dynamic raw) {
   try {
     final decoded = jsonDecode(raw.toString());
     if (decoded is! List) return const [];
-    return decoded.whereType<Map>().map((item) {
-      return CareerMatch(
-        careerId: item['career_id']?.toString() ?? '',
-        name: item['name']?.toString() ?? 'Carrera',
-        affinityPercentage: _readDouble(item['affinity']),
-        demandTag: item['demand_tag']?.toString() ?? '',
-      );
-    }).where((item) => item.careerId.isNotEmpty).toList();
+    return decoded
+        .whereType<Map>()
+        .map((item) => CareerMatch(
+              careerId: item['career_id']?.toString() ?? '',
+              name: item['name']?.toString() ?? 'Carrera',
+              affinityPercentage: _readDouble(item['affinity']),
+              demandTag: item['demand_tag']?.toString() ?? '',
+            ))
+        .where((item) => item.careerId.isNotEmpty)
+        .toList();
   } catch (_) {
     return const [];
   }

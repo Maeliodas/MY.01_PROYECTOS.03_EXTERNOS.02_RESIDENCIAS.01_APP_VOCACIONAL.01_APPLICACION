@@ -17,9 +17,15 @@ class TestProgressTreePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final test = ref.watch(testProvider);
     final profile = ref.watch(profileProvider);
+    if (!test.restored || test.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
+    }
     final complete = test.isCompleted;
     final answered = test.answers.length;
-    final percentage = complete ? 100 : ((answered / 30) * 100).round();
+    final totalQuestions = test.questions.length;
+    final percentage = complete
+        ? 100
+        : totalQuestions == 0 ? 0 : ((answered / totalQuestions) * 100).round().clamp(0, 100);
 
     void continueTest() => context.push('/test');
     void showResult() {
@@ -57,16 +63,16 @@ class TestProgressTreePage extends ConsumerWidget {
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF287400),
+                        color: Color(0xFF00923F),
                       ),
                     ),
                   ),
                   const Text(
-                    'Aevum Iter',
+                    'App Vocacional ITTUX',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF287400),
+                      color: Color(0xFF00923F),
                     ),
                   ),
                 ],
@@ -191,22 +197,22 @@ class TestProgressTreePage extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 28),
-                _ActionButton(text: '▶  Iniciar Test', onTap: continueTest),
+                _ActionButton(text: 'Iniciar Test', onTap: continueTest, icon: Icons.explore_rounded),
               ] else ...[
                 _Node(
                   icon: Icons.favorite_rounded,
                   title: 'Intereses',
-                  done: answered >= 10 || complete,
-                  active: !complete && answered < 10,
+                  done: answered >= ((totalQuestions / 3).ceil()) || complete,
+                  active: !complete && answered < ((totalQuestions / 3).ceil()),
                   onTap: complete ? showResult : continueTest,
                 ),
                 const _Connector(),
                 _Node(
                   icon: Icons.psychology_rounded,
                   title: 'Habilidades',
-                  done: answered >= 20 || complete,
-                  active: !complete && answered >= 10 && answered < 20,
-                  onTap: answered >= 10
+                  done: answered >= ((totalQuestions * 2 / 3).ceil()) || complete,
+                  active: !complete && answered >= ((totalQuestions / 3).ceil()) && answered < ((totalQuestions * 2 / 3).ceil()),
+                  onTap: answered >= ((totalQuestions / 3).ceil())
                       ? (complete ? showResult : continueTest)
                       : null,
                 ),
@@ -215,8 +221,8 @@ class TestProgressTreePage extends ConsumerWidget {
                   icon: Icons.person_search_rounded,
                   title: 'Personalidad',
                   done: complete,
-                  active: !complete && answered >= 20,
-                  onTap: answered >= 20
+                  active: !complete && answered >= ((totalQuestions * 2 / 3).ceil()),
+                  onTap: answered >= ((totalQuestions * 2 / 3).ceil())
                       ? (complete ? showResult : continueTest)
                       : null,
                 ),
@@ -402,8 +408,9 @@ class _Connector extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
+  final IconData? icon;
 
-  const _ActionButton({required this.text, required this.onTap});
+  const _ActionButton({required this.text, required this.onTap, this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -418,10 +425,10 @@ class _ActionButton extends StatelessWidget {
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         ),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[Icon(icon, size: 22), const SizedBox(width: 9)],
+          Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        ]),
       ),
     );
   }

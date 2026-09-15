@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
+
 import '../database/app_database.dart';
 import '../database/tables.dart';
 
@@ -16,14 +18,14 @@ class SyncItem {
     required this.attempts,
   });
 
-  factory SyncItem.fromMap(Map<String, dynamic> map) {
-    return SyncItem(
-      id: map['id'],
-      sessionId: map['session_id'],
-      payload: jsonDecode(map['payload_json']),
-      attempts: map['attempts'],
-    );
-  }
+  factory SyncItem.fromMap(Map<String, Object?> map) => SyncItem(
+        id: map['id']?.toString() ?? '',
+        sessionId: map['session_id']?.toString() ?? '',
+        payload: Map<String, dynamic>.from(
+          jsonDecode(map['payload_json']?.toString() ?? '{}') as Map,
+        ),
+        attempts: (map['attempts'] as num?)?.toInt() ?? 0,
+      );
 }
 
 class SyncQueue {
@@ -35,14 +37,18 @@ class SyncQueue {
     required Map<String, dynamic> payload,
   }) async {
     final db = await _dbProvider.database;
-    await db.insert(Tables.syncQueue, {
-      'id': id,
-      'session_id': sessionId,
-      'payload_json': jsonEncode(payload),
-      'attempts': 0,
-      'status': 'pending',
-      'created_at': DateTime.now().toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      Tables.syncQueue,
+      {
+        'id': id,
+        'session_id': sessionId,
+        'payload_json': jsonEncode(payload),
+        'attempts': 0,
+        'status': 'pending',
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<SyncItem>> getPendingItems() async {
@@ -51,9 +57,10 @@ class SyncQueue {
       Tables.syncQueue,
       where: 'status = ?',
       whereArgs: ['pending'],
-      limit: 10,
+      orderBy: 'created_at ASC',
+      limit: 20,
     );
-    return maps.map((m) => SyncItem.fromMap(m)).toList();
+    return maps.map(SyncItem.fromMap).toList();
   }
 
   Future<void> remove(String id) async {

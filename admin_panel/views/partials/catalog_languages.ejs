@@ -1,0 +1,21 @@
+<div class="crud-grid">
+  <form class="crud-form card" data-type="languages">
+    <h3>Agregar lengua o idioma</h3>
+    <p class="form-help">La clave interna se genera automáticamente.</p>
+    <select name="kind" required><option value="lengua">Lengua originaria</option><option value="idioma">Idioma</option></select>
+    <input name="name" placeholder="Nombre" required>
+    <input type="hidden" name="active" value="1">
+    <button class="primary" type="submit">Guardar</button>
+  </form>
+  <div class="card table-card">
+    <div class="table-tools"><input class="catalog-search" placeholder="Buscar lengua o idioma…"></div>
+    <div class="table-wrap"><table class="catalog-table">
+      <thead><tr><th>Tipo</th><th>Nombre</th><th>Estatus</th><th></th></tr></thead>
+      <tbody><% for(const r of catalogs.languages){ %><tr data-search="<%= r.kind %> <%= r.name %>">
+        <td><span class="pill"><%= r.kind %></span></td><td><%= r.name %></td>
+        <td><span class="status-label <%= r.active?'approved':'rejected' %>"><%= r.active?'Activo':'Inactivo' %></span></td>
+        <td><button class="small-btn edit-record" data-type="languages" data-id="<%= r.id %>" data-record='<%- JSON.stringify(r).replace(/'/g,"&#39;") %>'>Editar</button><button class="small-btn danger delete-record" data-type="languages" data-id="<%= r.id %>">Baja</button></td>
+      </tr><% } %></tbody>
+    </table></div>
+  </div>
+</div>

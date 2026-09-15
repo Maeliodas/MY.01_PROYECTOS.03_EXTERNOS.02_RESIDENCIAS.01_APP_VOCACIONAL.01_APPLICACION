@@ -1,0 +1,24 @@
+<div class="crud-grid">
+  <form class="crud-form card dependent-form" data-type="schools">
+    <h3>Agregar escuela</h3>
+    <p class="form-help">Selecciona su procedencia; la clave interna se genera automáticamente.</p>
+    <select name="state_id" class="state-select" required><option value="">Estado</option><% for(const s of catalogs.states){if(s.active){%><option value="<%= s.id %>"><%= s.name %></option><%}}%></select>
+    <select name="municipality_id" class="municipality-select" required><option value="">Municipio</option><% for(const m of catalogs.municipalities){if(m.active){%><option data-state="<%= m.state_id %>" value="<%= m.id %>"><%= m.name %></option><%}}%></select>
+    <input name="name" placeholder="Nombre de la escuela" required>
+    <input name="type" placeholder="Tipo, ej. bachillerato">
+    <input type="hidden" name="active" value="1">
+    <button class="primary" type="submit">Guardar escuela</button>
+  </form>
+  <div class="card table-card">
+    <div class="table-tools"><input class="catalog-search" placeholder="Buscar escuela, municipio o estado…"></div>
+    <div class="table-wrap"><table class="catalog-table">
+      <thead><tr><th>Escuela</th><th>Procedencia</th><th>Estatus</th><th></th></tr></thead>
+      <tbody><% for(const r of catalogs.schools){ %><tr data-search="<%= r.name %> <%= r.municipality_name ?? '' %> <%= r.state_name ?? '' %>">
+        <td><%= r.name %><small><%= r.type ?? '' %></small></td>
+        <td><%= r.municipality_name ?? 'Global' %><small><%= r.state_name ?? '' %></small></td>
+        <td><span class="status-label <%= r.active?'approved':'rejected' %>"><%= r.active?'Activo':'Inactivo' %></span></td>
+        <td><button class="small-btn edit-record" data-type="schools" data-id="<%= r.id %>" data-record='<%- JSON.stringify(r).replace(/'/g,"&#39;") %>'>Editar</button><button class="small-btn danger delete-record" data-type="schools" data-id="<%= r.id %>">Baja</button></td>
+      </tr><% } %></tbody>
+    </table></div>
+  </div>
+</div>

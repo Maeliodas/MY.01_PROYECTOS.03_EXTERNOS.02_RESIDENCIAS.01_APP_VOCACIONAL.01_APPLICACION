@@ -9,7 +9,7 @@ import '../../../core/database/tables.dart';
 class ResultLocalDatasource {
   final AppDatabase _dbProvider = AppDatabase.instance;
 
-  Future<void> saveResult({
+  Future<String> saveResult({
     required String sessionId,
     required double scoreR,
     required double scoreI,
@@ -24,10 +24,11 @@ class ResultLocalDatasource {
     required List<Map<String, dynamic>> fullRanking,
   }) async {
     final db = await _dbProvider.database;
+    final resultId = DateTime.now().microsecondsSinceEpoch.toString();
     await db.insert(
       Tables.results,
       {
-        'id': DateTime.now().microsecondsSinceEpoch.toString(),
+        'id': resultId,
         'session_id': sessionId,
         'score_r': scoreR,
         'score_i': scoreI,
@@ -44,6 +45,17 @@ class ResultLocalDatasource {
         'created_at': DateTime.now().toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return resultId;
+  }
+
+  Future<void> markSynced(String resultId) async {
+    final db = await _dbProvider.database;
+    await db.update(
+      Tables.results,
+      {'is_synced': 1},
+      where: 'id = ?',
+      whereArgs: [resultId],
     );
   }
 

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Verdes principales (Figma UI)
-  static const Color primary = Color(0xFF76C81A);
-  static const Color primaryDark = Color(0xFF5A9E10);
-  static const Color primaryLight = Color(0xFFE3F4C9);
+  static const Color primary = Color(0xFF00923F);
+  static const Color primaryDark = Color(0xFF007A35);
+  static const Color primaryLight = Color(0xFFDDF3E6);
 
   // Fondos Pastel
   static const Color background = Color(0xFFF3F7EC);

@@ -24,6 +24,10 @@ class AvatarNotifier extends Notifier<AvatarConfig> {
         state.copyWith(baseAvatarId: id, avatarPath: avatarPath); //[cite: 1, 5]
   }
 
+  void selectCustomPhoto(String filePath) {
+    state = state.copyWith(baseAvatarId: 'custom_photo', avatarPath: filePath);
+  }
+
   void updateHair(String hairStyle) {
     state = state.copyWith(hairStyle: hairStyle); //[cite: 1, 5]
   }

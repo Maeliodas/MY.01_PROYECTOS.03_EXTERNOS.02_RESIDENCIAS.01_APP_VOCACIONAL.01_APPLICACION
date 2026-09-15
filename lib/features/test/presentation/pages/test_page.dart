@@ -34,7 +34,7 @@ class _TestPageState extends ConsumerState<TestPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 decoration: BoxDecoration(color: const Color(0xFFF1F9E8), borderRadius: BorderRadius.circular(22)),
-                child: Row(children: [const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('ESTADO ACTUAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF287400), letterSpacing: 1)), SizedBox(height: 3)])), Text('Pregunta ${state.currentIndex + 1} de ${state.questions.length}', style: const TextStyle(fontWeight: FontWeight.w700))]),
+                child: Row(children: [const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('ESTADO ACTUAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: 1)), SizedBox(height: 3)])), Text('Pregunta ${state.currentIndex + 1} de ${state.questions.length}', style: const TextStyle(fontWeight: FontWeight.w700))]),
               ),
               const SizedBox(height: 18),
               SizedBox(width: double.infinity, height: 54, child: ElevatedButton(onPressed: () => Navigator.pop(dialogContext, false), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: const Color(0xFF1B350C), elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))), child: const Text('×  Cancelar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)))),
@@ -51,6 +51,25 @@ class _TestPageState extends ConsumerState<TestPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(testProvider);
+    if (state.isLoading || !state.restored) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (state.error != null || state.questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('App Vocacional ITTUX')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              state.error ?? 'No hay preguntas disponibles en la base de datos.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
     final q = state.questions[state.currentIndex];
     return PopScope(
       canPop: false,
@@ -74,9 +93,9 @@ class _TestPageState extends ConsumerState<TestPage> {
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
               child: Column(
                 children: [
-                  Row(children: [IconButton(onPressed: () async { if (await _confirmExit() && context.mounted) context.pop(); }, icon: const Icon(Icons.arrow_back_rounded)), const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF287400)))]),
+                  Row(children: [IconButton(onPressed: () async { if (await _confirmExit() && context.mounted) context.pop(); }, icon: const Icon(Icons.arrow_back_rounded)), const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F)))]),
                   const SizedBox(height: 20),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PROGRESO VOCACIONAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF287400), letterSpacing: .8)), Text('ETAPA ${state.currentIndex + 1} DE ${state.questions.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF287400), letterSpacing: .6))]),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PROGRESO VOCACIONAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: .8)), Text('ETAPA ${state.currentIndex + 1} DE ${state.questions.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: .6))]),
                   const SizedBox(height: 9),
                   ClipRRect(borderRadius: BorderRadius.circular(12), child: LinearProgressIndicator(value: state.progress, minHeight: 10, backgroundColor: const Color(0xFFE1E8D9), valueColor: const AlwaysStoppedAnimation(Color(0xFF18A9D3)))),
                   const SizedBox(height: 28),
@@ -91,7 +110,7 @@ class _TestPageState extends ConsumerState<TestPage> {
                           children: [
                             Text(q.text, textAlign: TextAlign.center, style: TextStyle(fontSize: 25, height: 1.18, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onSurface)),
                             const SizedBox(height: 34),
-                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [const _ScaleIcon(icon: Icons.block_rounded, label: 'NADA', active: false), const SizedBox(width: 28), Container(width: 78, height: 78, alignment: Alignment.center, decoration: const BoxDecoration(color: Color(0xFFEAF8D9), shape: BoxShape.circle), child: Text(value.round().toString(), style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: Color(0xFF287400)))), const SizedBox(width: 28), const _ScaleIcon(icon: Icons.input_rounded, label: 'MUCHO', active: true)]),
+                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [const _ScaleIcon(icon: Icons.block_rounded, label: 'NADA', active: false), const SizedBox(width: 28), Container(width: 78, height: 78, alignment: Alignment.center, decoration: const BoxDecoration(color: Color(0xFFEAF8D9), shape: BoxShape.circle), child: Text(value.round().toString(), style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: Color(0xFF00923F)))), const SizedBox(width: 28), const _ScaleIcon(icon: Icons.input_rounded, label: 'MUCHO', active: true)]),
                             const SizedBox(height: 22),
                             SliderTheme(data: SliderTheme.of(context).copyWith(trackHeight: 8, activeTrackColor: AppColors.primary, inactiveTrackColor: const Color(0xFFDDE5D4), thumbColor: AppColors.primary, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 15), overlayShape: const RoundSliderOverlayShape(overlayRadius: 24)), child: Slider(value: value, min: 0, max: 10, divisions: 10, onChanged: (v) => setState(() => value = v))),
                             const SizedBox(height: 26),

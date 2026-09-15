@@ -6,154 +6,58 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
-import '../../domain/models/avatar_config.dart';
 import '../providers/avatar_provider.dart';
 
 class SimpleAvatarEditorPage extends ConsumerStatefulWidget {
   const SimpleAvatarEditorPage({super.key});
-
   @override
-  ConsumerState<SimpleAvatarEditorPage> createState() =>
-      _SimpleAvatarEditorPageState();
+  ConsumerState<SimpleAvatarEditorPage> createState() => _SimpleAvatarEditorPageState();
 }
 
-class _SimpleAvatarEditorPageState
-    extends ConsumerState<SimpleAvatarEditorPage> {
-  File? _selectedImage;
+class _SimpleAvatarEditorPageState extends ConsumerState<SimpleAvatarEditorPage> {
   final ImagePicker _picker = ImagePicker();
+  static const avatars = [
+    'assets/avatars/avatar_01.png','assets/avatars/avatar_02.png','assets/avatars/avatar_03.png',
+    'assets/avatars/avatar_04.png','assets/avatars/avatar_05.png','assets/avatars/avatar_06.png',
+  ];
 
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(
-      source: source,
-      imageQuality: 85,
-    );
+  Future<void> _pick(ImageSource source) async {
+    final image = await _picker.pickImage(source: source, imageQuality: 85, maxWidth: 1200);
+    if (image == null) return;
+    ref.read(avatarProvider.notifier).selectCustomPhoto(image.path);
+  }
 
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
-
-      // Actualizamos el provider con la ruta del archivo local del usuario
-      ref.read(avatarProvider.notifier).selectAvatar(image.path);
-    }
+  Widget _preview(String path) {
+    if (path.startsWith('assets/')) return Image.asset(path, fit: BoxFit.cover);
+    return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 88));
   }
 
   @override
   Widget build(BuildContext context) {
-    final AvatarConfig avatar = ref.watch(avatarProvider);
-
+    final avatar = ref.watch(avatarProvider);
+    final notifier = ref.read(avatarProvider.notifier);
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text(
-          'Foto de Perfil',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(),
-              // Vista previa circular estilo WhatsApp/Facebook
-              Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: AppColors.primary, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: _selectedImage != null
-                      ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                      : Image.asset(
-                          avatar.avatarPath,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.person,
-                            size: 90,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Sube una foto o elige de tu galería',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Botones para elegir origen de la foto
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _pickImage(ImageSource.gallery),
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Galería'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _pickImage(ImageSource.camera),
-                      icon: const Icon(Icons.camera_alt_outlined),
-                      label: const Text('Cámara'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-
-              // Botón Continuar
-              PrimaryButton(
-                text: 'Guardar y Continuar',
-                onPressed: () {
-                  context.push('/personal-data');
-                },
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Editar avatar o foto')),
+      body: SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(24, 12, 24, 28), children: [
+        Center(child: Container(width: 150, height: 150, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: _preview(avatar.avatarPath)))),
+        const SizedBox(height: 24),
+        const Text('Avatares de la app', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 12),
+        GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: avatars.length, gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12), itemBuilder: (_, i) {
+          final path = avatars[i]; final selected = avatar.avatarPath == path;
+          return InkWell(onTap: () => notifier.selectAvatar(path), borderRadius: BorderRadius.circular(18), child: Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: selected ? AppColors.primary : Theme.of(context).colorScheme.outlineVariant, width: selected ? 3 : 1)), child: ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.asset(path, fit: BoxFit.cover))));
+        }),
+        const SizedBox(height: 24),
+        const Text('Usar una foto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: OutlinedButton.icon(onPressed: () => _pick(ImageSource.gallery), icon: const Icon(Icons.photo_library_outlined), label: const Text('Galería'), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)))),
+          const SizedBox(width: 12),
+          Expanded(child: OutlinedButton.icon(onPressed: () => _pick(ImageSource.camera), icon: const Icon(Icons.camera_alt_outlined), label: const Text('Cámara'), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)))),
+        ]),
+        const SizedBox(height: 28),
+        PrimaryButton(text: 'Guardar', icon: Icons.check_rounded, onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/personal-data'); } }),
+      ])),
     );
   }
 }

@@ -11,7 +11,7 @@ class TestIntroPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Aevum Iter')),
+      appBar: AppBar(title: const Text('App Vocacional ITTUX ITTUX')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -42,13 +42,10 @@ class TestIntroPage extends ConsumerWidget {
               const SizedBox(height: 40),
               PrimaryButton(
                 text: '¡Iniciar Test!',
-                onPressed: () {
-                  // Eliminado el await ya que startNewTestSession es void
-                  ref.read(testProvider.notifier).startNewTestSession();
-
-                  if (context.mounted) {
-                    context.go('/test');
-                  }
+                icon: Icons.explore_rounded,
+                onPressed: () async {
+                  await ref.read(testProvider.notifier).startNewTestSession();
+                  if (context.mounted) context.go('/test');
                 },
               ),
             ],

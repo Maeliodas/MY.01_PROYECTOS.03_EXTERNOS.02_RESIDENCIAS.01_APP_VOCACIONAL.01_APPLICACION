@@ -1,0 +1,30 @@
+<div class="crud-grid">
+  <form class="crud-form card" data-type="questions">
+    <div>
+      <p class="eyebrow">INSTRUMENTO RIASEC</p>
+      <h3>Agregar pregunta</h3>
+      <p class="form-help">El identificador se genera automáticamente. La pregunta suma únicamente a su dimensión RIASEC; la carrera relacionada es opcional y solo sirve como referencia administrativa.</p>
+    </div>
+    <label>Texto de la pregunta<textarea name="text" placeholder="¿Te gustaría…?" required></textarea></label>
+    <label>Dimensión RIASEC<select name="dimension" required><option value="R">R · Realista</option><option value="I">I · Investigador</option><option value="A">A · Artístico</option><option value="S">S · Social</option><option value="E">E · Emprendedor</option><option value="C">C · Convencional</option></select></label>
+    <label>Carrera relacionada (opcional)<select name="related_career_id"><option value="">Sin carrera específica</option><% for(const c of catalogs.careers){ %><option value="<%= c.id %>"><%= c.name %> · <%= c.department %></option><% } %></select></label>
+    <label>Orden<input name="position" type="number" min="1" placeholder="Automático si se deja vacío"></label>
+    <input type="hidden" name="active" value="1">
+    <button class="primary" type="submit">Guardar pregunta</button>
+  </form>
+  <div class="card table-card">
+    <div class="table-tools"><input class="catalog-search" placeholder="Buscar pregunta…"></div>
+    <div class="table-wrap"><table class="catalog-table">
+      <thead><tr><th>Pregunta</th><th>Dimensión</th><th>Carrera relacionada</th><th>Estatus</th><th></th></tr></thead>
+      <tbody><% for(const r of catalogs.questions){ const rc=(catalogs.careers||[]).find(c=>c.id===r.related_career_id); %>
+        <tr data-search="<%= r.text %> <%= r.dimension %> <%= rc?.name ?? '' %>">
+          <td><%= r.text %><small>Orden <%= r.position %></small></td>
+          <td><span class="code"><%= r.dimension %></span></td>
+          <td><%= rc?.name ?? '—' %></td>
+          <td><span class="status-label <%= r.active?'approved':'rejected' %>"><%= r.active?'Activa':'Inactiva' %></span></td>
+          <td><button class="small-btn edit-record" data-type="questions" data-id="<%= r.id %>" data-record='<%- JSON.stringify(r).replace(/'/g,"&#39;") %>'>Editar</button><button class="small-btn danger delete-record" data-type="questions" data-id="<%= r.id %>">Desactivar</button></td>
+        </tr>
+      <% } %></tbody>
+    </table></div>
+  </div>
+</div>
