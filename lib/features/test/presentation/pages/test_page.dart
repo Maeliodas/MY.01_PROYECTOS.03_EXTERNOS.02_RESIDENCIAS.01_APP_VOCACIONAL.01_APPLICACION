@@ -58,7 +58,7 @@ class _TestPageState extends ConsumerState<TestPage> {
     }
     if (state.error != null || state.questions.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Aevum Iter')),
+        appBar: AppBar(title: const Text('App Vocacional ITTUX')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -93,7 +93,7 @@ class _TestPageState extends ConsumerState<TestPage> {
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
               child: Column(
                 children: [
-                  Row(children: [IconButton(onPressed: () async { if (await _confirmExit() && context.mounted) context.pop(); }, icon: const Icon(Icons.arrow_back_rounded)), const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F)))]),
+                  Row(children: [IconButton(onPressed: () async { if (await _confirmExit() && context.mounted) context.pop(); }, icon: const Icon(Icons.arrow_back_rounded)), const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F)))]),
                   const SizedBox(height: 20),
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PROGRESO VOCACIONAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: .8)), Text('ETAPA ${state.currentIndex + 1} DE ${state.questions.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: .6))]),
                   const SizedBox(height: 9),

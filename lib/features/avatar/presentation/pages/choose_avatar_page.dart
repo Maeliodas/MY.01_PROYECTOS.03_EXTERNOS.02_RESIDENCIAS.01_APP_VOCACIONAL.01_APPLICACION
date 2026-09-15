@@ -63,7 +63,7 @@ class ChooseAvatarPage extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
             child: Column(children: [
-              Row(children: [IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded)), const Text('Aevum Iter', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.primary))]),
+              Row(children: [IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded)), const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.primary))]),
               const SizedBox(height: 10),
               Text(returnToProfile ? 'Cambia tu avatar' : 'Elige tu avatar', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),

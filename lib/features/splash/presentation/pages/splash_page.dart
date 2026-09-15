@@ -74,7 +74,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                       ],
                     ),
                     const SizedBox(height: 25),
-                    const Text('Aevum Iter', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: -.8)),
+                      const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: -.8)),
                     const SizedBox(height: 3),
                     const Text('DESCUBRE TU CAMINO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 2.0, color: Color(0xFF4E5148))),
                   ],

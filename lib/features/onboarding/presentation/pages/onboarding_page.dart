@@ -23,7 +23,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int index = 0;
 
   final pages = const [
-    _OnboardingItem('Tu futuro empieza\naquí', 'Descubre qué carrera del TecNM Tuxtepec es para ti.', Icons.landscape_rounded, AppColors.primary),
+    _OnboardingItem('Tu futuro empieza\naquí', 'Descubre en 5 minutos la carrera del TecNM Tuxtepec que es para ti.', Icons.landscape_rounded, AppColors.primary),
     _OnboardingItem('Aprende sobre ti', 'Evaluamos tus intereses y habilidades con un divertido test.', Icons.lightbulb_rounded, Color(0xFF4DAEED)),
     _OnboardingItem('Logra tus metas', 'Evita la deserción y elige el camino que te apasiona.', Icons.emoji_events_rounded, Color(0xFF8D3DDF)),
   ];

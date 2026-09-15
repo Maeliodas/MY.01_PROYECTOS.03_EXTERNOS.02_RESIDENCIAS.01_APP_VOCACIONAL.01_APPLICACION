@@ -8,12 +8,12 @@ Widget _privacyContent(BuildContext context) {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const Text(
-        'AEVUM ITER · Aviso de privacidad del prototipo',
+        'App Vocacional ITTUX  · Aviso de privacidad del prototipo',
         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
       ),
       const SizedBox(height: 10),
       Text(
-        'AEVUM ITER utiliza únicamente la información necesaria para registrar tu perfil, aplicar el test vocacional, conservar tus resultados y sincronizarlos con el servidor institucional cuando está disponible.',
+        'App Vocacional ITTUX  utiliza únicamente la información necesaria para registrar tu perfil, aplicar el test vocacional, conservar tus resultados y sincronizarlos con el servidor institucional cuando está disponible.',
         style: TextStyle(color: muted),
       ),
       const SizedBox(height: 16),
@@ -27,7 +27,7 @@ Widget _privacyContent(BuildContext context) {
       ),
       const _Section(
         'Almacenamiento y sincronización',
-        'La app mantiene una copia local para funcionar sin conexión. Cuando el servidor institucional está configurado y disponible, las evaluaciones y catálogos se sincronizan mediante la API de AEVUM ITER.',
+        'La app mantiene una copia local para funcionar sin conexión. Cuando el servidor institucional está configurado y disponible, las evaluaciones y catálogos se sincronizan mediante la API de App Vocacional ITTUX .',
       ),
       const _Section(
         'Seguridad',
@@ -39,7 +39,7 @@ Widget _privacyContent(BuildContext context) {
       ),
       const SizedBox(height: 4),
       Text(
-        'Este texto adapta el contenido al funcionamiento de AEVUM ITER y no sustituye el Aviso de Privacidad Integral vigente del Tecnológico Nacional de México.',
+        'Este texto adapta el contenido al funcionamiento de App Vocacional ITTUX  y no sustituye el Aviso de Privacidad Integral vigente del Tecnológico Nacional de México.',
         style: TextStyle(fontSize: 12, color: muted),
       ),
     ],

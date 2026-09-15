@@ -68,7 +68,7 @@ class TestProgressTreePage extends ConsumerWidget {
                     ),
                   ),
                   const Text(
-                    'Aevum Iter',
+                    'App Vocacional ITTUX',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,

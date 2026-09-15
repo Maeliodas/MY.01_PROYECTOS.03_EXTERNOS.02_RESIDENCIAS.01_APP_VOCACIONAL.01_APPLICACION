@@ -11,7 +11,7 @@ class TestIntroPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Aevum Iter')),
+      appBar: AppBar(title: const Text('App Vocacional ITTUX ITTUX')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
