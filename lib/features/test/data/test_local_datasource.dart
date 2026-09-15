@@ -9,8 +9,6 @@ class PersistedTestSession {
   final bool completed;
   final String openAnswer;
   final Map<int, double> answers;
-
-  /// Orden de preguntas de esta sesión (ids). Vacío si la sesión es antigua.
   final List<int> questionOrder;
 
   const PersistedTestSession({
@@ -19,7 +17,7 @@ class PersistedTestSession {
     required this.completed,
     required this.openAnswer,
     required this.answers,
-    this.questionOrder = const [],
+    required this.questionOrder,
   });
 }
 
@@ -95,23 +93,17 @@ class TestLocalDatasource {
       final value = (answer['value'] as num?)?.toDouble();
       if (questionId != null && value != null) answers[questionId] = value;
     }
-
-    final orderRaw = row['question_order']?.toString() ?? '';
-    final questionOrder = orderRaw.isEmpty
-        ? <int>[]
-        : orderRaw
-            .split(',')
-            .map((e) => int.tryParse(e.trim()))
-            .whereType<int>()
-            .toList();
-
     return PersistedTestSession(
       id: id,
       currentIndex: (row['current_index'] as num?)?.toInt() ?? 0,
       completed: row['completed_at'] != null,
       openAnswer: row['open_answer']?.toString() ?? '',
       answers: answers,
-      questionOrder: questionOrder,
+      questionOrder: (row['question_order']?.toString() ?? '')
+          .split(',')
+          .map(int.tryParse)
+          .whereType<int>()
+          .toList(),
     );
   }
 
@@ -152,13 +144,32 @@ class TestLocalDatasource {
     );
   }
 
+
+  Future<void> saveCareerOpenAnswer({required String sessionId, required String careerId, required String questionText, required String answer}) async {
+    final db = await _dbProvider.database;
+    if (answer.trim().isEmpty) {
+      await db.delete(Tables.careerOpenAnswers, where: 'session_id = ? AND career_id = ?', whereArgs: [sessionId, careerId]);
+      return;
+    }
+    await db.insert(Tables.careerOpenAnswers, {'session_id': sessionId, 'career_id': careerId, 'question_text': questionText.trim(), 'answer': answer.trim()}, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Map<String, String>>> getCareerOpenAnswers(String sessionId) async {
+    final db = await _dbProvider.database;
+    final rows = await db.query(Tables.careerOpenAnswers, where: 'session_id = ?', whereArgs: [sessionId]);
+    return rows.map((row) => {
+      'career_id': row['career_id']?.toString() ?? '',
+      'question_text': row['question_text']?.toString() ?? '',
+      'answer': row['answer']?.toString() ?? '',
+    }).toList();
+  }
   Future<void> clearCurrentProgress() async {
     final id = await getActiveSessionId();
     final db = await _dbProvider.database;
     await db.transaction((txn) async {
       if (id != null && id.isNotEmpty) {
-        await txn
-            .delete(Tables.answers, where: 'session_id = ?', whereArgs: [id]);
+        await txn.delete(Tables.answers, where: 'session_id = ?', whereArgs: [id]);
+        await txn.delete(Tables.careerOpenAnswers, where: 'session_id = ?', whereArgs: [id]);
         await txn.delete(Tables.sessions, where: 'id = ?', whereArgs: [id]);
       }
       await txn.delete(

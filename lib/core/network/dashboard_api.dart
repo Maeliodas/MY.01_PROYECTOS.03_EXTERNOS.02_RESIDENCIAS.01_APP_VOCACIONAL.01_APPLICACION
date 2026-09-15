@@ -9,17 +9,53 @@ class DashboardApi {
 
   final http.Client _client;
 
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        if (AppConstants.apiKey.isNotEmpty)
+          'Authorization': 'Bearer ${AppConstants.apiKey}',
+      };
+
   Future<bool> sendEvaluation(Map<String, dynamic> payload) async {
     try {
       final response = await _client
           .post(
             Uri.parse('${AppConstants.apiBaseUrl}/evaluations'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (AppConstants.apiKey.isNotEmpty)
-                'Authorization': 'Bearer ${AppConstants.apiKey}',
-            },
+            headers: _headers,
             body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 10));
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchCatalogSnapshot() async {
+    try {
+      final response = await _client
+          .get(
+            Uri.parse('${AppConstants.apiBaseUrl}/catalogs'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode < 200 || response.statusCode >= 300) return null;
+      final decoded = jsonDecode(response.body);
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> sendCatalogSuggestion({
+    required String kind,
+    required String name,
+  }) async {
+    try {
+      final response = await _client
+          .post(
+            Uri.parse('${AppConstants.apiBaseUrl}/catalog-suggestions'),
+            headers: _headers,
+            body: jsonEncode({'kind': kind, 'name': name}),
           )
           .timeout(const Duration(seconds: 10));
       return response.statusCode >= 200 && response.statusCode < 300;

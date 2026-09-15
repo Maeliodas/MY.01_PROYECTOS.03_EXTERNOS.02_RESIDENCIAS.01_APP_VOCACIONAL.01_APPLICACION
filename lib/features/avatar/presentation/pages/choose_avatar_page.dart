@@ -1,13 +1,54 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/secondary_button.dart';
+import '../../../profile/domain/entities/user_profile.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/avatar_provider.dart';
 
 class ChooseAvatarPage extends ConsumerWidget {
-  const ChooseAvatarPage({super.key});
+  final bool returnToProfile;
+  const ChooseAvatarPage({super.key, this.returnToProfile = false});
+
+  Future<void> _pickGallery(WidgetRef ref) async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 88);
+    if (picked != null) ref.read(avatarProvider.notifier).selectCustomPhoto(picked.path);
+  }
+
+  Future<void> _finish(BuildContext context, WidgetRef ref) async {
+    if (!returnToProfile) {
+      context.push('/personal-data');
+      return;
+    }
+    final current = ref.read(profileProvider);
+    if (current != null) {
+      final updated = UserProfile(
+        id: current.id,
+        name: current.name,
+        age: current.age,
+        gender: current.gender,
+        stateId: current.stateId,
+        state: current.state,
+        municipalityId: current.municipalityId,
+        municipality: current.municipality,
+        schoolId: current.schoolId,
+        school: current.school,
+        speaksLanguages: current.speaksLanguages,
+        languageIds: current.languageIds,
+        languagesList: current.languagesList,
+        avatarConfig: ref.read(avatarProvider),
+        createdAt: current.createdAt,
+      );
+      await ref.read(profileProvider.notifier).saveProfile(updated);
+    }
+    if (context.mounted) context.pop();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,59 +56,33 @@ class ChooseAvatarPage extends ConsumerWidget {
     final notifier = ref.read(avatarProvider.notifier);
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF7FFE8), Color(0xFFF1F8E4), Color(0xFFE9FFF7)])),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF4FBF7), Color(0xFFF7FAF8), Color(0xFFEAF7F0)]),
+        ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
-            child: Column(
-              children: [
-                Row(children: [IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded)), const Text('Aevum Iter', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF287400)))]),
-                const SizedBox(height: 10),
-                const Text('Elige tu avatar', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 6),
-                const Text('¿Cómo quieres que te vean en tu\ncamino profesional?', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, height: 1.35, color: AppColors.textSecondary)),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: GridView.builder(
-                    itemCount: defaultAvatars.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 22, mainAxisSpacing: 20, childAspectRatio: .86),
-                    itemBuilder: (_, i) {
-                      final path = defaultAvatars[i];
-                      final active = selected.avatarPath == path;
-                      return GestureDetector(
-                        onTap: () => notifier.selectAvatar(path),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .55),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: active ? AppColors.primary : Colors.transparent, width: 4),
-                            boxShadow: active ? [BoxShadow(color: AppColors.primary.withValues(alpha: .18), blurRadius: 16)] : null,
-                          ),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              ClipRRect(borderRadius: BorderRadius.circular(18), child: Image.asset(path, fit: BoxFit.cover)),
-                              if (active) Positioned(right: 4, top: 4, child: Container(width: 28, height: 28, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: const Icon(Icons.check_rounded, color: Colors.white, size: 18))),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  margin: const EdgeInsets.only(top: 4, bottom: 16),
-                  decoration: BoxDecoration(color: const Color(0xFFF0EAF7), borderRadius: BorderRadius.circular(24)),
-                  child: const Row(children: [CircleAvatar(backgroundColor: Color(0xFFD8B6FF), child: Icon(Icons.auto_awesome_rounded, color: Color(0xFF7B2BC2))), SizedBox(width: 12), Expanded(child: Text('¿Quieres algo único?\nPuedes personalizar cada detalle de tu personaje.', style: TextStyle(fontSize: 13, height: 1.35, color: Color(0xFF563D66))))]),
-                ),
-                SecondaryButton(text: 'Personalizar', onPressed: () => context.push('/avatar-editor')),
-                const SizedBox(height: 10),
-                PrimaryButton(text: 'Continuar', icon: Icons.arrow_forward_rounded, onPressed: () => context.push('/personal-data')),
-              ],
-            ),
+            child: Column(children: [
+              Row(children: [IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded)), const Text('Aevum Iter', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.primary))]),
+              const SizedBox(height: 10),
+              Text(returnToProfile ? 'Cambia tu avatar' : 'Elige tu avatar', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              const Text('Selecciona un avatar de la app o elige una imagen de tu galería.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, height: 1.35, color: AppColors.textSecondary)),
+              const SizedBox(height: 18),
+              if (selected.baseAvatarId == 'custom_photo')
+                Container(height: 112, width: 112, margin: const EdgeInsets.only(bottom: 14), padding: const EdgeInsets.all(5), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: Image.file(File(selected.avatarPath), fit: BoxFit.cover))),
+              Expanded(child: GridView.builder(
+                itemCount: defaultAvatars.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 18, mainAxisSpacing: 16, childAspectRatio: .95),
+                itemBuilder: (_, i) {
+                  final path = defaultAvatars[i]; final active = selected.avatarPath == path;
+                  return GestureDetector(onTap: () => notifier.selectAvatar(path), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .65), borderRadius: BorderRadius.circular(24), border: Border.all(color: active ? AppColors.primary : Colors.transparent, width: 4)), child: Stack(fit: StackFit.expand, children: [ClipRRect(borderRadius: BorderRadius.circular(18), child: Image.asset(path, fit: BoxFit.cover)), if(active) const Positioned(right: 4, top: 4, child: CircleAvatar(radius: 14, backgroundColor: AppColors.primary, child: Icon(Icons.check_rounded, color: Colors.white, size: 18)))])));
+                },
+              )),
+              SecondaryButton(text: 'Elegir desde galería o fotos', onPressed: () => _pickGallery(ref)),
+              const SizedBox(height: 10),
+              PrimaryButton(text: returnToProfile ? 'Guardar avatar' : 'Continuar', icon: Icons.arrow_forward_rounded, onPressed: () => _finish(context, ref)),
+            ]),
           ),
         ),
       ),

@@ -42,6 +42,7 @@ class TestIntroPage extends ConsumerWidget {
               const SizedBox(height: 40),
               PrimaryButton(
                 text: '¡Iniciar Test!',
+                icon: Icons.explore_rounded,
                 onPressed: () async {
                   await ref.read(testProvider.notifier).startNewTestSession();
                   if (context.mounted) context.go('/test');

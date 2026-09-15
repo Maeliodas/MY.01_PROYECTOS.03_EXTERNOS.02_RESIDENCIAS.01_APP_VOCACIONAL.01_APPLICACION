@@ -6,10 +6,6 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../catalog/domain/models/catalog_models.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 
-/// Pantalla de información de una carrera del top 3.
-///
-/// Muestra descripción desde el catálogo, acceso al kardex (PDF) cuando
-/// exista, y botones de contacto institucionales.
 class CareerInfoPage extends ConsumerWidget {
   const CareerInfoPage({
     super.key,
@@ -24,21 +20,22 @@ class CareerInfoPage extends ConsumerWidget {
   final double? affinity;
   final int? rank;
 
-  // Contactos oficiales del TecNM Tuxtepec (pueden migrarse a metadata de BD).
-  static const _webUrl = 'https://tuxtepec.tecnm.mx';
-  static const _facebookUrl = 'https://www.facebook.com/TecNMTuxtepec';
-  static const _whatsappUrl = 'https://wa.me/522878751044';
-
   Future<void> _open(String url) async {
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      // El SO no pudo abrir el enlace.
-    }
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  bool _isRemoteUrl(String? path) {
+    if (path == null || path.isEmpty) return false;
+    final lower = path.toLowerCase();
+    return lower.startsWith('http://') || lower.startsWith('https://');
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final careersAsync = ref.watch(careersCatalogProvider);
+    final contactsAsync = ref.watch(instituteContactsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de carrera')),
@@ -64,7 +61,12 @@ class CareerInfoPage extends ConsumerWidget {
               ? 'Consulta con el instituto el plan de estudios, el perfil de egreso '
                   'y las oportunidades profesionales de esta carrera.'
               : catalog!.description;
+          final shortDescription = catalog?.shortDescription.trim() ?? '';
           final holland = catalog?.hollandCode ?? '';
+          final pdfPath = catalog?.pdfPath;
+          final canOpenPdf = _isRemoteUrl(pdfPath);
+
+          final contacts = contactsAsync.asData?.value;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 32),
@@ -117,6 +119,21 @@ class CareerInfoPage extends ConsumerWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF6C2BC8),
+                  ),
+                ),
+              ],
+              if (shortDescription.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  shortDescription,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: .75),
                   ),
                 ),
               ],
@@ -177,9 +194,10 @@ class CareerInfoPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Cuando el panel web publique el documento de esta carrera, '
-                      'podrás abrirlo aquí. Por ahora puedes consultarlo en el '
-                      'sitio oficial del instituto.',
+                      canOpenPdf
+                          ? 'Abre el documento oficial de esta carrera.'
+                          : 'Cuando el panel web publique el PDF (URL), podrás '
+                              'abrirlo aquí. Por ahora consulta el sitio del instituto.',
                       style: TextStyle(
                         height: 1.4,
                         color: Theme.of(context)
@@ -189,11 +207,20 @@ class CareerInfoPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => _open(_webUrl),
-                      icon: const Icon(Icons.open_in_new_rounded),
-                      label: const Text('Ver en sitio web del Tec'),
-                    ),
+                    if (canOpenPdf)
+                      FilledButton.icon(
+                        onPressed: () => _open(pdfPath!),
+                        icon: const Icon(Icons.picture_as_pdf_rounded),
+                        label: const Text('Abrir PDF'),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: () => _open(
+                          contacts?.webUrl ?? 'https://tuxtepec.tecnm.mx',
+                        ),
+                        icon: const Icon(Icons.open_in_new_rounded),
+                        label: const Text('Ver en sitio web del Tec'),
+                      ),
                   ],
                 ),
               ),
@@ -229,9 +256,13 @@ class CareerInfoPage extends ConsumerWidget {
                     _ContactButton(
                       icon: Icons.language_rounded,
                       label: 'Sitio web oficial',
-                      subtitle: 'tuxtepec.tecnm.mx',
+                      subtitle: contacts?.webUrl
+                              .replaceFirst(RegExp(r'^https?://'), '') ??
+                          'tuxtepec.tecnm.mx',
                       color: const Color(0xFF18A9D3),
-                      onTap: () => _open(_webUrl),
+                      onTap: () => _open(
+                        contacts?.webUrl ?? 'https://tuxtepec.tecnm.mx',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _ContactButton(
@@ -239,15 +270,20 @@ class CareerInfoPage extends ConsumerWidget {
                       label: 'Facebook',
                       subtitle: 'TecNM Tuxtepec',
                       color: const Color(0xFF1877F2),
-                      onTap: () => _open(_facebookUrl),
+                      onTap: () => _open(
+                        contacts?.facebookUrl ??
+                            'https://www.facebook.com/TecNMTuxtepec',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _ContactButton(
                       icon: Icons.chat_rounded,
                       label: 'WhatsApp',
-                      subtitle: '(287) 875 1044',
+                      subtitle: contacts?.phoneDisplay ?? '(287) 875 1044',
                       color: const Color(0xFF25D366),
-                      onTap: () => _open(_whatsappUrl),
+                      onTap: () => _open(
+                        contacts?.whatsappUrl ?? 'https://wa.me/522878751044',
+                      ),
                     ),
                   ],
                 ),

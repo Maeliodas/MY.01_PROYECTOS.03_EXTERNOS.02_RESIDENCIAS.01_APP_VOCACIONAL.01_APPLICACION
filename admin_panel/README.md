@@ -1,45 +1,31 @@
-# AEVUM ITER · Panel institucional
+# Panel administrativo AEVUM ITER V9
 
-Panel Node.js/Express para recibir evaluaciones de la app y consultar estadísticas almacenadas en MariaDB/MySQL.
+El panel funciona como interfaz CRUD de la base MySQL/MariaDB `aevum_iter`.
 
-## Desarrollo local
+## Funciones
 
-1. Copia `.env.example` como `.env` y configura la conexión a la base de datos.
-2. Importa `sql/schema.sql`.
-3. Ejecuta `npm install` y `npm start`.
-4. Abre `http://localhost:8080`.
+- Dashboard de evaluaciones con filtros.
+- CRUD de estados.
+- CRUD de municipios dependientes del estado.
+- CRUD de escuelas dependientes del municipio.
+- CRUD de lenguas originarias e idiomas.
+- CRUD de carreras, descripción, Holland, pesos RIASEC y preguntas relacionadas.
+- CRUD de preguntas del test.
+- Revisión de sugerencias enviadas desde la app.
+- Cada cambio de catálogo incrementa `catalog_meta.version`.
 
-Si defines `API_INGEST_KEY`, compila Flutter con el mismo valor:
+La app obtiene un snapshot del catálogo mediante el backend propio y lo almacena en SQLite para continuar funcionando offline. No se consultan APIs externas en tiempo de ejecución.
 
-```bash
-flutter run \
-  --dart-define=AEVUM_API_URL=http://IP_PC:8080/api \
-  --dart-define=AEVUM_API_KEY=EL_MISMO_TOKEN
+## Instalación limpia
+
+Desde la raíz del proyecto:
+
+```powershell
+cmd /c "mysql -u root -p -P 3309 < admin_panel\sql\schema.sql"
+cd admin_panel
+copy .env.example .env
+npm install
+npm start
 ```
 
-Si defines `ADMIN_USER` y `ADMIN_PASSWORD`, el navegador solicitará credenciales para acceder al panel y a `/api/dashboard/summary`.
-
-## Lineamientos para infraestructura institucional
-
-La entrevista técnica establece que la institución dispone de servidores Windows Server, FreeBSD y OpenSUSE, con MariaDB disponible y posibilidad de Apache/Nginx. La versión beta debe funcionar localmente antes de solicitar su publicación.
-
-Para producción:
-
-- Publicar Node.js detrás de Apache o Nginx como reverse proxy.
-- Exponer únicamente HTTPS/TLS mediante el dominio o subdominio institucional.
-- No publicar directamente MariaDB hacia Internet.
-- Mantener `API_INGEST_KEY`, `ADMIN_USER`, `ADMIN_PASSWORD` y credenciales de BD fuera del repositorio.
-- Usar credenciales fuertes y distintas para aplicación, panel y base de datos.
-- Restringir la administración remota mediante SSH/certificados según la política del Centro de Cómputo.
-- Programar respaldos automáticos de MariaDB y conservar un procedimiento de restauración probado.
-- Entregar al Centro de Cómputo los requisitos de software y una recomendación de crecimiento horizontal/vertical.
-
-## Crecimiento recomendado
-
-**Vertical:** aumentar CPU/RAM/almacenamiento del servidor si crece el volumen de evaluaciones; agregar índices a consultas de reporte conforme aumenten los datos.
-
-**Horizontal:** mantener el backend sin estado para poder ejecutar varias instancias detrás de Apache/Nginx; centralizar MariaDB; separar posteriormente el servicio de reportes si la carga lo requiere.
-
-## Catálogos de la app
-
-Estados, municipios, preparatorias/escuelas y lenguas se administran como catálogos locales de la app. No existe dependencia de INEGI ni de otra API geográfica. Los nuevos municipios y escuelas deben agregarse a `assets/database/seed_catalog_v7.json` y distribuirse en una actualización de la aplicación.
+Edita `.env` antes de arrancar el servidor.

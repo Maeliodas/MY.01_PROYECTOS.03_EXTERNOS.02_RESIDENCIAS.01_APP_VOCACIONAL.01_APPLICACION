@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../settings/presentation/pages/privacy_page.dart';
 
 class _OnboardingItem {
   final String title;
@@ -22,7 +23,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int index = 0;
 
   final pages = const [
-    _OnboardingItem('Tu futuro empieza\naquí', 'Descubre qué carrera del TecNM Tuxtepec es para ti.', Icons.landscape_rounded, Color(0xFF83CF33)),
+    _OnboardingItem('Tu futuro empieza\naquí', 'Descubre qué carrera del TecNM Tuxtepec es para ti.', Icons.landscape_rounded, AppColors.primary),
     _OnboardingItem('Aprende sobre ti', 'Evaluamos tus intereses y habilidades con un divertido test.', Icons.lightbulb_rounded, Color(0xFF4DAEED)),
     _OnboardingItem('Logra tus metas', 'Evita la deserción y elige el camino que te apasiona.', Icons.emoji_events_rounded, Color(0xFF8D3DDF)),
   ];
@@ -51,9 +52,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   children: [
                     if (index > 0)
                       IconButton(onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut), icon: const Icon(Icons.arrow_back_rounded)),
-                    const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF287400))),
-                    const Spacer(),
-                    TextButton(onPressed: () => context.go('/choose-avatar'), child: const Text('SALTAR', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF287400), letterSpacing: 1))),
+                      const Spacer(),
+                    TextButton(onPressed: () => context.go('/choose-avatar'), child: const Text('SALTAR', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: 1))),
                   ],
                 ),
                 Expanded(
@@ -121,6 +121,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 const SizedBox(height: 26),
                 PrimaryButton(text: index == pages.length - 1 ? '¡Empezar!' : 'Continuar', icon: Icons.arrow_forward_rounded, onPressed: next),
+                const SizedBox(height: 8),
+                TextButton.icon(onPressed: () => showPrivacyNoticeDialog(context), icon: const Icon(Icons.privacy_tip_outlined, size: 18), label: const Text('Aviso de privacidad')),
               ],
             ),
           ),

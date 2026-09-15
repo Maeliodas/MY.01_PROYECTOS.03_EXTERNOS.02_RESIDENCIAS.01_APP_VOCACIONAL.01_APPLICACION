@@ -1,0 +1,118 @@
+<div class="crud-grid career-crud">
+  <form class="crud-form card career-form" data-type="careers">
+    <div>
+      <p class="eyebrow">OFERTA ACADÉMICA</p>
+      <h3>Agregar carrera</h3>
+      <p class="form-help">Selecciona el departamento y define el perfil RIASEC. La clave interna se genera automáticamente.</p>
+    </div>
+
+    <label>Nombre
+      <input name="name" placeholder="Ingeniería en…" required>
+    </label>
+
+    <label>Departamento
+      <select name="department" required>
+        <option value="">Selecciona un departamento</option>
+        <% for (const department of catalogs.departments) { %>
+          <option value="<%= department %>"><%= department %></option>
+        <% } %>
+      </select>
+    </label>
+
+    <label>Descripción
+      <textarea name="description" placeholder="Describe brevemente el enfoque de la carrera"></textarea>
+    </label>
+
+    <label>Página oficial TecNM
+      <input name="website_url" type="url" placeholder="https://...">
+    </label>
+
+    <div class="riasec-builder">
+      <div class="riasec-head">
+        <div>
+          <strong>Perfil RIASEC</strong>
+          <small>0 = poca relación · 10 = relación muy alta</small>
+        </div>
+        <span class="profile-preview">Perfil: <b id="careerProfileCode">---</b></span>
+      </div>
+
+      <% const dims={
+        R:['Realista','Actividades técnicas, prácticas, herramientas y construcción.'],
+        I:['Investigador','Ciencia, análisis, programación e investigación.'],
+        A:['Artístico','Creatividad, diseño, expresión e innovación.'],
+        S:['Social','Ayuda, enseñanza, colaboración y trabajo con personas.'],
+        E:['Emprendedor','Liderazgo, negocios, negociación y decisiones.'],
+        C:['Convencional','Organización, datos, finanzas y procedimientos.']
+      }; for(const d of ['R','I','A','S','E','C']){ %>
+        <label class="weight-row">
+          <span class="dimension-badge"><%= d %></span>
+          <span class="dimension-copy">
+            <strong><%= dims[d][0] %></strong>
+            <small><%= dims[d][1] %></small>
+          </span>
+          <input name="weight_<%= d %>" class="weight-input" type="number" min="0" max="10" step="0.1" value="5" required>
+        </label>
+      <% } %>
+
+      <div class="radar-wrap"><canvas id="careerProfileChart"></canvas></div>
+    </div>
+
+    <input type="hidden" name="active" value="1">
+    <button class="primary" type="submit">Guardar carrera</button>
+  </form>
+
+  <div class="card table-card">
+    <div class="table-tools"><input class="catalog-search" placeholder="Buscar carrera o departamento…"></div>
+    <div class="table-wrap">
+      <table class="catalog-table">
+        <thead><tr><th>Carrera</th><th>Departamento</th><th>Perfil</th><th>Estatus</th><th></th></tr></thead>
+        <tbody>
+          <% for(const r of catalogs.careers){ %>
+            <tr data-search="<%= r.name %> <%= r.department %> <%= r.holland_code %>">
+              <td><strong><%= r.name %></strong><small><%= r.description ?? '' %></small></td>
+              <td><span class="pill"><%= r.department %></span></td>
+              <td>
+                <span class="code"><%= r.holland_code %></span>
+                <small>R <%= r.weights.R ?? 0 %> · I <%= r.weights.I ?? 0 %> · A <%= r.weights.A ?? 0 %> · S <%= r.weights.S ?? 0 %> · E <%= r.weights.E ?? 0 %> · C <%= r.weights.C ?? 0 %></small>
+              </td>
+              <td><span class="status-label <%= r.active?'approved':'rejected' %>"><%= r.active?'Activo':'Inactivo' %></span></td>
+              <td>
+                <button class="small-btn edit-record" data-type="careers" data-id="<%= r.id %>" data-record='<%- JSON.stringify({...r,...Object.fromEntries(Object.entries(r.weights||{}).map(([k,v])=>[`weight_${k}`,v]))}).replace(/'/g,"&#39;") %>'>Editar</button>
+                <button class="small-btn danger delete-record" data-type="careers" data-id="<%= r.id %>">Desactivar</button>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card department-question-card">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">PREGUNTA FINAL</p>
+      <h3>Pregunta complementaria por departamento</h3>
+      <p class="form-help">Solo existe una pregunta por departamento. Al terminar el test se mostrará la correspondiente al departamento de la carrera con mayor afinidad.</p>
+    </div>
+  </div>
+
+  <div class="department-question-grid">
+    <% for (const department of catalogs.departments) {
+      const configured = (catalogs.departmentQuestions || []).find(item => item.department === department);
+      const departmentCareers = (catalogs.careers || []).filter(c => c.department === department && c.active);
+    %>
+      <form class="department-question-form department-question-item" data-department="<%= department %>">
+        <div class="department-question-title">
+          <strong><%= department %></strong>
+          <small><%= departmentCareers.length %> carrera<%= departmentCareers.length===1?'':'s' %> activa<%= departmentCareers.length===1?'':'s' %></small>
+        </div>
+        <textarea name="question_text" required maxlength="800" rows="4" placeholder="¿Te gustaría…?"><%= configured?.question_text ?? '' %></textarea>
+        <% if (departmentCareers.length) { %>
+          <small class="department-careers"><%= departmentCareers.map(c => c.name).join(' · ') %></small>
+        <% } %>
+        <button class="small-btn department-save" type="submit">Guardar pregunta</button>
+      </form>
+    <% } %>
+  </div>
+</div>

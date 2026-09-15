@@ -10,25 +10,18 @@ class ProfileRepository {
   Future<void> saveProfile(UserProfile profile) async {
     final db = await _dbProvider.database;
     await db.transaction((txn) async {
-      await txn.insert(
-        Tables.profile,
-        profile.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      await txn.delete(
-        Tables.profileLanguages,
-        where: 'profile_id = ?',
-        whereArgs: [profile.id],
-      );
+      await txn.insert(Tables.profile, profile.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      await txn.delete(Tables.profileLanguages, where: 'profile_id = ?', whereArgs: [profile.id]);
       for (var index = 0; index < profile.languagesList.length; index++) {
-        final languageId = index < profile.languageIds.length
-            ? profile.languageIds[index]
-            : null;
+        final rawId = index < profile.languageIds.length ? profile.languageIds[index] : '';
+        final name = profile.languagesList[index];
+        final isCustom = rawId.contains('_custom_') || rawId.isEmpty;
+        final kind = rawId.startsWith('idioma_') ? 'idioma' : 'lengua';
         await txn.insert(Tables.profileLanguages, {
           'profile_id': profile.id,
-          'language_id': languageId,
-          'type': 'selected',
-          'custom_name': languageId == null ? profile.languagesList[index] : null,
+          'language_id': isCustom ? null : rawId,
+          'type': kind,
+          'custom_name': isCustom ? name : null,
         });
       }
     });
@@ -41,16 +34,22 @@ class ProfileRepository {
     final id = results.first['id']?.toString() ?? '1';
     final languageRows = await db.query(
       Tables.profileLanguages,
-      columns: ['language_id'],
-      where: 'profile_id = ? AND language_id IS NOT NULL',
+      columns: ['language_id','type','custom_name'],
+      where: 'profile_id = ?',
       whereArgs: [id],
+      orderBy: 'id ASC',
     );
-    return UserProfile.fromMap(
-      results.first,
-      languageIds: languageRows
-          .map((row) => row['language_id']?.toString())
-          .whereType<String>()
-          .toList(),
-    );
+    final ids = <String>[];
+    for (var i = 0; i < languageRows.length; i++) {
+      final row = languageRows[i];
+      final catalogId = row['language_id']?.toString();
+      if (catalogId != null && catalogId.isNotEmpty) {
+        ids.add(catalogId);
+      } else {
+        final kind = row['type']?.toString() == 'idioma' ? 'idioma' : 'lengua';
+        ids.add('${kind}_custom_saved_$i');
+      }
+    }
+    return UserProfile.fromMap(results.first, languageIds: ids);
   }
 }

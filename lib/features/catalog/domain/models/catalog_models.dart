@@ -60,6 +60,8 @@ class CareerCatalog {
   final String name;
   final String description;
   final String hollandCode;
+  final String department;
+  final String websiteUrl;
   final Map<String, double> weights;
   final List<int> questionIds;
 
@@ -68,7 +70,25 @@ class CareerCatalog {
     required this.name,
     required this.description,
     required this.hollandCode,
+    required this.department,
+    this.websiteUrl = '',
     required this.weights,
     required this.questionIds,
   });
+}
+
+class DepartmentQuestion {
+  final String department;
+  final String questionText;
+
+  const DepartmentQuestion({
+    required this.department,
+    required this.questionText,
+  });
+
+  factory DepartmentQuestion.fromMap(Map<String, Object?> map) =>
+      DepartmentQuestion(
+        department: map['department']?.toString() ?? '',
+        questionText: map['question_text']?.toString() ?? '',
+      );
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../result/presentation/providers/result_provider.dart';
+import '../../../avatar/presentation/providers/avatar_provider.dart';
 import '../../../test/presentation/providers/test_provider.dart';
 import '../providers/profile_provider.dart';
 
@@ -13,6 +14,12 @@ class ProfilePage extends ConsumerWidget {
     final profile = ref.watch(profileProvider);
     final result = ref.watch(latestResultProvider).valueOrNull;
     final historyCount = ref.watch(resultHistoryProvider).valueOrNull?.length ?? 0;
+    final test = ref.watch(testProvider);
+    final totalQuestions = test.questions.length;
+    final progress = test.isCompleted
+        ? 1.0
+        : totalQuestions == 0 ? 0.0 : (test.answers.length / totalQuestions).clamp(0.0, 1.0).toDouble();
+    final progressLabel = '${(progress * 100).round()}%';
     if(profile == null) return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
     final path = profile.avatarConfig.avatarPath;
     final local = path.startsWith('/') || path.contains('emulated');
@@ -20,21 +27,21 @@ class ProfilePage extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.fromLTRB(22, 16, 22, 30), children: [
-          Row(children: [const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF287400))), const Spacer(), IconButton(onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined))]),
+          Row(children: [const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))), const Spacer(), IconButton(onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined))]),
           const SizedBox(height: 16),
-          Center(child: Stack(clipBehavior: Clip.none, children: [Container(width: 118, height: 118, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: avatar)), Positioned(right: -2, bottom: 3, child: Container(width: 36, height: 36, decoration: const BoxDecoration(color: Color(0xFF7B35D4), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 19))) ])),
+          Center(child: Stack(clipBehavior: Clip.none, children: [Container(width: 118, height: 118, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: avatar)), Positioned(right: -2, bottom: 3, child: Material(color: AppColors.primary, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () { final avatarPath = profile.avatarConfig.avatarPath; if (avatarPath.startsWith('/') || avatarPath.contains('emulated')) { ref.read(avatarProvider.notifier).selectCustomPhoto(avatarPath); } else { ref.read(avatarProvider.notifier).selectAvatar(avatarPath); } context.push('/choose-avatar?return=profile'); }, child: const SizedBox(width: 38, height: 38, child: Icon(Icons.edit_rounded, color: Colors.white, size: 19))))) ])),
           const SizedBox(height: 12),
           Text(profile.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 29, fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
           Center(child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5), decoration: BoxDecoration(color: const Color(0xFFDFF3FF), borderRadius: BorderRadius.circular(12)), child: Text(result == null ? 'Nivel: Explorador' : 'Perfil ${result.riasec.hollandCode}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF176C9D))))),
           const SizedBox(height: 26),
-          Row(children: [Expanded(child: _Stat(icon: Icons.check_circle_outline_rounded, title: 'TESTS\nCOMPLETADOS', value: historyCount.toString(), color: const Color(0xFF287400))), const SizedBox(width: 14), Expanded(child: _Stat(icon: Icons.school_outlined, title: 'ESCUELA', value: profile.school, color: const Color(0xFF6C2BC8), small: true))]),
+          Row(children: [Expanded(child: _Stat(icon: Icons.check_circle_outline_rounded, title: 'TESTS\nCOMPLETADOS', value: historyCount.toString(), color: const Color(0xFF00923F))), const SizedBox(width: 14), Expanded(child: _Stat(icon: Icons.school_outlined, title: 'ESCUELA', value: profile.school, color: const Color(0xFF6C2BC8), small: true))]),
           const SizedBox(height: 18),
-          Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(26)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('Progreso vocacional', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), const Spacer(), Text(result == null ? '25%' : '100%', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF287400)))]), const SizedBox(height: 12), ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: result == null ? .25 : 1, minHeight: 8, backgroundColor: const Color(0xFFDCE5D4), valueColor: const AlwaysStoppedAnimation(Color(0xFF18A9D3)))), const SizedBox(height: 12), Text(result == null ? 'Completa tu test para descubrir tu perfil vocacional.' : '¡Buen camino! Tu resultado principal es ${result.topCareer.name}.', style: TextStyle(fontSize: 13, height: 1.4, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68)))])),
+          Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(26)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('Progreso vocacional', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), const Spacer(), Text(progressLabel, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF00923F)))]), const SizedBox(height: 12), ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: const Color(0xFFDCE5D4), valueColor: const AlwaysStoppedAnimation(Color(0xFF18A9D3)))), const SizedBox(height: 12), Text(result == null ? 'Completa tu test para descubrir tu perfil vocacional.' : '¡Buen camino! Tu resultado principal es ${result.topCareer.name}.', style: TextStyle(fontSize: 13, height: 1.4, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68)))])),
           const SizedBox(height: 18),
           _Menu(icon: Icons.history_rounded, color: const Color(0xFF18A9D3), title: 'Historial', subtitle: 'Revisa tus resultados previos', onTap: () => context.push('/history')),
           _Menu(icon: Icons.edit_rounded, color: const Color(0xFF7B35D4), title: 'Editar perfil', subtitle: 'Actualiza tu información personal', onTap: () => context.push('/edit-profile')),
-          _Menu(icon: Icons.settings_outlined, color: const Color(0xFF287400), title: 'Configuración', subtitle: 'Preferencias y privacidad', onTap: () => context.push('/settings')),
+          _Menu(icon: Icons.settings_outlined, color: const Color(0xFF00923F), title: 'Configuración', subtitle: 'Preferencias y privacidad', onTap: () => context.push('/settings')),
           _Menu(
             icon: Icons.restart_alt_rounded,
             color: const Color(0xFFE86A35),

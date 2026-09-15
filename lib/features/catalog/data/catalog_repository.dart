@@ -1,3 +1,5 @@
+import 'package:sqflite/sqflite.dart';
+
 import '../../../core/database/app_database.dart';
 import '../../../core/database/tables.dart';
 import '../domain/models/catalog_models.dart';
@@ -5,11 +7,11 @@ import '../domain/models/catalog_models.dart';
 /// Acceso a catálogos institucionales almacenados localmente en SQLite.
 ///
 /// Estados, municipios, escuelas y lenguas se distribuyen con la aplicación
-/// mediante el seed JSON. No se consultan APIs externas.
+/// mediante una base SQLite incluida con la app. No se usan JSON ni APIs externas.
 class CatalogRepository {
   Future<List<StateCatalog>> getStates() async {
     final db = await AppDatabase.instance.database;
-    final rows = await db.query(Tables.states, orderBy: 'name COLLATE NOCASE');
+    final rows = await db.query(Tables.states, where: 'active = 1', orderBy: 'name COLLATE NOCASE');
     return rows.map(StateCatalog.fromMap).toList();
   }
 
@@ -17,7 +19,7 @@ class CatalogRepository {
     final db = await AppDatabase.instance.database;
     final rows = await db.query(
       Tables.municipalities,
-      where: 'state_id = ?',
+      where: 'state_id = ? AND active = 1',
       whereArgs: [stateId],
       orderBy: "CASE WHEN name = 'Otro municipio' THEN 1 ELSE 0 END, name COLLATE NOCASE",
     );
@@ -75,10 +77,12 @@ class CatalogRepository {
           name: row['name']?.toString() ?? '',
           description: row['description']?.toString() ?? '',
           hollandCode: row['holland_code']?.toString() ?? '',
+          department: row['department']?.toString() ?? '',
+          websiteUrl: row['website_url']?.toString() ?? '',
           weights: {
             for (final w in weightRows)
               w['dimension']?.toString() ?? '':
-                  (w['weight'] as num?)?.toDouble() ?? 0,
+                  double.tryParse(w['weight']?.toString() ?? '') ?? 0,
           }..remove(''),
           questionIds: questionRows
               .map((q) => (q['question_id'] as num?)?.toInt())
@@ -89,4 +93,69 @@ class CatalogRepository {
     }
     return result;
   }
+
+  Future<List<DepartmentQuestion>> getDepartmentQuestions() async {
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query(
+      Tables.departmentQuestions,
+      orderBy: 'department COLLATE NOCASE',
+    );
+    return rows.map(DepartmentQuestion.fromMap).toList();
+  }
+
+  Future<void> applyServerSnapshot(Map<String, dynamic> snapshot) async {
+    final db = await AppDatabase.instance.database;
+    await db.transaction((txn) async {
+      Future<void> upsertList(
+        String table,
+        dynamic raw,
+        List<String> keyColumns,
+      ) async {
+        if (raw is! List) return;
+        for (final item in raw) {
+          if (item is! Map) continue;
+          final values = Map<String, Object?>.from(item);
+          final where = keyColumns.map((column) => '$column = ?').join(' AND ');
+          final whereArgs = keyColumns.map((column) => values[column]).toList();
+          final updated = await txn.update(
+            table,
+            values,
+            where: where,
+            whereArgs: whereArgs,
+          );
+          if (updated == 0) {
+            await txn.insert(table, values, conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+        }
+      }
+
+      await upsertList(Tables.states, snapshot['states'], const ['id']);
+      await upsertList(Tables.municipalities, snapshot['municipalities'], const ['id']);
+      await upsertList(Tables.schools, snapshot['schools'], const ['id']);
+      await upsertList(Tables.languages, snapshot['languages'], const ['id']);
+      await upsertList(Tables.questions, snapshot['questions'], const ['id']);
+      await upsertList(Tables.careers, snapshot['careers'], const ['id']);
+      await upsertList(Tables.departmentQuestions, snapshot['department_questions'], const ['department']);
+      await upsertList(
+        Tables.careerWeights,
+        snapshot['career_weights'],
+        const ['career_id', 'dimension'],
+      );
+      await upsertList(
+        Tables.careerQuestions,
+        snapshot['career_questions'],
+        const ['career_id', 'question_id'],
+      );
+
+      final version = snapshot['version']?.toString();
+      if (version != null && version.isNotEmpty) {
+        await txn.insert(
+          Tables.metadata,
+          {'key': 'server_catalog_version', 'value': version},
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    });
+  }
+
 }

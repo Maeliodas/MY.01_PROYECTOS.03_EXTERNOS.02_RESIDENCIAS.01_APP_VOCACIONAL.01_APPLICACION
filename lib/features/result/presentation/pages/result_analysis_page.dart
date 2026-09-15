@@ -157,7 +157,7 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.4,
-                      color: Color(0xFF287400),
+                      color: Color(0xFF00923F),
                     ),
                   ),
                 ],

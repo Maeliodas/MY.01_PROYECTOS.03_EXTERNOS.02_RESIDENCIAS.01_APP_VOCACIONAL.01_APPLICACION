@@ -2,6 +2,7 @@ import '../../features/profile/domain/entities/user_profile.dart';
 import '../../features/result/data/result_local_datasource.dart';
 import '../../features/result/domain/models/career_match.dart';
 import '../../features/result/domain/models/riasec_result.dart';
+import '../../features/test/data/test_local_datasource.dart';
 import '../network/dashboard_api.dart';
 import '../network/network_info.dart';
 import 'sync_queue.dart';
@@ -12,6 +13,7 @@ class SyncService {
   final DashboardApi _api;
   final SyncQueue _queue = SyncQueue();
   final ResultLocalDatasource _results = ResultLocalDatasource();
+  final TestLocalDatasource _tests = TestLocalDatasource();
 
   Future<bool> processStudentResult({
     required String resultId,
@@ -20,6 +22,19 @@ class SyncService {
     required RiasecResult riasec,
     required CareerMatch topCareer,
   }) async {
+    final lenguas = <String>[];
+    final idiomas = <String>[];
+    for (var index = 0; index < profile.languagesList.length; index++) {
+      final id = index < profile.languageIds.length ? profile.languageIds[index] : '';
+      final name = profile.languagesList[index];
+      if (id.startsWith('idioma_')) {
+        idiomas.add(name);
+      } else {
+        lenguas.add(name);
+      }
+    }
+
+    final openAnswers = await _tests.getCareerOpenAnswers(sessionId);
     final payload = <String, dynamic>{
       'result_id': resultId,
       'session_id': sessionId,
@@ -35,7 +50,8 @@ class SyncService {
         'school_id': profile.schoolId,
         'school': profile.school,
         'language_ids': profile.languageIds,
-        'languages': profile.languagesList,
+        'languages': lenguas,
+        'idioms': idiomas,
       },
       'result': {
         'holland_code': riasec.hollandCode,
@@ -49,6 +65,7 @@ class SyncService {
         'top_career_name': topCareer.name,
         'top_career_affinity': topCareer.affinityPercentage,
       },
+      'career_open_answers': openAnswers,
       'completed_at': DateTime.now().toIso8601String(),
     };
 

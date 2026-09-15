@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static final instance = AppDatabase._();
-  static const databaseVersion = 7;
+  static const databaseVersion = 13;
 
   Database? _db;
 
@@ -35,7 +35,8 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE ${Tables.states}(
         id TEXT PRIMARY KEY,
-        name TEXT NOT NULL UNIQUE
+        name TEXT NOT NULL UNIQUE,
+        active INTEGER NOT NULL DEFAULT 1
       )
     ''');
     await db.execute('''
@@ -43,6 +44,7 @@ class AppDatabase {
         id TEXT PRIMARY KEY,
         state_id TEXT NOT NULL,
         name TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
         FOREIGN KEY(state_id) REFERENCES ${Tables.states}(id)
       )
     ''');
@@ -72,6 +74,7 @@ class AppDatabase {
         text TEXT NOT NULL,
         dimension TEXT NOT NULL,
         position INTEGER NOT NULL,
+        related_career_id TEXT,
         active INTEGER NOT NULL DEFAULT 1
       )
     ''');
@@ -81,7 +84,16 @@ class AppDatabase {
         name TEXT NOT NULL,
         description TEXT,
         holland_code TEXT NOT NULL,
+        department TEXT NOT NULL,
+        website_url TEXT,
         active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE ${Tables.departmentQuestions}(
+        department TEXT PRIMARY KEY,
+        question_text TEXT NOT NULL,
+        updated_at TEXT
       )
     ''');
     await db.execute('''
@@ -141,6 +153,7 @@ class AppDatabase {
     await db.execute('CREATE TABLE ${Tables.avatar}(id INTEGER PRIMARY KEY CHECK(id=1), base_avatar_id TEXT, hair_style TEXT, hair_color TEXT, outfit TEXT, accessory TEXT, skin_tone TEXT)');
     await db.execute('CREATE TABLE ${Tables.sessions}(id TEXT PRIMARY KEY, started_at TEXT NOT NULL, completed_at TEXT, current_index INTEGER NOT NULL DEFAULT 0, question_order TEXT NOT NULL, open_answer TEXT)');
     await db.execute('CREATE TABLE ${Tables.answers}(id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, question_id INTEGER NOT NULL, value REAL NOT NULL)');
+    await db.execute("CREATE TABLE ${Tables.careerOpenAnswers}(session_id TEXT NOT NULL, career_id TEXT NOT NULL, question_text TEXT NOT NULL DEFAULT '', answer TEXT NOT NULL, PRIMARY KEY(session_id, career_id))");
     await db.execute("CREATE TABLE ${Tables.results}(id TEXT PRIMARY KEY, session_id TEXT NOT NULL, score_r REAL NOT NULL DEFAULT 0, score_i REAL NOT NULL DEFAULT 0, score_a REAL NOT NULL DEFAULT 0, score_s REAL NOT NULL DEFAULT 0, score_e REAL NOT NULL DEFAULT 0, score_c REAL NOT NULL DEFAULT 0, holland_code TEXT NOT NULL, top_career_id TEXT NOT NULL DEFAULT '', top_career_name TEXT NOT NULL DEFAULT '', top_career_affinity REAL NOT NULL DEFAULT 0, full_ranking_json TEXT NOT NULL DEFAULT '[]', is_synced INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)");
     await db.execute('CREATE TABLE ${Tables.metadata}(key TEXT PRIMARY KEY, value TEXT)');
     await db.execute('''
@@ -151,6 +164,15 @@ class AppDatabase {
         attempts INTEGER NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'pending',
         created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE ${Tables.catalogSuggestionQueue}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(kind, name)
       )
     ''');
   }
@@ -230,6 +252,69 @@ class AppDatabase {
           whereArgs: ['tecnm_tuxtepec'],
         );
       });
+    }
+    if (oldVersion < 8) {
+      await db.transaction((txn) async {
+        await txn.delete(Tables.profileLanguages);
+        await txn.delete(Tables.languages);
+        await DatabaseSeed.apply(txn);
+      });
+    }
+    if (oldVersion < 9) {
+      await db.transaction((txn) async {
+        final stateCols = await txn.rawQuery('PRAGMA table_info(${Tables.states})');
+        if (!stateCols.any((row) => row['name'] == 'active')) {
+          await txn.execute('ALTER TABLE ${Tables.states} ADD COLUMN active INTEGER NOT NULL DEFAULT 1');
+        }
+        final municipalityCols = await txn.rawQuery('PRAGMA table_info(${Tables.municipalities})');
+        if (!municipalityCols.any((row) => row['name'] == 'active')) {
+          await txn.execute('ALTER TABLE ${Tables.municipalities} ADD COLUMN active INTEGER NOT NULL DEFAULT 1');
+        }
+        await DatabaseSeed.apply(txn);
+      });
+    }
+
+
+    if (oldVersion < 10) {
+      final careerColumns = await db.rawQuery('PRAGMA table_info(${Tables.careers})');
+      final names = careerColumns.map((e) => e['name']?.toString()).toSet();
+      if (!names.contains('website_url')) await db.execute('ALTER TABLE ${Tables.careers} ADD COLUMN website_url TEXT');
+      if (!names.contains('open_question')) await db.execute('ALTER TABLE ${Tables.careers} ADD COLUMN open_question TEXT');
+      await db.execute('CREATE TABLE IF NOT EXISTS ${Tables.careerOpenAnswers}(session_id TEXT NOT NULL, career_id TEXT NOT NULL, answer TEXT NOT NULL, PRIMARY KEY(session_id, career_id))');
+      await DatabaseSeed.apply(db);
+    }
+
+    if (oldVersion < 11) {
+      final questionColumns = await db.rawQuery('PRAGMA table_info(${Tables.questions})');
+      final qNames = questionColumns.map((e) => e['name']?.toString()).toSet();
+      if (!qNames.contains('related_career_id')) {
+        await db.execute('ALTER TABLE ${Tables.questions} ADD COLUMN related_career_id TEXT');
+      }
+      await DatabaseSeed.apply(db);
+    }
+
+    if (oldVersion < 12) {
+      final openColumns = await db.rawQuery('PRAGMA table_info(${Tables.careerOpenAnswers})');
+      final openNames = openColumns.map((e) => e['name']?.toString()).toSet();
+      if (!openNames.contains('question_text')) {
+        await db.execute("ALTER TABLE ${Tables.careerOpenAnswers} ADD COLUMN question_text TEXT NOT NULL DEFAULT ''");
+      }
+    }
+
+    if (oldVersion < 13) {
+      final careerColumns = await db.rawQuery('PRAGMA table_info(${Tables.careers})');
+      final careerNames = careerColumns.map((e) => e['name']?.toString()).toSet();
+      if (!careerNames.contains('department')) {
+        await db.execute("ALTER TABLE ${Tables.careers} ADD COLUMN department TEXT NOT NULL DEFAULT 'Sistemas y Computación'");
+      }
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ${Tables.departmentQuestions}(
+          department TEXT PRIMARY KEY,
+          question_text TEXT NOT NULL,
+          updated_at TEXT
+        )
+      ''');
+      await DatabaseSeed.apply(db);
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../catalog/presentation/providers/catalog_providers.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -18,7 +19,11 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   }
 
   Future<void> _go() async {
-    await Future.delayed(const Duration(milliseconds: 1800));
+    await Future.delayed(const Duration(milliseconds: 900));
+    await ref.read(catalogSyncServiceProvider).sync();
+    ref.invalidate(statesProvider);
+    ref.invalidate(allLanguagesProvider);
+    ref.invalidate(careersCatalogProvider);
     final profile = await ref.read(profileRepositoryProvider).getProfile();
     if (!mounted) return;
     context.go(profile == null ? '/onboarding' : '/path-home');
@@ -54,7 +59,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                             border: Border.all(color: AppColors.primary, width: 4),
                             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 18, offset: const Offset(0, 8))],
                           ),
-                          child: const Icon(Icons.explore_rounded, size: 68, color: Color(0xFF287400)),
+                          child: const Icon(Icons.explore_rounded, size: 68, color: Color(0xFF00923F)),
                         ),
                         Positioned(
                           right: -12,
@@ -69,7 +74,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                       ],
                     ),
                     const SizedBox(height: 25),
-                    const Text('Aevum Iter', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFF287400), letterSpacing: -.8)),
+                    const Text('Aevum Iter', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: -.8)),
                     const SizedBox(height: 3),
                     const Text('DESCUBRE TU CAMINO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 2.0, color: Color(0xFF4E5148))),
                   ],
