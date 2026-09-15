@@ -52,7 +52,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   children: [
                     if (index > 0)
                       IconButton(onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut), icon: const Icon(Icons.arrow_back_rounded)),
-                      const Spacer(),
+                    const Text('Aevum Iter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))),
+                    const Spacer(),
                     TextButton(onPressed: () => context.go('/choose-avatar'), child: const Text('SALTAR', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: 1))),
                   ],
                 ),
