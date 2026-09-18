@@ -1,6 +1,118 @@
 const dataNode = document.getElementById('dashboard-data');
 const data = dataNode ? JSON.parse(dataNode.textContent) : {};
 
+// ── Modal de confirmación (diseño del panel) ─────────────────────────────────
+function aevumConfirm({ title = '¿Continuar?', message = '', hint = '', confirmLabel = 'Aceptar', danger = false } = {}) {
+  return new Promise((resolve) => {
+    const backdrop = document.getElementById('aevumModal');
+    if (!backdrop) {
+      resolve(window.confirm([message, hint].filter(Boolean).join('\n\n')));
+      return;
+    }
+    const titleEl = document.getElementById('aevumModalTitle');
+    const msgEl = document.getElementById('aevumModalMessage');
+    const hintEl = document.getElementById('aevumModalHint');
+    const btnOk = document.getElementById('aevumModalConfirm');
+    const btnCancel = document.getElementById('aevumModalCancel');
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (hintEl) {
+      hintEl.textContent = hint || '';
+      hintEl.style.display = hint ? '' : 'none';
+    }
+    if (btnOk) {
+      btnOk.textContent = confirmLabel;
+      btnOk.classList.toggle('danger', Boolean(danger));
+    }
+    const close = (value) => {
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden', 'true');
+      btnOk?.removeEventListener('click', onOk);
+      btnCancel?.removeEventListener('click', onCancel);
+      backdrop.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+      resolve(value);
+    };
+    const onOk = () => close(true);
+    const onCancel = () => close(false);
+    const onBackdrop = (e) => { if (e.target === backdrop) close(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') close(false);
+      if (e.key === 'Enter') close(true);
+    };
+    btnOk?.addEventListener('click', onOk);
+    btnCancel?.addEventListener('click', onCancel);
+    backdrop.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden', 'false');
+    setTimeout(() => btnCancel?.focus(), 0);
+  });
+}
+
+function getActiveContext() {
+  return {
+    view: document.querySelector('.nav-btn.active')?.dataset.view || 'dashboard',
+    catalog: document.querySelector('.catalog-tab.active')?.dataset.catalog || null,
+  };
+}
+
+function activateView(view) {
+  document.querySelectorAll('.nav-btn').forEach(x => x.classList.toggle('active', x.dataset.view === view));
+  document.querySelectorAll('.view').forEach(x => x.classList.toggle('active', x.id === `view-${view}`));
+}
+
+function activateCatalogTab(catalog) {
+  if (!catalog) return;
+  document.querySelectorAll('.catalog-tab').forEach(x => x.classList.toggle('active', x.dataset.catalog === catalog));
+  document.querySelectorAll('.catalog-panel').forEach(x => x.classList.toggle('active', x.id === `catalog-${catalog}`));
+}
+
+/** Actualiza HTML del servidor sin salir de la vista actual (sin Ctrl+R). */
+async function softRefreshKeepContext() {
+  const ctx = getActiveContext();
+  try {
+    const res = await fetch(window.location.pathname + window.location.search, {
+      credentials: 'same-origin',
+      headers: { Accept: 'text/html' },
+    });
+    if (!res.ok) throw new Error('No se pudo actualizar la vista');
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    document.querySelectorAll('.catalog-panel').forEach((panel) => {
+      const fresh = doc.getElementById(panel.id);
+      if (fresh) panel.innerHTML = fresh.innerHTML;
+    });
+
+    const sug = document.getElementById('suggestionsList');
+    const sugFresh = doc.getElementById('suggestionsList') || doc.querySelector('.suggestions-list');
+    if (sug && sugFresh) sug.innerHTML = sugFresh.innerHTML;
+
+    const badge = document.getElementById('pendingSuggestionsCount');
+    const badgeFresh = doc.getElementById('pendingSuggestionsCount');
+    if (badge && badgeFresh) badge.textContent = badgeFresh.textContent;
+
+    const ver = document.getElementById('catalogVersion');
+    const verFresh = doc.getElementById('catalogVersion');
+    if (ver && verFresh) ver.textContent = verFresh.textContent;
+
+    rebindCatalogUi();
+    bindSuggestionButtons(document);
+// Evitar doble enlace al hacer softRefresh
+document.querySelectorAll('.crud-form, .delete-record, .edit-record').forEach(el => { el.dataset.bound = '1'; });
+
+    activateView(ctx.view);
+    if (ctx.view === 'catalogs') activateCatalogTab(ctx.catalog);
+  } catch (err) {
+    console.error('[AEVUM] softRefresh', err);
+    sessionStorage.setItem('aevum_view', ctx.view);
+    if (ctx.catalog) sessionStorage.setItem('aevum_catalog_tab', ctx.catalog);
+    location.reload();
+  }
+}
+
+
 // Navegación principal.
 document.querySelectorAll('.nav-btn').forEach(button => {
   button.addEventListener('click', () => {
@@ -77,10 +189,11 @@ async function api(url, options = {}) {
   return body;
 }
 
-// Crear o actualizar.
+// Crear o actualizar (sin recargar la página).
 document.querySelectorAll('.crud-form').forEach(form => {
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    if (form.dataset.listening === '1') return;
     const payload = Object.fromEntries(new FormData(form).entries());
     try {
       const id = form.dataset.editId;
@@ -88,7 +201,10 @@ document.querySelectorAll('.crud-form').forEach(form => {
         method: id ? 'PUT' : 'POST',
         body: JSON.stringify(payload),
       });
-      location.reload();
+      delete form.dataset.editId;
+      const submit = form.querySelector('button[type="submit"]');
+      if (submit && submit.dataset.defaultLabel) submit.textContent = submit.dataset.defaultLabel;
+      await softRefreshKeepContext();
     } catch (error) {
       alert(error.message);
     }
@@ -122,10 +238,17 @@ document.querySelectorAll('.edit-record').forEach(button => {
 
 document.querySelectorAll('.delete-record').forEach(button => {
   button.addEventListener('click', async () => {
-    if (!confirm('¿Dar de baja este registro? Dejará de aparecer en la app después de sincronizar.')) return;
+    const ok = await aevumConfirm({
+      title: 'Dar de baja registro',
+      message: '¿Seguro que desea dar de baja este registro del catálogo?',
+      hint: 'Dejará de aparecer en la app después de sincronizar. Los históricos no se eliminan.',
+      confirmLabel: 'Dar de baja',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api(`/api/admin/catalog/${button.dataset.type}/${encodeURIComponent(button.dataset.id)}`, {method:'DELETE'});
-      location.reload();
+      await softRefreshKeepContext();
     } catch (error) { alert(error.message); }
   });
 });
@@ -139,30 +262,33 @@ function bindSuggestionButtons(root = document) {
       const row = button.closest('.suggestion-row');
       const name = row?.querySelector('strong')?.textContent?.trim() || 'esta sugerencia';
       const kind = row?.querySelector('.pill')?.textContent?.trim() || 'lengua/idioma';
-
       if (action === 'reject') {
-        const ok = confirm(
-          `¿Seguro que desea rechazar añadir «${name}» (${kind}) a la lista de lenguas de la base de datos?\n\nEsta acción no se puede deshacer desde el panel.`
-        );
+        const ok = await aevumConfirm({
+          title: 'Rechazar sugerencia',
+          message: `¿Seguro que desea rechazar añadir «${name}» (${kind}) a la lista de lenguas de la base de datos?`,
+          hint: 'Esta acción no se puede deshacer desde el panel.',
+          confirmLabel: 'Rechazar',
+          danger: true,
+        });
         if (!ok) return;
       } else if (action === 'approve') {
-        const ok = confirm(
-          `¿Confirma aprobar «${name}» y añadirla al catálogo de lenguas de la base de datos?`
-        );
+        const ok = await aevumConfirm({
+          title: 'Aprobar sugerencia',
+          message: `¿Confirma aprobar «${name}» y añadirla al catálogo de lenguas de la base de datos?`,
+          hint: 'La versión del catálogo se incrementará y la app podrá sincronizar el cambio.',
+          confirmLabel: 'Aprobar',
+          danger: false,
+        });
         if (!ok) return;
       }
-
       try {
-        await api(`/api/admin/suggestions/${button.dataset.suggestion}/${action}`, { method: 'POST', body: '{}' });
-        // Refresco suave si existe; si no, recarga
+        await api(`/api/admin/suggestions/${button.dataset.suggestion}/${action}`, {method:'POST', body:'{}'});
         if (typeof window.__aevumRefreshSuggestions === 'function') {
           await window.__aevumRefreshSuggestions();
         } else {
-          location.reload();
+          await softRefreshKeepContext();
         }
-      } catch (error) {
-        alert(error.message);
-      }
+      } catch (error) { alert(error.message); }
     });
   });
 }
@@ -188,7 +314,7 @@ document.querySelectorAll('.department-question-form').forEach(form => {
         body: JSON.stringify({question_text: questionText}),
       });
       if (button) button.textContent = 'Guardado ✓';
-      setTimeout(() => location.reload(), 500);
+      await softRefreshKeepContext();
     } catch (error) {
       alert(error.message);
       if (button) {
@@ -411,6 +537,95 @@ document.getElementById('clearFilters')?.addEventListener('click', (e) => {
 syncPdfLink();
 filterForm?.addEventListener('change', syncPdfLink);
 
+
+function rebindCatalogUi() {
+  document.querySelectorAll('.catalog-search').forEach(input => {
+    if (input.dataset.bound === '1') return;
+    input.dataset.bound = '1';
+    input.addEventListener('input', () => {
+      const term = input.value.trim().toLocaleLowerCase('es');
+      const table = input.closest('.table-card')?.querySelector('tbody');
+      table?.querySelectorAll('tr').forEach(row => {
+        row.hidden = Boolean(term && !(row.dataset.search ?? row.textContent).toLocaleLowerCase('es').includes(term));
+      });
+    });
+  });
+  document.querySelectorAll('.dependent-form').forEach(form => {
+    if (form.dataset.boundDep === '1') return;
+    form.dataset.boundDep = '1';
+    const state = form.querySelector('.state-select');
+    const municipality = form.querySelector('.municipality-select');
+    const update = () => filterOptions(municipality, 'state', state?.value ?? '');
+    state?.addEventListener('change', () => { if (municipality) municipality.value = ''; update(); });
+    update();
+  });
+  document.querySelectorAll('.crud-form').forEach(form => {
+    if (form.dataset.bound === '1') return;
+    form.dataset.bound = '1';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(form).entries());
+      try {
+        const id = form.dataset.editId;
+        await api(id ? `/api/admin/catalog/${form.dataset.type}/${encodeURIComponent(id)}` : `/api/admin/catalog/${form.dataset.type}`, {
+          method: id ? 'PUT' : 'POST',
+          body: JSON.stringify(payload),
+        });
+        delete form.dataset.editId;
+        await softRefreshKeepContext();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  });
+  document.querySelectorAll('.edit-record').forEach(button => {
+    if (button.dataset.bound === '1') return;
+    button.dataset.bound = '1';
+    button.addEventListener('click', () => {
+      const type = button.dataset.type;
+      const form = document.querySelector(`.crud-form[data-type="${type}"]`);
+      if (!form) return;
+      const record = JSON.parse(button.dataset.record);
+      form.dataset.editId = button.dataset.id;
+      [...form.elements].forEach(field => {
+        if (!field.name || field.type === 'submit') return;
+        if (record[field.name] !== undefined && record[field.name] !== null) field.value = record[field.name];
+        if (field.name === 'active') field.value = '1';
+        if (field.name.startsWith('weight_') && record.weights) field.value = record.weights[field.name.slice(-1)] ?? field.value;
+      });
+      if (type === 'schools') {
+        const municipality = form.querySelector('.municipality-select');
+        filterOptions(municipality, 'state', form.querySelector('.state-select')?.value ?? '');
+        if (record.municipality_id) municipality.value = record.municipality_id;
+      }
+      const submit = form.querySelector('button[type="submit"]');
+      if (submit) {
+        if (!submit.dataset.defaultLabel) submit.dataset.defaultLabel = submit.textContent;
+        submit.textContent = 'Guardar cambios';
+      }
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  document.querySelectorAll('.delete-record').forEach(button => {
+    if (button.dataset.bound === '1') return;
+    button.dataset.bound = '1';
+    button.addEventListener('click', async () => {
+      const ok = await aevumConfirm({
+        title: 'Dar de baja registro',
+        message: '¿Seguro que desea dar de baja este registro del catálogo?',
+        hint: 'Dejará de aparecer en la app después de sincronizar. Los históricos no se eliminan.',
+        confirmLabel: 'Dar de baja',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await api(`/api/admin/catalog/${button.dataset.type}/${encodeURIComponent(button.dataset.id)}`, { method: 'DELETE' });
+        await softRefreshKeepContext();
+      } catch (error) { alert(error.message); }
+    });
+  });
+}
+
 // Socket.IO — tiempo real completo + polling de respaldo
 (function initRealtime() {
   const status = document.getElementById('liveStatus');
@@ -426,19 +641,16 @@ filterForm?.addEventListener('change', syncPdfLink);
     if (span) span.textContent = label;
     if (dot) dot.style.background = color;
   }
-
   function updateCatalogVersion(version) {
     if (version == null) return;
     lastCatalogVersion = Number(version);
     const el = document.getElementById('catalogVersion');
     if (el) el.textContent = `#${lastCatalogVersion}`;
   }
-
   function updatePendingBadge(count) {
     const el = document.getElementById('pendingSuggestionsCount');
     if (el) el.textContent = String(count ?? 0);
   }
-
   function showLiveToast(title, detail) {
     let toast = document.getElementById('liveToast');
     if (!toast) {
@@ -461,8 +673,7 @@ filterForm?.addEventListener('change', syncPdfLink);
       const list = document.getElementById('suggestionsList');
       if (!list) return;
       const rows = payload.suggestions || [];
-      const pending = rows.filter(r => r.status === 'pending').length;
-      updatePendingBadge(pending);
+      updatePendingBadge(rows.filter(r => r.status === 'pending').length);
       if (!rows.length) {
         list.innerHTML = '<p class="empty">No hay sugerencias todavía.</p>';
         return;
@@ -503,11 +714,9 @@ filterForm?.addEventListener('change', syncPdfLink);
       }
       if (!socketConnected) setStatus('Datos al día (polling)', '#c9a227');
     } catch (err) {
-      console.error('[AEVUM] pollLiveState', err);
       if (!socketConnected) setStatus('Sin conexión en vivo', '#a64343');
     }
   }
-
   function startPolling(ms = 20000) {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(pollLiveState, ms);
@@ -515,12 +724,10 @@ filterForm?.addEventListener('change', syncPdfLink);
   }
 
   if (typeof io === 'undefined') {
-    console.warn('Socket.IO no disponible — usando solo polling');
     setStatus('Polling activo', '#c9a227');
     startPolling(15000);
     return;
   }
-
   const socket = io({
     path: '/socket.io',
     withCredentials: true,
@@ -529,24 +736,10 @@ filterForm?.addEventListener('change', syncPdfLink);
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
   });
-
-  socket.on('connect', () => {
-    socketConnected = true;
-    setStatus('Tiempo real activo', '#4a8b5d');
-  });
-  socket.on('disconnect', () => {
-    socketConnected = false;
-    setStatus('Reconectando…', '#c9a227');
-  });
-  socket.on('connect_error', (err) => {
-    socketConnected = false;
-    console.warn('[AEVUM] socket error', err?.message || err);
-    setStatus('Socket no disponible — polling', '#c9a227');
-  });
-  socket.on('connected', (msg) => {
-    console.log('[AEVUM]', msg?.message || 'conectado');
-  });
-
+  socket.on('connect', () => { socketConnected = true; setStatus('Tiempo real activo', '#4a8b5d'); });
+  socket.on('disconnect', () => { socketConnected = false; setStatus('Reconectando…', '#c9a227'); });
+  socket.on('connect_error', () => { socketConnected = false; setStatus('Socket no disponible — polling', '#c9a227'); });
+  socket.on('connected', (msg) => console.log('[AEVUM]', msg?.message || 'conectado'));
   socket.on('new-evaluation', (payload) => {
     const career = payload?.top_career_name || 'Nueva evaluación';
     const school = payload?.school_name ? ` · ${payload.school_name}` : '';
@@ -554,29 +747,26 @@ filterForm?.addEventListener('change', syncPdfLink);
     if (typeof refreshDashboard === 'function') refreshDashboard(true);
     if (lastEvalCount != null) lastEvalCount += 1;
   });
-
-  socket.on('catalog-updated', (payload) => {
-    const type = payload?.type || 'catálogo';
-    const action = payload?.action || 'cambio';
-    showLiveToast('Catálogo actualizado', `${type} · ${action}`);
-    pollLiveState();
-  });
-
+  socket.on('catalog-updated', () => { showLiveToast('Catálogo actualizado', ''); pollLiveState(); });
   socket.on('suggestion-created', (payload) => {
-    const name = payload?.name || 'Nueva sugerencia';
-    showLiveToast('Nueva sugerencia', `${payload?.kind || ''} · ${name}`);
+    showLiveToast('Nueva sugerencia', `${payload?.kind || ''} · ${payload?.name || ''}`);
     refreshSuggestions();
   });
-
   socket.on('suggestion-updated', (payload) => {
-    const name = payload?.name || 'Sugerencia';
     const action = payload?.action === 'approve' ? 'aprobada' : 'rechazada';
-    showLiveToast(`Sugerencia ${action}`, name);
+    showLiveToast(`Sugerencia ${action}`, payload?.name || '');
     refreshSuggestions();
     if (payload?.catalogChanged) pollLiveState();
   });
-
   startPolling(20000);
+})();
+
+// Restaurar vista si un softRefresh debió caer a reload
+(function restoreView() {
+  const v = sessionStorage.getItem('aevum_view');
+  const c = sessionStorage.getItem('aevum_catalog_tab');
+  if (v) { activateView(v); sessionStorage.removeItem('aevum_view'); }
+  if (c) { activateCatalogTab(c); sessionStorage.removeItem('aevum_catalog_tab'); }
 })();
 
 // Re-render inicial guardando instancias (para poder destruirlas después)

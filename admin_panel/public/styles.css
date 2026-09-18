@@ -17,3 +17,52 @@
 .department-question-item textarea{width:100%;resize:vertical}
 .department-save{align-self:flex-end}
 @media(max-width:900px){.department-question-grid{grid-template-columns:1fr}}
+
+
+/* ── Modal de confirmación (diseño alineado al panel) ─────────────────────── */
+.aevum-modal-backdrop{
+  position:fixed;inset:0;z-index:10000;
+  background:rgba(18,58,42,.45);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;
+}
+.aevum-modal-backdrop.open{opacity:1;visibility:visible}
+.aevum-modal{
+  width:min(420px,100%);
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:0 18px 50px rgba(18,58,42,.22);
+  overflow:hidden;
+  transform:translateY(8px);transition:transform .2s;
+}
+.aevum-modal-backdrop.open .aevum-modal{transform:translateY(0)}
+.aevum-modal-head{
+  padding:18px 20px 12px;
+  border-bottom:1px solid var(--line);
+}
+.aevum-modal-head .eyebrow{margin:0 0 4px}
+.aevum-modal-head h3{margin:0;font-size:18px;color:var(--ink);letter-spacing:-.3px}
+.aevum-modal-body{
+  padding:16px 20px 8px;
+  color:var(--ink);font-size:13px;line-height:1.55;
+}
+.aevum-modal-body p{margin:0 0 10px}
+.aevum-modal-body .muted{color:var(--muted);font-size:12px}
+.aevum-modal-actions{
+  display:flex;justify-content:flex-end;gap:10px;
+  padding:14px 20px 18px;
+}
+.aevum-modal-actions .btn-cancel{
+  border:1px solid var(--line);background:#fff;color:var(--ink);
+  border-radius:9px;padding:9px 16px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+}
+.aevum-modal-actions .btn-cancel:hover{background:var(--soft)}
+.aevum-modal-actions .btn-confirm{
+  border:0;background:var(--green);color:#fff;
+  border-radius:9px;padding:9px 16px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+}
+.aevum-modal-actions .btn-confirm:hover{background:var(--green2)}
+.aevum-modal-actions .btn-confirm.danger{background:var(--danger)}
+.aevum-modal-actions .btn-confirm.danger:hover{background:#8a3535}

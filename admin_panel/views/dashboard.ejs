@@ -119,6 +119,24 @@
     </main>
   </div>
 
+  
+  <div class="aevum-modal-backdrop" id="aevumModal" aria-hidden="true">
+    <div class="aevum-modal" role="dialog" aria-modal="true" aria-labelledby="aevumModalTitle">
+      <div class="aevum-modal-head">
+        <p class="eyebrow">CONFIRMACIÓN</p>
+        <h3 id="aevumModalTitle">¿Continuar?</h3>
+      </div>
+      <div class="aevum-modal-body">
+        <p id="aevumModalMessage"></p>
+        <p class="muted" id="aevumModalHint"></p>
+      </div>
+      <div class="aevum-modal-actions">
+        <button type="button" class="btn-cancel" id="aevumModalCancel">Cancelar</button>
+        <button type="button" class="btn-confirm" id="aevumModalConfirm">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
   <script id="dashboard-data" type="application/json"><%- JSON.stringify({careers:data.careers,schools:data.schools,provenance:data.provenance,profiles:data.profiles,affinity:data.affinity,languages:data.languages,idioms:data.idioms,municipalities:catalogs.municipalities,schoolCatalog:catalogs.schools}) %></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/admin.js"></script>
