@@ -16,6 +16,12 @@ const io = new SocketServer(server, {
   path: '/socket.io',
 });
 
+/** Emite un evento a todos los paneles admin conectados (tiempo real). */
+function notifyAdmins(event, payload = {}) {
+  io.to('admins').emit(event, { ...payload, at: new Date().toISOString() });
+}
+
+
 const port = Number(process.env.PORT ?? 8080);
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
@@ -171,6 +177,7 @@ app.post('/api/catalog-suggestions', requireApiKey, async (req, res) => {
        ON DUPLICATE KEY UPDATE created_at=created_at`,
       [kind, name],
     );
+    notifyAdmins('suggestion-created', { kind, name });
     res.status(201).json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -241,7 +248,7 @@ app.post('/api/evaluations', requireApiKey, async (req, res) => {
     }
     await connection.commit();
     // Notificar en tiempo real a los paneles admin conectados
-    io.to('admins').emit('new-evaluation', {
+    notifyAdmins('new-evaluation', {
       id: evaluationInsert.insertId,
       result_id: body.result_id,
       holland_code: result.holland_code ?? '',
@@ -472,6 +479,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
         await connection.rollback();
         throw error;
       } finally { connection.release(); }
+      notifyAdmins('catalog-updated', { type: 'careers', action: 'create', id });
       return res.status(201).json({ ok: true, id });
     }
     if (type === 'questions') {
@@ -487,6 +495,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
         const position = Number(req.body.position) || Number(maxRow.max_position) + 1;
         await connection.execute('INSERT INTO questions(id,text,dimension,position,related_career_id,active) VALUES(?,?,?,?,?,?)', [id,text,dimension,position,related,Number(req.body.active ?? 1)]);
         await bumpCatalogVersion(connection);
+        notifyAdmins('catalog-updated', { type: 'questions', action: 'create', id });
         return res.status(201).json({ok:true,id});
       } finally { connection.release(); }
     }
@@ -497,6 +506,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
     const fields = Object.keys(values);
     await pool.execute(`INSERT INTO ${cfg.table} (${fields.join(',')}) VALUES (${fields.map(()=>'?').join(',')})`, fields.map(f => values[f]));
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'create', id: values.id });
     res.status(201).json({ ok: true, id: values.id });
   } catch (error) {
     console.error(error);
@@ -536,6 +546,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
         await connection.rollback();
         throw error;
       } finally { connection.release(); }
+      notifyAdmins('catalog-updated', { type: 'careers', action: 'update', id: req.params.id });
       return res.json({ ok: true });
     }
     if (type === 'questions') {
@@ -548,6 +559,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
         const related = await validateRelatedCareer(connection, req.body.related_career_id || null);
         await connection.execute('UPDATE questions SET text=?,dimension=?,position=?,related_career_id=?,active=? WHERE id=?', [text,dimension,Number(req.body.position)||1,related,Number(req.body.active ?? 1),id]);
         await bumpCatalogVersion(connection);
+        notifyAdmins('catalog-updated', { type: 'questions', action: 'update', id });
         return res.json({ok:true});
       } finally { connection.release(); }
     }
@@ -558,6 +570,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
     if (!fields.length) return res.status(400).json({ error: 'Sin cambios' });
     await pool.execute(`UPDATE ${cfg.table} SET ${fields.map(f=>`${f}=?`).join(',')} WHERE id=?`, [...fields.map(f => values[f]), id]);
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'update', id });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -578,6 +591,7 @@ app.put('/api/admin/department-questions/:department', requireAdmin, async (req,
       [department, questionText],
     );
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type: 'department-questions', action: 'update', department });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -593,6 +607,7 @@ app.delete('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
     // Baja lógica: la app recibe active=0 y deja de mostrar el registro sin romper históricos.
     await pool.execute(`UPDATE ${cfg.table} SET active=0 WHERE id=?`, [req.params.id]);
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'delete', id: req.params.id });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -621,12 +636,67 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
       await connection.execute("UPDATE catalog_suggestions SET status='rejected',reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [item.id]);
     }
     await connection.commit();
+    notifyAdmins('suggestion-updated', {
+      id: item.id,
+      action,
+      kind: item.kind,
+      name: item.name,
+      catalogChanged: action === 'approve',
+    });
+    if (action === 'approve') {
+      notifyAdmins('catalog-updated', { type: 'languages', action: 'create', name: item.name });
+    }
     res.json({ ok: true });
   } catch (error) {
     await connection.rollback();
     console.error(error);
     res.status(400).json({ error: error.sqlMessage ?? 'No fue posible revisar la sugerencia' });
   } finally { connection.release(); }
+});
+
+
+// ─── Estado en vivo + sugerencias (para refresco sin recargar la página) ─────
+app.get('/api/admin/live-state', requireAdmin, async (req, res) => {
+  try {
+    const [metaResult, pendingResult, totalsResult] = await Promise.all([
+      pool.query('SELECT version, updated_at FROM catalog_meta WHERE id=1'),
+      pool.query("SELECT COUNT(*) AS c FROM catalog_suggestions WHERE status='pending'"),
+      pool.query(`SELECT COUNT(*) total_evaluations,
+                         COUNT(DISTINCT s.school_name) schools,
+                         COUNT(DISTINCT e.holland_code) profiles,
+                         ROUND(AVG(e.top_career_affinity),1) average_affinity
+                    FROM evaluations e JOIN students s ON s.id=e.student_id`),
+    ]);
+    const meta = metaResult[0][0] ?? {};
+    const pending = pendingResult[0][0] ?? {};
+    const totals = totalsResult[0][0] ?? {};
+    res.json({
+      catalogVersion: meta.version ?? 1,
+      catalogUpdatedAt: meta.updated_at ?? null,
+      pendingSuggestions: Number(pending.c ?? 0),
+      totals: {
+        total_evaluations: Number(totals.total_evaluations ?? 0),
+        schools: Number(totals.schools ?? 0),
+        profiles: Number(totals.profiles ?? 0),
+        average_affinity: totals.average_affinity != null ? Number(totals.average_affinity) : null,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No fue posible obtener el estado en vivo' });
+  }
+});
+
+app.get('/api/admin/suggestions', requireAdmin, async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, kind, name, status, created_at, reviewed_at FROM catalog_suggestions ORDER BY FIELD(status,'pending','approved','rejected'), created_at DESC LIMIT 200",
+    );
+    res.json({ suggestions: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No fue posible listar sugerencias' });
+  }
 });
 
 // ─── Reporte PDF (usa los mismos filtros del dashboard) ───────────────────────
