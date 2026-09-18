@@ -16,6 +16,12 @@ const io = new SocketServer(server, {
   path: '/socket.io',
 });
 
+/** Emite un evento a todos los paneles admin conectados (tiempo real). */
+function notifyAdmins(event, payload = {}) {
+  io.to('admins').emit(event, { ...payload, at: new Date().toISOString() });
+}
+
+
 const port = Number(process.env.PORT ?? 8080);
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
@@ -171,6 +177,7 @@ app.post('/api/catalog-suggestions', requireApiKey, async (req, res) => {
        ON DUPLICATE KEY UPDATE created_at=created_at`,
       [kind, name],
     );
+    notifyAdmins('suggestion-created', { kind, name });
     res.status(201).json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -241,7 +248,7 @@ app.post('/api/evaluations', requireApiKey, async (req, res) => {
     }
     await connection.commit();
     // Notificar en tiempo real a los paneles admin conectados
-    io.to('admins').emit('new-evaluation', {
+    notifyAdmins('new-evaluation', {
       id: evaluationInsert.insertId,
       result_id: body.result_id,
       holland_code: result.holland_code ?? '',
@@ -472,6 +479,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
         await connection.rollback();
         throw error;
       } finally { connection.release(); }
+      notifyAdmins('catalog-updated', { type: 'careers', action: 'create', id });
       return res.status(201).json({ ok: true, id });
     }
     if (type === 'questions') {
@@ -487,6 +495,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
         const position = Number(req.body.position) || Number(maxRow.max_position) + 1;
         await connection.execute('INSERT INTO questions(id,text,dimension,position,related_career_id,active) VALUES(?,?,?,?,?,?)', [id,text,dimension,position,related,Number(req.body.active ?? 1)]);
         await bumpCatalogVersion(connection);
+        notifyAdmins('catalog-updated', { type: 'questions', action: 'create', id });
         return res.status(201).json({ok:true,id});
       } finally { connection.release(); }
     }
@@ -497,6 +506,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
     const fields = Object.keys(values);
     await pool.execute(`INSERT INTO ${cfg.table} (${fields.join(',')}) VALUES (${fields.map(()=>'?').join(',')})`, fields.map(f => values[f]));
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'create', id: values.id });
     res.status(201).json({ ok: true, id: values.id });
   } catch (error) {
     console.error(error);
@@ -536,6 +546,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
         await connection.rollback();
         throw error;
       } finally { connection.release(); }
+      notifyAdmins('catalog-updated', { type: 'careers', action: 'update', id: req.params.id });
       return res.json({ ok: true });
     }
     if (type === 'questions') {
@@ -548,6 +559,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
         const related = await validateRelatedCareer(connection, req.body.related_career_id || null);
         await connection.execute('UPDATE questions SET text=?,dimension=?,position=?,related_career_id=?,active=? WHERE id=?', [text,dimension,Number(req.body.position)||1,related,Number(req.body.active ?? 1),id]);
         await bumpCatalogVersion(connection);
+        notifyAdmins('catalog-updated', { type: 'questions', action: 'update', id });
         return res.json({ok:true});
       } finally { connection.release(); }
     }
@@ -558,6 +570,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
     if (!fields.length) return res.status(400).json({ error: 'Sin cambios' });
     await pool.execute(`UPDATE ${cfg.table} SET ${fields.map(f=>`${f}=?`).join(',')} WHERE id=?`, [...fields.map(f => values[f]), id]);
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'update', id });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -578,6 +591,7 @@ app.put('/api/admin/department-questions/:department', requireAdmin, async (req,
       [department, questionText],
     );
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type: 'department-questions', action: 'update', department });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -593,6 +607,7 @@ app.delete('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
     // Baja lógica: la app recibe active=0 y deja de mostrar el registro sin romper históricos.
     await pool.execute(`UPDATE ${cfg.table} SET active=0 WHERE id=?`, [req.params.id]);
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'delete', id: req.params.id });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -621,6 +636,16 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
       await connection.execute("UPDATE catalog_suggestions SET status='rejected',reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [item.id]);
     }
     await connection.commit();
+    notifyAdmins('suggestion-updated', {
+      id: item.id,
+      action,
+      kind: item.kind,
+      name: item.name,
+      catalogChanged: action === 'approve',
+    });
+    if (action === 'approve') {
+      notifyAdmins('catalog-updated', { type: 'languages', action: 'create', name: item.name });
+    }
     res.json({ ok: true });
   } catch (error) {
     await connection.rollback();
@@ -629,70 +654,404 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
   } finally { connection.release(); }
 });
 
-// ─── Reporte PDF (usa los mismos filtros del dashboard) ───────────────────────
+
+// ─── Estado en vivo + sugerencias (refresco sin recargar la página) ─────────
+app.get('/api/admin/live-state', requireAdmin, async (req, res) => {
+  try {
+    const [metaResult, pendingResult, totalsResult] = await Promise.all([
+      pool.query('SELECT version, updated_at FROM catalog_meta WHERE id=1'),
+      pool.query("SELECT COUNT(*) AS c FROM catalog_suggestions WHERE status='pending'"),
+      pool.query(`SELECT COUNT(*) total_evaluations,
+                         COUNT(DISTINCT s.school_name) schools,
+                         COUNT(DISTINCT e.holland_code) profiles,
+                         ROUND(AVG(e.top_career_affinity),1) average_affinity
+                    FROM evaluations e JOIN students s ON s.id=e.student_id`),
+    ]);
+    const meta = metaResult[0][0] ?? {};
+    const pending = pendingResult[0][0] ?? {};
+    const totals = totalsResult[0][0] ?? {};
+    res.json({
+      catalogVersion: meta.version ?? 1,
+      catalogUpdatedAt: meta.updated_at ?? null,
+      pendingSuggestions: Number(pending.c ?? 0),
+      totals: {
+        total_evaluations: Number(totals.total_evaluations ?? 0),
+        schools: Number(totals.schools ?? 0),
+        profiles: Number(totals.profiles ?? 0),
+        average_affinity: totals.average_affinity != null ? Number(totals.average_affinity) : null,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No fue posible obtener el estado en vivo' });
+  }
+});
+
+app.get('/api/admin/suggestions', requireAdmin, async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, kind, name, status, created_at, reviewed_at FROM catalog_suggestions ORDER BY FIELD(status,'pending','approved','rejected'), created_at DESC LIMIT 200",
+    );
+    res.json({ suggestions: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No fue posible listar sugerencias' });
+  }
+});
+
+// ─── Reporte PDF (plantilla formal + gráficos + encabezado/pie) ───────────────
 app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
   try {
     const data = await dashboardData(req.query);
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
-    const filename = `app-vocacional-ittux-reporte-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filters = req.query ?? {};
+
+    // Resolver nombres legibles de filtros (si vienen como id)
+    let filterLabels = {
+      state: filters.state || null,
+      municipality: filters.municipality || null,
+      school: filters.school || null,
+      profile: filters.profile || null,
+      career: filters.career || null,
+      from: filters.from || null,
+      to: filters.to || null,
+    };
+    try {
+      if (filters.state) {
+        const [[r]] = await pool.query('SELECT name FROM states WHERE id=? LIMIT 1', [filters.state]);
+        if (r?.name) filterLabels.state = r.name;
+      }
+      if (filters.municipality) {
+        const [[r]] = await pool.query('SELECT name FROM municipalities WHERE id=? LIMIT 1', [filters.municipality]);
+        if (r?.name) filterLabels.municipality = r.name;
+      }
+      if (filters.school) {
+        const [[r]] = await pool.query('SELECT name FROM schools WHERE id=? LIMIT 1', [filters.school]);
+        if (r?.name) filterLabels.school = r.name;
+      }
+      if (filters.career) {
+        const [[r]] = await pool.query('SELECT name FROM careers WHERE id=? LIMIT 1', [filters.career]);
+        if (r?.name) filterLabels.career = r.name;
+      }
+    } catch (_) { /* nombres opcionales */ }
+
+    const doc = new PDFDocument({
+      size: 'A4',
+      bufferPages: true,
+      margins: { top: 90, bottom: 70, left: 50, right: 50 },
+      info: {
+        Title: 'Reporte de orientación vocacional — App Vocacional ITTUX',
+        Author: 'Instituto Tecnológico de Tuxtepec',
+        Subject: 'Estadísticas de evaluaciones RIASEC filtradas',
+        Creator: 'AEVUM ITER Admin Panel',
+      },
+    });
+    const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     doc.pipe(res);
 
-    const green = '#00923f';
-    doc.fillColor(green).fontSize(20).text('App Vocacional ITTUX · Reporte de orientaciones', { align: 'left' });
-    doc.moveDown(0.3);
-    doc.fillColor('#27352e').fontSize(10)
-      .text('Instituto Tecnológico de Tuxtepec')
-      .text(`Generado: ${new Date().toLocaleString('es-MX')}`)
-      .text(`Filtros: estado=${req.query.state || 'todos'} · municipio=${req.query.municipality || 'todos'} · escuela=${req.query.school || 'todos'} · perfil=${req.query.profile || 'todos'} · carrera=${req.query.career || 'todos'}`);
-    doc.moveDown();
+    const GREEN = '#00923f';
+    const INK = '#1a2420';
+    const MUTED = '#5a6b62';
+    const LINE = '#c5d0c8';
+    const BAR = '#00923f';
+    const BAR_BG = '#e8f0eb';
+    const pageW = doc.page.width;
+    const pageH = doc.page.height;
+    const marginL = 50;
+    const marginR = 50;
+    const contentW = pageW - marginL - marginR;
 
-    // Totales
-    doc.fillColor(green).fontSize(14).text('Resumen');
-    doc.fillColor('#27352e').fontSize(11).moveDown(0.4);
-    const t = data.totals ?? {};
-    doc.text(`Total de evaluaciones: ${t.total_evaluations ?? 0}`);
-    doc.text(`Escuelas distintas: ${t.schools ?? 0}`);
-    doc.text(`Afinidad promedio: ${t.average_affinity ?? 0}%`);
-    doc.text(`Perfiles Holland distintos: ${t.profiles ?? 0}`);
-    doc.moveDown();
+    const generatedAt = new Date().toLocaleString('es-MX', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
 
-    // Top carreras
-    doc.fillColor(green).fontSize(14).text('Top carreras recomendadas');
-    doc.fillColor('#27352e').fontSize(10).moveDown(0.3);
-    for (const row of (data.careers ?? []).slice(0, 10)) {
-      doc.text(`• ${row.label}: ${row.value}`);
+    function drawHeader() {
+      doc.save();
+      // franja superior
+      doc.rect(0, 0, pageW, 64).fill(GREEN);
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(13)
+        .text('INSTITUTO TECNOLÓGICO DE TUXTEPEC', marginL, 14, { width: contentW, align: 'left' });
+      doc.font('Helvetica').fontSize(9)
+        .text('App Vocacional ITTUX  ·  Panel de orientación vocacional', marginL, 32, { width: contentW });
+      doc.font('Helvetica').fontSize(8)
+        .text('Documento oficial de resultados', marginL, 46, { width: contentW });
+      // línea decorativa
+      doc.rect(0, 64, pageW, 3).fill('#d3d5bd');
+      doc.restore();
+      doc.y = 90;
     }
-    doc.moveDown();
 
-    // Perfiles
-    doc.fillColor(green).fontSize(14).text('Perfiles RIASEC (Holland)');
-    doc.fillColor('#27352e').fontSize(10).moveDown(0.3);
-    for (const row of (data.profiles ?? []).slice(0, 10)) {
-      doc.text(`• ${row.label}: ${row.value}`);
-    }
-    doc.moveDown();
-
-    // Tabla de registros recientes
-    doc.fillColor(green).fontSize(14).text('Registros recientes (máx. 40)');
-    doc.fillColor('#27352e').fontSize(9).moveDown(0.4);
-    const rows = (data.evaluations ?? []).slice(0, 40);
-    if (!rows.length) {
-      doc.text('No hay evaluaciones para los filtros seleccionados.');
-    } else {
-      for (const row of rows) {
-        const fecha = row.completed_at
-          ? new Date(row.completed_at).toLocaleDateString('es-MX')
-          : '—';
+    function drawFooter() {
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(range.start + i);
+        doc.save();
+        doc.strokeColor(LINE).lineWidth(0.6)
+          .moveTo(marginL, pageH - 48)
+          .lineTo(pageW - marginR, pageH - 48)
+          .stroke();
+        doc.fillColor(MUTED).font('Helvetica').fontSize(8);
         doc.text(
-          `${fecha} | ${row.municipality_name ?? '—'}, ${row.state_name ?? '—'} | ${row.school_name ?? '—'} | ${row.holland_code ?? '—'} → ${row.top_career_name ?? '—'} (${Number(row.top_career_affinity ?? 0).toFixed(1)}%)`,
-          { width: 500 },
+          'Confidencial — uso institucional · Generado automáticamente por el panel administrativo',
+          marginL,
+          pageH - 40,
+          { width: contentW * 0.72, align: 'left' },
         );
-        doc.moveDown(0.15);
+        doc.text(
+          `Página ${i + 1} de ${range.count}`,
+          marginL,
+          pageH - 40,
+          { width: contentW, align: 'right' },
+        );
+        doc.restore();
       }
     }
 
+    function ensureSpace(needed = 80) {
+      if (doc.y + needed > pageH - 70) {
+        doc.addPage();
+        drawHeader();
+      }
+    }
+
+    function sectionTitle(title) {
+      ensureSpace(36);
+      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(12).text(title, marginL, doc.y, { width: contentW });
+      doc.moveDown(0.25);
+      doc.strokeColor(LINE).lineWidth(0.8)
+        .moveTo(marginL, doc.y)
+        .lineTo(marginL + contentW, doc.y)
+        .stroke();
+      doc.moveDown(0.6);
+      doc.fillColor(INK);
+    }
+
+    function formalParagraph(text) {
+      ensureSpace(40);
+      doc.fillColor(INK).font('Helvetica').fontSize(10).text(text, marginL, doc.y, {
+        width: contentW,
+        align: 'justify',
+        lineGap: 2,
+      });
+      doc.moveDown(0.7);
+    }
+
+    /** Gráfico de barras horizontales dibujado con primitivas PDFKit */
+    function drawBarChart(title, rows, { maxBars = 8, barHeight = 14, gap = 8 } = {}) {
+      const series = (rows || []).slice(0, maxBars).filter(r => r && r.label != null);
+      ensureSpace(60 + series.length * (barHeight + gap));
+      doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(title, marginL, doc.y, { width: contentW });
+      doc.moveDown(0.4);
+
+      if (!series.length) {
+        doc.fillColor(MUTED).font('Helvetica-Oblique').fontSize(9)
+          .text('Sin datos para los filtros seleccionados.', marginL, doc.y);
+        doc.moveDown(0.8);
+        return;
+      }
+
+      const maxVal = Math.max(...series.map(r => Number(r.value) || 0), 1);
+      const labelW = 150;
+      const valueW = 36;
+      const barMaxW = contentW - labelW - valueW - 12;
+      let y = doc.y;
+
+      for (const row of series) {
+        ensureSpace(barHeight + gap + 8);
+        y = doc.y;
+        const val = Number(row.value) || 0;
+        const w = Math.max(2, (val / maxVal) * barMaxW);
+        const label = String(row.label).slice(0, 42);
+
+        doc.fillColor(INK).font('Helvetica').fontSize(8)
+          .text(label, marginL, y + 2, { width: labelW, ellipsis: true });
+
+        // fondo de barra
+        doc.roundedRect(marginL + labelW + 6, y, barMaxW, barHeight, 3).fill(BAR_BG);
+        // valor
+        doc.roundedRect(marginL + labelW + 6, y, w, barHeight, 3).fill(BAR);
+
+        doc.fillColor(INK).font('Helvetica-Bold').fontSize(8)
+          .text(String(val), marginL + labelW + 6 + barMaxW + 6, y + 2, { width: valueW });
+
+        doc.y = y + barHeight + gap;
+      }
+      doc.moveDown(0.5);
+    }
+
+    function kpiRow(totals) {
+      ensureSpace(70);
+      const items = [
+        { label: 'Evaluaciones', value: String(totals.total_evaluations ?? 0) },
+        { label: 'Escuelas', value: String(totals.schools ?? 0) },
+        { label: 'Perfiles Holland', value: String(totals.profiles ?? 0) },
+        {
+          label: 'Afinidad media',
+          value: totals.average_affinity != null ? `${totals.average_affinity}%` : '—',
+        },
+      ];
+      const boxW = (contentW - 18) / 4;
+      const y = doc.y;
+      items.forEach((item, i) => {
+        const x = marginL + i * (boxW + 6);
+        doc.roundedRect(x, y, boxW, 48, 4).fill('#f4f7f5');
+        doc.fillColor(MUTED).font('Helvetica').fontSize(7)
+          .text(item.label.toUpperCase(), x + 8, y + 8, { width: boxW - 16 });
+        doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(14)
+          .text(item.value, x + 8, y + 22, { width: boxW - 16 });
+      });
+      doc.y = y + 56;
+      doc.moveDown(0.3);
+    }
+
+    // ── Página 1: portada / introducción ────────────────────────────────────
+    drawHeader();
+
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(16)
+      .text('Reporte de orientación vocacional', marginL, doc.y, { width: contentW });
+    doc.moveDown(0.3);
+    doc.fillColor(MUTED).font('Helvetica').fontSize(9)
+      .text(`Fecha de emisión: ${generatedAt}`, marginL, doc.y, { width: contentW });
+    doc.moveDown(0.8);
+
+    sectionTitle('1. Alcance del reporte');
+
+    const scopeParts = [];
+    if (filterLabels.state) scopeParts.push(`entidad federativa «${filterLabels.state}»`);
+    if (filterLabels.municipality) scopeParts.push(`municipio «${filterLabels.municipality}»`);
+    if (filterLabels.school) scopeParts.push(`plantel «${filterLabels.school}»`);
+    if (filterLabels.profile) scopeParts.push(`código Holland «${filterLabels.profile}»`);
+    if (filterLabels.career) scopeParts.push(`carrera principal «${filterLabels.career}»`);
+    if (filterLabels.from || filterLabels.to) {
+      const a = filterLabels.from || 'inicio';
+      const b = filterLabels.to || 'fecha actual';
+      scopeParts.push(`periodo del ${a} al ${b}`);
+    }
+
+    const scopeText = scopeParts.length
+      ? `El presente documento consolida los resultados de las evaluaciones vocacionales (modelo RIASEC / Holland) registradas en el sistema App Vocacional ITTUX, limitados a los siguientes criterios de filtrado: ${scopeParts.join('; ')}.`
+      : 'El presente documento consolida los resultados de las evaluaciones vocacionales (modelo RIASEC / Holland) registradas en el sistema App Vocacional ITTUX, sin criterios de filtrado adicionales: se incluyen todos los registros disponibles en la base de datos al momento de la generación.';
+
+    formalParagraph(scopeText);
+    formalParagraph(
+      'La información se presenta con fines de análisis institucional y toma de decisiones en materia de orientación educativa. Los datos personales de los estudiantes no se exponen de forma nominativa en este reporte; las cifras corresponden a agregados estadísticos y a registros anonimizados o seudonimizados según la configuración del panel.',
+    );
+
+    sectionTitle('2. Indicadores generales');
+    formalParagraph(
+      'A continuación se resumen los indicadores principales derivados del conjunto de evaluaciones que cumplen los filtros indicados. La afinidad media expresa el promedio del porcentaje de coincidencia entre el perfil RIASEC del estudiante y la carrera recomendada en primer lugar.',
+    );
+    kpiRow(data.totals ?? {});
+
+    sectionTitle('3. Distribución de carreras recomendadas');
+    formalParagraph(
+      'La gráfica muestra las carreras con mayor frecuencia como recomendación principal. Cada barra representa el número de evaluaciones en las que dicha carrera ocupó el primer lugar del ranking individual.',
+    );
+    drawBarChart('Carreras más recomendadas', data.careers, { maxBars: 10 });
+
+    sectionTitle('4. Perfiles RIASEC (códigos Holland)');
+    formalParagraph(
+      'Los códigos Holland agrupan las tres dimensiones RIASEC predominantes de cada evaluación (Realista, Investigador, Artístico, Social, Emprendedor, Convencional). La distribución permite identificar los perfiles vocacionales más frecuentes en la población filtrada.',
+    );
+    drawBarChart('Frecuencia de códigos Holland', data.profiles, { maxBars: 10 });
+
+    sectionTitle('5. Afinidad con la carrera principal');
+    formalParagraph(
+      'Se agrupan las evaluaciones según el intervalo de afinidad porcentual respecto a la carrera recomendada en primer lugar. Intervalos altos sugieren una coincidencia sólida entre intereses del estudiante y la oferta formativa sugerida.',
+    );
+    drawBarChart('Distribución por rango de afinidad', data.affinity, { maxBars: 6 });
+
+    sectionTitle('6. Planteles y procedencia');
+    formalParagraph(
+      'Se detalla la participación por escuela de procedencia y por municipio/estado, útil para contrastar cobertura territorial y carga de orientación por plantel.',
+    );
+    drawBarChart('Evaluaciones por escuela', data.schools, { maxBars: 8 });
+    drawBarChart('Evaluaciones por municipio / estado', data.provenance, { maxBars: 8 });
+
+    if ((data.languages ?? []).length || (data.idioms ?? []).length) {
+      sectionTitle('7. Lenguas originarias e idiomas');
+      formalParagraph(
+        'Cuando los estudiantes declararon lenguas originarias o idiomas adicionales, se resume su frecuencia en el conjunto filtrado. Estos datos contextualizan la diversidad lingüística de la población atendida.',
+      );
+      if ((data.languages ?? []).length) {
+        drawBarChart('Lenguas originarias declaradas', data.languages, { maxBars: 8 });
+      }
+      if ((data.idioms ?? []).length) {
+        drawBarChart('Idiomas declarados', data.idioms, { maxBars: 8 });
+      }
+    }
+
+    sectionTitle('8. Registro detallado de evaluaciones recientes');
+    formalParagraph(
+      'Se listan hasta cuarenta evaluaciones más recientes que cumplen los filtros. Cada fila indica procedencia, plantel, código Holland, carrera principal recomendada, afinidad y fecha de conclusión. Las respuestas abiertas complementarias, de existir, se indican de forma resumida.',
+    );
+
+    const evalRows = (data.evaluations ?? []).slice(0, 40);
+    if (!evalRows.length) {
+      doc.fillColor(MUTED).font('Helvetica-Oblique').fontSize(9)
+        .text('No hay evaluaciones para los filtros seleccionados.', marginL, doc.y);
+    } else {
+      // encabezado de tabla
+      ensureSpace(30);
+      const cols = [
+        { key: 'fecha', w: 62, title: 'Fecha' },
+        { key: 'lugar', w: 110, title: 'Municipio / Edo.' },
+        { key: 'escuela', w: 100, title: 'Escuela' },
+        { key: 'holland', w: 40, title: 'Holland' },
+        { key: 'carrera', w: 120, title: 'Carrera principal' },
+        { key: 'afinidad', w: 48, title: 'Afinidad' },
+      ];
+      const headerY = doc.y;
+      doc.rect(marginL, headerY, contentW, 16).fill('#e8f0eb');
+      let x = marginL + 3;
+      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(7);
+      for (const c of cols) {
+        doc.text(c.title, x, headerY + 4, { width: c.w - 4 });
+        x += c.w;
+      }
+      doc.y = headerY + 18;
+
+      doc.font('Helvetica').fontSize(7).fillColor(INK);
+      for (const row of evalRows) {
+        ensureSpace(22);
+        const fecha = row.completed_at
+          ? new Date(row.completed_at).toLocaleDateString('es-MX')
+          : '—';
+        const lugar = `${row.municipality_name ?? '—'}, ${row.state_name ?? '—'}`.slice(0, 40);
+        const escuela = String(row.school_name ?? '—').slice(0, 36);
+        const holland = String(row.holland_code ?? '—');
+        const carrera = String(row.top_career_name ?? '—').slice(0, 42);
+        const afinidad = `${Number(row.top_career_affinity ?? 0).toFixed(1)}%`;
+        const values = [fecha, lugar, escuela, holland, carrera, afinidad];
+        const rowY = doc.y;
+        x = marginL + 3;
+        values.forEach((v, i) => {
+          doc.fillColor(INK).text(v, x, rowY, { width: cols[i].w - 4, ellipsis: true });
+          x += cols[i].w;
+        });
+        doc.y = rowY + 12;
+        doc.strokeColor(LINE).lineWidth(0.3)
+          .moveTo(marginL, doc.y)
+          .lineTo(marginL + contentW, doc.y)
+          .stroke();
+        doc.moveDown(0.25);
+      }
+    }
+
+    doc.moveDown(1);
+    ensureSpace(50);
+    sectionTitle('9. Nota metodológica');
+    formalParagraph(
+      'Las evaluaciones se basan en un instrumento de treinta reactivos alineados al modelo RIASEC. El código Holland se obtiene a partir de las tres dimensiones con mayor puntuación. El ranking de carreras combina el perfil del estudiante con los pesos RIASEC definidos en el catálogo institucional. Este reporte no sustituye la asesoría personalizada de orientadores educativos.',
+    );
+    formalParagraph(
+      `Documento generado el ${generatedAt}. Cualquier reproducción o difusión fuera del ámbito institucional del Instituto Tecnológico de Tuxtepec debe autorizarse expresamente.`,
+    );
+
+    // Pie de página en todas las páginas (después de buffer completo)
+    drawFooter();
     doc.end();
   } catch (error) {
     console.error(error);

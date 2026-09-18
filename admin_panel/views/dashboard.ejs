@@ -15,9 +15,9 @@
       <nav>
         <button class="nav-btn active" data-view="dashboard">Resultados</button>
         <button class="nav-btn" data-view="catalogs">Catálogos</button>
-        <button class="nav-btn" data-view="suggestions">Sugerencias <b><%= (catalogs.suggestions ?? []).filter(x=>x.status==='pending').length %></b></button>
+        <button class="nav-btn" data-view="suggestions">Sugerencias <b id="pendingSuggestionsCount"><%= (catalogs.suggestions ?? []).filter(x=>x.status==='pending').length %></b></button>
       </nav>
-      <div class="sidebar-foot"><form method="post" action="/logout"><button class="logout-btn" type="submit">Cerrar sesión</button></form><small>Versión de catálogos</small><strong>#<%= catalogs.meta?.version ?? 1 %></strong><span>Los cambios aprobados se sincronizan con la app.</span></div>
+      <div class="sidebar-foot"><form method="post" action="/logout"><button class="logout-btn" type="submit">Cerrar sesión</button></form><small>Versión de catálogos</small><strong id="catalogVersion">#<%= catalogs.meta?.version ?? 1 %></strong><span>Los cambios aprobados se sincronizan con la app.</span></div>
     </aside>
 
     <main class="main">
@@ -107,7 +107,7 @@
 
       <section id="view-suggestions" class="view">
         <div class="section-title"><div><p class="eyebrow">SUGERENCIAS DESDE LA APP</p><h2>Lenguas e idiomas pendientes</h2><p>Al aprobar una sugerencia se incorpora al catálogo maestro y aumenta su versión.</p></div></div>
-        <div class="card suggestions-list">
+        <div class="card suggestions-list" id="suggestionsList">
           <% for (const row of catalogs.suggestions ?? []) { %>
             <div class="suggestion-row"><div><span class="pill"><%= row.kind %></span><strong><%= row.name %></strong><small><%= new Date(row.created_at).toLocaleString('es-MX') %></small></div><div><span class="status-label <%= row.status %>"><%= row.status %></span><% if(row.status==='pending'){ %><button class="small-btn approve" data-suggestion="<%= row.id %>" data-action="approve">Aprobar</button><button class="small-btn danger" data-suggestion="<%= row.id %>" data-action="reject">Rechazar</button><% } %></div></div>
           <% } %>
