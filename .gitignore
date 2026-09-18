@@ -51,3 +51,6 @@ app.*.map.json
 admin_panel/.env
 
 *zip
+
+admin_panel/node_modules/
+**/node_modules/
