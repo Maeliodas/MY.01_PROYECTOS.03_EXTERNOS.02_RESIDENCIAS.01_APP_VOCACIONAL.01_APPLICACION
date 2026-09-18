@@ -130,8 +130,14 @@ document.querySelectorAll('.delete-record').forEach(button => {
   });
 });
 
-// Sugerencias: botones enlazados en initRealtime → bindSuggestionButtons
-
+document.querySelectorAll('[data-suggestion]').forEach(button => {
+  button.addEventListener('click', async () => {
+    try {
+      await api(`/api/admin/suggestions/${button.dataset.suggestion}/${button.dataset.action}`, {method:'POST', body:'{}'});
+      location.reload();
+    } catch (error) { alert(error.message); }
+  });
+});
 
 
 // Pregunta complementaria única por departamento.
@@ -376,201 +382,53 @@ document.getElementById('clearFilters')?.addEventListener('click', (e) => {
 syncPdfLink();
 filterForm?.addEventListener('change', syncPdfLink);
 
-// Socket.IO — tiempo real completo + polling de respaldo
+// Socket.IO — tiempo real
 (function initRealtime() {
-  const status = document.getElementById('liveStatus');
-  let socketConnected = false;
-  let lastEvalCount = null;
-  let lastCatalogVersion = null;
-  let pollTimer = null;
-
-  function setStatus(label, color) {
-    if (!status) return;
-    const span = status.querySelector('span');
-    const dot = status.querySelector('i');
-    if (span) span.textContent = label;
-    if (dot) dot.style.background = color;
-  }
-
-  function updateCatalogVersion(version) {
-    if (version == null) return;
-    lastCatalogVersion = Number(version);
-    const el = document.getElementById('catalogVersion');
-    if (el) el.textContent = `#${lastCatalogVersion}`;
-  }
-
-  function updatePendingBadge(count) {
-    const el = document.getElementById('pendingSuggestionsCount');
-    if (el) el.textContent = String(count ?? 0);
-  }
-
-  function showLiveToast(title, detail) {
-    let toast = document.getElementById('liveToast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'liveToast';
-      toast.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:9999;background:#123a2a;color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-width:320px;opacity:0;transition:opacity .25s';
-      document.body.appendChild(toast);
-    }
-    toast.innerHTML = `<strong>${title}</strong>${detail ? `<br>${detail}` : ''}`;
-    toast.style.opacity = '1';
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 4500);
-  }
-
-  async function refreshSuggestions() {
-    try {
-      const res = await fetch('/api/admin/suggestions', { credentials: 'same-origin' });
-      if (!res.ok) return;
-      const payload = await res.json();
-      const list = document.getElementById('suggestionsList');
-      if (!list) return;
-      const rows = payload.suggestions || [];
-      const pending = rows.filter(r => r.status === 'pending').length;
-      updatePendingBadge(pending);
-      if (!rows.length) {
-        list.innerHTML = '<p class="empty">No hay sugerencias todavía.</p>';
-        return;
-      }
-      list.innerHTML = rows.map(row => {
-        const fecha = row.created_at ? new Date(row.created_at).toLocaleString('es-MX') : '';
-        const actions = row.status === 'pending'
-          ? `<button class="small-btn approve" data-suggestion="${row.id}" data-action="approve">Aprobar</button><button class="small-btn danger" data-suggestion="${row.id}" data-action="reject">Rechazar</button>`
-          : '';
-        return `<div class="suggestion-row"><div><span class="pill">${escapeHtml(row.kind || '')}</span><strong>${escapeHtml(row.name || '')}</strong><small>${escapeHtml(fecha)}</small></div><div><span class="status-label ${escapeHtml(row.status || '')}">${escapeHtml(row.status || '')}</span>${actions}</div></div>`;
-      }).join('');
-      bindSuggestionButtons(list);
-    } catch (err) {
-      console.error('[AEVUM] refreshSuggestions', err);
-    }
-  }
-
-  function bindSuggestionButtons(root = document) {
-    root.querySelectorAll('[data-suggestion]').forEach(button => {
-      if (button.dataset.bound === '1') return;
-      button.dataset.bound = '1';
-      button.addEventListener('click', async () => {
-        try {
-          await api(`/api/admin/suggestions/${button.dataset.suggestion}/${button.dataset.action}`, { method: 'POST', body: '{}' });
-          await refreshSuggestions();
-          // Si se aprobó, la versión de catálogo sube; el socket también lo notificará
-        } catch (error) {
-          alert(error.message);
-        }
-      });
-    });
-  }
-
-  async function pollLiveState() {
-    try {
-      const res = await fetch('/api/admin/live-state', { credentials: 'same-origin' });
-      if (!res.ok) return;
-      const state = await res.json();
-      if (state.catalogVersion != null) {
-        if (lastCatalogVersion != null && Number(state.catalogVersion) !== lastCatalogVersion) {
-          showLiveToast('Catálogo actualizado', `Versión #${state.catalogVersion}`);
-          // Si el admin está en catálogos, recargar listas (estructura HTML compleja)
-          if (document.getElementById('view-catalogs')?.classList.contains('active')) {
-            // Soft: solo avisar; el usuario puede cambiar de pestaña. Opcional hard reload:
-            // location.reload();
-          }
-        }
-        updateCatalogVersion(state.catalogVersion);
-      }
-      if (state.pendingSuggestions != null) updatePendingBadge(state.pendingSuggestions);
-      const total = state.totals?.total_evaluations;
-      if (total != null) {
-        if (lastEvalCount != null && Number(total) > lastEvalCount) {
-          // Nuevas evaluaciones detectadas por polling (socket caído)
-          refreshDashboard(true);
-          showLiveToast('Nuevas evaluaciones', `Total: ${total}`);
-        }
-        lastEvalCount = Number(total);
-      }
-      if (!socketConnected) setStatus('Datos al día (polling)', '#c9a227');
-    } catch (err) {
-      console.error('[AEVUM] pollLiveState', err);
-      if (!socketConnected) setStatus('Sin conexión en vivo', '#a64343');
-    }
-  }
-
-  function startPolling(ms = 20000) {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(pollLiveState, ms);
-    // primera pasada suave
-    setTimeout(pollLiveState, 1500);
-  }
-
-  // Bind inicial de sugerencias (botones del HTML server-side)
-  bindSuggestionButtons(document);
-
   if (typeof io === 'undefined') {
-    console.warn('Socket.IO no disponible — usando solo polling');
-    setStatus('Polling activo', '#c9a227');
-    startPolling(15000);
+    console.warn('Socket.IO no disponible');
     return;
   }
-
-  const socket = io({
-    path: '/socket.io',
-    withCredentials: true,
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-  });
+  const socket = io({ path: '/socket.io', withCredentials: true });
+  const status = document.getElementById('liveStatus');
 
   socket.on('connect', () => {
-    socketConnected = true;
-    setStatus('Tiempo real activo', '#4a8b5d');
+    if (status) {
+      status.querySelector('span').textContent = 'Tiempo real activo';
+      status.querySelector('i').style.background = '#4a8b5d';
+    }
   });
   socket.on('disconnect', () => {
-    socketConnected = false;
-    setStatus('Reconectando…', '#c9a227');
-  });
-  socket.on('connect_error', (err) => {
-    socketConnected = false;
-    console.warn('[AEVUM] socket error', err?.message || err);
-    setStatus('Socket no disponible — polling', '#c9a227');
+    if (status) {
+      status.querySelector('span').textContent = 'Reconectando…';
+      status.querySelector('i').style.background = '#c9a227';
+    }
   });
   socket.on('connected', (msg) => {
-    console.log('[AEVUM]', msg?.message || 'conectado');
+    console.log('[APP VOCACIONAL ITTUX]', msg?.message || 'conectado');
   });
-
   socket.on('new-evaluation', (payload) => {
-    const career = payload?.top_career_name || 'Nueva evaluación';
-    const school = payload?.school_name ? ` · ${payload.school_name}` : '';
-    showLiveToast('Nueva evaluación', `${career}${school}`);
+    // Toast discreto
+    showLiveToast(payload);
+    // Refrescar dashboard con filtros actuales (sin “parpadeo” fuerte)
     refreshDashboard(true);
-    // actualizar contador local para no duplicar con polling
-    if (lastEvalCount != null) lastEvalCount += 1;
   });
-
-  socket.on('catalog-updated', (payload) => {
-    const type = payload?.type || 'catálogo';
-    const action = payload?.action || 'cambio';
-    showLiveToast('Catálogo actualizado', `${type} · ${action}`);
-    // Refrescar versión vía live-state
-    pollLiveState();
-  });
-
-  socket.on('suggestion-created', (payload) => {
-    const name = payload?.name || 'Nueva sugerencia';
-    showLiveToast('Nueva sugerencia', `${payload?.kind || ''} · ${name}`);
-    refreshSuggestions();
-  });
-
-  socket.on('suggestion-updated', (payload) => {
-    const name = payload?.name || 'Sugerencia';
-    const action = payload?.action === 'approve' ? 'aprobada' : 'rechazada';
-    showLiveToast(`Sugerencia ${action}`, name);
-    refreshSuggestions();
-    if (payload?.catalogChanged) pollLiveState();
-  });
-
-  // Polling de respaldo siempre (detecta cambios si el socket falla o hay otra fuente)
-  startPolling(20000);
 })();
+
+function showLiveToast(payload) {
+  let toast = document.getElementById('liveToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'liveToast';
+    toast.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:9999;background:#123a2a;color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-width:320px;opacity:0;transition:opacity .25s';
+    document.body.appendChild(toast);
+  }
+  const career = payload?.top_career_name || 'Nueva evaluación';
+  const school = payload?.school_name ? ` · ${payload.school_name}` : '';
+  toast.innerHTML = `<strong>Nueva evaluación</strong><br>${career}${school}`;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 4500);
+}
 
 // Re-render inicial guardando instancias (para poder destruirlas después)
 if (typeof Chart !== 'undefined' && data && Object.keys(data).length) {

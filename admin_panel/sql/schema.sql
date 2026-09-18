@@ -7,7 +7,7 @@ CREATE TABLE catalog_meta (id TINYINT UNSIGNED PRIMARY KEY DEFAULT 1, version BI
 INSERT INTO catalog_meta(id,version) VALUES(1,1);
 CREATE TABLE states (id VARCHAR(8) PRIMARY KEY,name VARCHAR(120) NOT NULL UNIQUE,active TINYINT(1) NOT NULL DEFAULT 1,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE municipalities (id VARCHAR(16) PRIMARY KEY,state_id VARCHAR(8) NOT NULL,name VARCHAR(160) NOT NULL,active TINYINT(1) NOT NULL DEFAULT 1,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,CONSTRAINT fk_municipality_state FOREIGN KEY(state_id) REFERENCES states(id),UNIQUE KEY uq_municipality_state_name(state_id,name),INDEX idx_municipality_state_active(state_id,active,name));
-CREATE TABLE schools (id VARCHAR(80) PRIMARY KEY,name VARCHAR(200) NOT NULL,state_id VARCHAR(8) NULL,municipality_id VARCHAR(16) NULL,type VARCHAR(80) NULL,active TINYINT(1) NOT NULL DEFAULT 1,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,CONSTRAINT fk_school_state FOREIGN KEY(state_id) REFERENCES states(id),CONSTRAINT fk_school_municipality FOREIGN KEY(municipality_id) REFERENCES municipalities(id),INDEX idx_school_municipality_active(municipality_id,active,name));
+CREATE TABLE schools (id VARCHAR(80) PRIMARY KEY,name VARCHAR(200) NOT NULL,municipality_id VARCHAR(16) NULL,type VARCHAR(80) NULL,active TINYINT(1) NOT NULL DEFAULT 1,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,CONSTRAINT fk_school_municipality FOREIGN KEY(municipality_id) REFERENCES municipalities(id),UNIQUE KEY uq_school_municipality_name(municipality_id,name),INDEX idx_school_municipality_active(municipality_id,active,name));
 CREATE TABLE languages (id VARCHAR(80) PRIMARY KEY,name VARCHAR(120) NOT NULL,kind ENUM('lengua','idioma') NOT NULL,active TINYINT(1) NOT NULL DEFAULT 1,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_language_kind_name(kind,name));
 CREATE TABLE questions (id INT PRIMARY KEY,text VARCHAR(600) NOT NULL,dimension ENUM('R','I','A','S','E','C') NOT NULL,position INT NOT NULL,related_career_id VARCHAR(80) NULL,active TINYINT(1) NOT NULL DEFAULT 1,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE careers (id VARCHAR(80) PRIMARY KEY,name VARCHAR(200) NOT NULL,description TEXT NULL,holland_code VARCHAR(8) NOT NULL,department ENUM('Ciencias de la Tierra','Económico Administrativo','Química','Sistemas y Computación','Metal Mecánica','Eléctrica') NOT NULL,website_url VARCHAR(500) NULL,active TINYINT(1) NOT NULL DEFAULT 1,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
@@ -15,7 +15,7 @@ ALTER TABLE questions ADD CONSTRAINT fk_question_related_career FOREIGN KEY(rela
 CREATE TABLE department_open_questions (department ENUM('Ciencias de la Tierra','Económico Administrativo','Química','Sistemas y Computación','Metal Mecánica','Eléctrica') PRIMARY KEY,question_text VARCHAR(800) NOT NULL,updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE career_riasec_weights (career_id VARCHAR(80) NOT NULL,dimension ENUM('R','I','A','S','E','C') NOT NULL,weight DECIMAL(4,2) NOT NULL,PRIMARY KEY(career_id,dimension),CONSTRAINT fk_weight_career FOREIGN KEY(career_id) REFERENCES careers(id) ON DELETE CASCADE);
 CREATE TABLE career_questions (career_id VARCHAR(80) NOT NULL,question_id INT NOT NULL,PRIMARY KEY(career_id,question_id),CONSTRAINT fk_career_question_career FOREIGN KEY(career_id) REFERENCES careers(id) ON DELETE CASCADE,CONSTRAINT fk_career_question_question FOREIGN KEY(question_id) REFERENCES questions(id));
-CREATE TABLE catalog_suggestions (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,kind ENUM('lengua','idioma') NOT NULL,name VARCHAR(120) NOT NULL,status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,reviewed_at TIMESTAMP NULL,UNIQUE KEY uq_pending_suggestion(kind,name,status));
+CREATE TABLE catalog_suggestions (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,kind ENUM('lengua','idioma') NOT NULL,name VARCHAR(120) NOT NULL,status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,reviewed_at TIMESTAMP NULL,pending_key VARCHAR(255) GENERATED ALWAYS AS (CASE WHEN status = 'pending' THEN CONCAT(kind,'|',LOWER(TRIM(name))) ELSE NULL END) STORED,UNIQUE KEY uq_pending_suggestion(pending_key));
 CREATE TABLE students (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,local_profile_id VARCHAR(64) NULL,name VARCHAR(160) NOT NULL,age INT NOT NULL,gender VARCHAR(40) NULL,state_id VARCHAR(8) NULL,state_name VARCHAR(120) NULL,municipality_id VARCHAR(16) NULL,municipality_name VARCHAR(160) NULL,school_id VARCHAR(80) NULL,school_name VARCHAR(200) NULL,created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX idx_students_school(school_name),INDEX idx_students_state(state_name),INDEX idx_students_municipality(municipality_name));
 CREATE TABLE student_languages (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,student_id BIGINT UNSIGNED NOT NULL,kind ENUM('lengua','idioma') NOT NULL,name VARCHAR(120) NOT NULL,CONSTRAINT fk_student_language_student FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE,INDEX idx_student_languages_kind_name(kind,name));
 CREATE TABLE evaluations (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,external_result_id VARCHAR(80) NOT NULL UNIQUE,session_id VARCHAR(80) NOT NULL,student_id BIGINT UNSIGNED NOT NULL,holland_code VARCHAR(8) NOT NULL,score_r DECIMAL(6,2) NOT NULL DEFAULT 0,score_i DECIMAL(6,2) NOT NULL DEFAULT 0,score_a DECIMAL(6,2) NOT NULL DEFAULT 0,score_s DECIMAL(6,2) NOT NULL DEFAULT 0,score_e DECIMAL(6,2) NOT NULL DEFAULT 0,score_c DECIMAL(6,2) NOT NULL DEFAULT 0,top_career_id VARCHAR(80) NULL,top_career_name VARCHAR(200) NOT NULL,top_career_affinity DECIMAL(6,2) NOT NULL DEFAULT 0,completed_at DATETIME NOT NULL,created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT fk_evaluation_student FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE,INDEX idx_eval_career(top_career_name),INDEX idx_eval_completed(completed_at),INDEX idx_eval_profile(holland_code));
@@ -509,26 +509,26 @@ INSERT INTO municipalities (id,state_id,name,active) VALUES
 ('32-010','32','Nochistlán de Mejía',1),
 ('32-011','32','Villanueva',1);
 
-INSERT INTO schools (id,name,state_id,municipality_id,type,active) VALUES
-('cbtis107','CBTis 107','20','20-184','bachillerato',1),
-('cobao07','COBAO 07','20','20-184','bachillerato',1),
-('conalep157','CONALEP 157','20','20-184','bachillerato',1),
-('cbta51','CBTA 51','20','20-184','bachillerato',1),
-('simon_bolivar','Preparatoria SIMÓN BOLÍVAR','20','20-184','bachillerato',1),
-('other_school','Otra escuela',NULL,NULL,'otro',1),
-('20ECB0007Y','Plantel Núm. 07 Tuxtepec','20','20-184','bachillerato general',1),
-('20DCT0005Q','CBTis 107 - Centro de Bachillerato Tecnológico Industrial y de Servicios Núm. 107','20','20-184','bachillerato tecnológico',1),
-('20DTA0011C','Centro de Bachillerato Tecnológico Forestal Núm. 3','20','20-184','bachillerato tecnológico',1),
-('20ETC0036I','CECyTE Plantel Núm. 36 Benemérito Juárez','20','20-184','bachillerato tecnológico',1),
-('20EMS0075B','CECyTE EMSAD Núm. 75 Camelia Roja','20','20-184','bachillerato general',1),
-('20ETH0027W','Centro Núm. 27 Bethania','20','20-184','bachillerato general',1),
-('20ETH0135D','Centro Núm. 135 El Cedral','20','20-184','bachillerato general',1),
-('20PCT0012E','Bachillerato Tecnológico Moisés Sáenz','20','20-184','bachillerato tecnológico privado',1),
-('20PBH0024P','Bachillerato UMAD Papaloapan','20','20-184','bachillerato general privado',1),
-('20PBH0041F','Preparatoria Tuxtepec','20','20-184','bachillerato general privado',1),
-('20PBH0103B','Preparatoria Carlos Fuentes','20','20-184','bachillerato general privado',1),
-('20PBH0068M','Preparatoria Benemérito de las Américas','20','20-184','bachillerato general privado',1),
-('20PBH0074X','Preparatoria Panamericana','20','20-184','bachillerato general privado',1);
+INSERT INTO schools (id,name,municipality_id,type,active) VALUES
+('cbtis107','CBTis 107','20-184','bachillerato',1),
+('cobao07','COBAO 07','20-184','bachillerato',1),
+('conalep157','CONALEP 157','20-184','bachillerato',1),
+('cbta51','CBTA 51','20-184','bachillerato',1),
+('simon_bolivar','Preparatoria SIMÓN BOLÍVAR','20-184','bachillerato',1),
+('other_school','Otra escuela',NULL,'otro',1),
+('20ECB0007Y','Plantel Núm. 07 Tuxtepec','20-184','bachillerato general',1),
+('20DCT0005Q','CBTis 107 - Centro de Bachillerato Tecnológico Industrial y de Servicios Núm. 107','20-184','bachillerato tecnológico',1),
+('20DTA0011C','Centro de Bachillerato Tecnológico Forestal Núm. 3','20-184','bachillerato tecnológico',1),
+('20ETC0036I','CECyTE Plantel Núm. 36 Benemérito Juárez','20-184','bachillerato tecnológico',1),
+('20EMS0075B','CECyTE EMSAD Núm. 75 Camelia Roja','20-184','bachillerato general',1),
+('20ETH0027W','Centro Núm. 27 Bethania','20-184','bachillerato general',1),
+('20ETH0135D','Centro Núm. 135 El Cedral','20-184','bachillerato general',1),
+('20PCT0012E','Bachillerato Tecnológico Moisés Sáenz','20-184','bachillerato tecnológico privado',1),
+('20PBH0024P','Bachillerato UMAD Papaloapan','20-184','bachillerato general privado',1),
+('20PBH0041F','Preparatoria Tuxtepec','20-184','bachillerato general privado',1),
+('20PBH0103B','Preparatoria Carlos Fuentes','20-184','bachillerato general privado',1),
+('20PBH0068M','Preparatoria Benemérito de las Américas','20-184','bachillerato general privado',1),
+('20PBH0074X','Preparatoria Panamericana','20-184','bachillerato general privado',1);
 
 INSERT INTO languages (id,name,kind,active) VALUES
 ('lengua_01','Chinanteco','lengua',1),

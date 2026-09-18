@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static final instance = AppDatabase._();
-  static const databaseVersion = 14;
+  static const databaseVersion = 15;
 
   Database? _db;
 
@@ -18,6 +18,9 @@ class AppDatabase {
     _db = await openDatabase(
       join(root, 'app_vocacional_ittux.db'),
       version: databaseVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: _create,
       onUpgrade: _upgrade,
     );
@@ -51,11 +54,9 @@ class AppDatabase {
       CREATE TABLE ${Tables.schools}(
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        state_id TEXT,
         municipality_id TEXT,
         type TEXT,
         active INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY(state_id) REFERENCES ${Tables.states}(id),
         FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id)
       )
     ''');
@@ -414,5 +415,86 @@ class AppDatabase {
 
       });
     }
+
+    if (oldVersion < 15) {
+      // Normalización geográfica: una escuela obtiene su estado a través de
+      // municipality_id -> municipalities.state_id. Se elimina schools.state_id
+      // para evitar almacenar dos veces la misma dependencia funcional.
+      await db.transaction((txn) async {
+        await txn.execute('ALTER TABLE ${Tables.profileLanguages} RENAME TO user_languages_v14');
+        await txn.execute('ALTER TABLE ${Tables.profile} RENAME TO user_profile_v14');
+        await txn.execute('ALTER TABLE ${Tables.schools} RENAME TO schools_v14');
+
+        await txn.execute('''
+          CREATE TABLE ${Tables.schools}(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            municipality_id TEXT,
+            type TEXT,
+            active INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.schools}(id,name,municipality_id,type,active)
+          SELECT id,name,municipality_id,type,active FROM schools_v14
+        ''');
+
+        await txn.execute('''
+          CREATE TABLE ${Tables.profile}(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            state_id TEXT,
+            state TEXT NOT NULL DEFAULT 'No especificado',
+            municipality_id TEXT,
+            municipality TEXT NOT NULL DEFAULT 'No especificado',
+            school_id TEXT,
+            school TEXT NOT NULL DEFAULT 'No especificada',
+            speaks_languages INTEGER NOT NULL DEFAULT 0,
+            languages_list TEXT NOT NULL DEFAULT '',
+            avatar_config_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(state_id) REFERENCES ${Tables.states}(id),
+            FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
+            FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profile}(
+            id,name,age,gender,state_id,state,municipality_id,municipality,
+            school_id,school,speaks_languages,languages_list,avatar_config_json,
+            created_at,updated_at
+          )
+          SELECT id,name,age,gender,state_id,state,municipality_id,municipality,
+            school_id,school,speaks_languages,languages_list,avatar_config_json,
+            created_at,updated_at
+          FROM user_profile_v14
+        ''');
+
+        await txn.execute('''
+          CREATE TABLE ${Tables.profileLanguages}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id TEXT NOT NULL DEFAULT '1',
+            language_id TEXT,
+            type TEXT NOT NULL,
+            custom_name TEXT,
+            FOREIGN KEY(profile_id) REFERENCES ${Tables.profile}(id) ON DELETE CASCADE,
+            FOREIGN KEY(language_id) REFERENCES ${Tables.languages}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profileLanguages}(id,profile_id,language_id,type,custom_name)
+          SELECT id,profile_id,language_id,type,custom_name FROM user_languages_v14
+        ''');
+
+        await txn.execute('DROP TABLE user_languages_v14');
+        await txn.execute('DROP TABLE user_profile_v14');
+        await txn.execute('DROP TABLE schools_v14');
+      });
+    }
+
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,13 +24,29 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   Future<void> _go() async {
     await Future.delayed(const Duration(milliseconds: 1200));
-    await ref.read(catalogSyncServiceProvider).sync();
-    ref.invalidate(statesProvider);
-    ref.invalidate(allLanguagesProvider);
-    ref.invalidate(careersCatalogProvider);
+
+    // El arranque depende de SQLite local, no de la red ni del backend.
     final profile = await ref.read(profileRepositoryProvider).getProfile();
     if (!mounted) return;
+
     context.go(profile == null ? '/onboarding' : '/path-home');
+
+    // La sincronización de catálogos se ejecuta en segundo plano. Un fallo de
+    // red no debe impedir que el usuario entre a la aplicación.
+    unawaited(_syncCatalogsInBackground());
+  }
+
+  Future<void> _syncCatalogsInBackground() async {
+    try {
+      await ref.read(catalogSyncServiceProvider).sync();
+      if (!mounted) return;
+      ref.invalidate(statesProvider);
+      ref.invalidate(allLanguagesProvider);
+      ref.invalidate(careersCatalogProvider);
+    } catch (error, stackTrace) {
+      debugPrint('No se pudieron sincronizar los catálogos: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   @override

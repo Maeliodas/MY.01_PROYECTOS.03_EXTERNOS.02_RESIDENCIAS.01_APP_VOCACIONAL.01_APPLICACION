@@ -27,18 +27,15 @@ class Municipality {
 class School {
   final String id;
   final String name;
-  final String? stateId;
   final String? municipalityId;
   const School({
     required this.id,
     required this.name,
-    this.stateId,
     this.municipalityId,
   });
   factory School.fromMap(Map<String, Object?> map) => School(
         id: map['id']?.toString() ?? '',
         name: map['name']?.toString() ?? '',
-        stateId: map['state_id']?.toString(),
         municipalityId: map['municipality_id']?.toString(),
       );
 }
