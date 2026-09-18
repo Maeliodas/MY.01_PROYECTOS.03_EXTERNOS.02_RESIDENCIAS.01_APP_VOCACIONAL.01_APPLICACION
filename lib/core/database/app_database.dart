@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static final instance = AppDatabase._();
-  static const databaseVersion = 13;
+  static const databaseVersion = 14;
 
   Database? _db;
 
@@ -16,9 +16,8 @@ class AppDatabase {
     if (_db != null) return _db!;
     final root = await getDatabasesPath();
     _db = await openDatabase(
-      join(root, 'aevum_iter.db'),
+      join(root, 'app_vocacional_ittux.db'),
       version: databaseVersion,
-      onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _create,
       onUpgrade: _upgrade,
     );
@@ -75,7 +74,8 @@ class AppDatabase {
         dimension TEXT NOT NULL,
         position INTEGER NOT NULL,
         related_career_id TEXT,
-        active INTEGER NOT NULL DEFAULT 1
+        active INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY(related_career_id) REFERENCES ${Tables.careers}(id) ON DELETE SET NULL
       )
     ''');
     await db.execute('''
@@ -152,9 +152,45 @@ class AppDatabase {
     ''');
     await db.execute('CREATE TABLE ${Tables.avatar}(id INTEGER PRIMARY KEY CHECK(id=1), base_avatar_id TEXT, hair_style TEXT, hair_color TEXT, outfit TEXT, accessory TEXT, skin_tone TEXT)');
     await db.execute('CREATE TABLE ${Tables.sessions}(id TEXT PRIMARY KEY, started_at TEXT NOT NULL, completed_at TEXT, current_index INTEGER NOT NULL DEFAULT 0, question_order TEXT NOT NULL, open_answer TEXT)');
-    await db.execute('CREATE TABLE ${Tables.answers}(id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, question_id INTEGER NOT NULL, value REAL NOT NULL)');
-    await db.execute("CREATE TABLE ${Tables.careerOpenAnswers}(session_id TEXT NOT NULL, career_id TEXT NOT NULL, question_text TEXT NOT NULL DEFAULT '', answer TEXT NOT NULL, PRIMARY KEY(session_id, career_id))");
-    await db.execute("CREATE TABLE ${Tables.results}(id TEXT PRIMARY KEY, session_id TEXT NOT NULL, score_r REAL NOT NULL DEFAULT 0, score_i REAL NOT NULL DEFAULT 0, score_a REAL NOT NULL DEFAULT 0, score_s REAL NOT NULL DEFAULT 0, score_e REAL NOT NULL DEFAULT 0, score_c REAL NOT NULL DEFAULT 0, holland_code TEXT NOT NULL, top_career_id TEXT NOT NULL DEFAULT '', top_career_name TEXT NOT NULL DEFAULT '', top_career_affinity REAL NOT NULL DEFAULT 0, full_ranking_json TEXT NOT NULL DEFAULT '[]', is_synced INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)");
+    await db.execute('''
+      CREATE TABLE ${Tables.answers}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        question_id INTEGER NOT NULL,
+        value REAL NOT NULL,
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+        FOREIGN KEY(question_id) REFERENCES ${Tables.questions}(id)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE ${Tables.careerOpenAnswers}(
+        session_id TEXT NOT NULL,
+        career_id TEXT NOT NULL,
+        question_text TEXT NOT NULL DEFAULT '',
+        answer TEXT NOT NULL,
+        PRIMARY KEY(session_id, career_id),
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+        FOREIGN KEY(career_id) REFERENCES ${Tables.careers}(id)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE ${Tables.results}(
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL UNIQUE,
+        score_r REAL NOT NULL DEFAULT 0, score_i REAL NOT NULL DEFAULT 0,
+        score_a REAL NOT NULL DEFAULT 0, score_s REAL NOT NULL DEFAULT 0,
+        score_e REAL NOT NULL DEFAULT 0, score_c REAL NOT NULL DEFAULT 0,
+        holland_code TEXT NOT NULL,
+        top_career_id TEXT NOT NULL DEFAULT '',
+        top_career_name TEXT NOT NULL DEFAULT '',
+        top_career_affinity REAL NOT NULL DEFAULT 0,
+        full_ranking_json TEXT NOT NULL DEFAULT '[]',
+        is_synced INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+        FOREIGN KEY(top_career_id) REFERENCES ${Tables.careers}(id)
+      )
+    ''');
     await db.execute('CREATE TABLE ${Tables.metadata}(key TEXT PRIMARY KEY, value TEXT)');
     await db.execute('''
       CREATE TABLE ${Tables.syncQueue}(
@@ -163,7 +199,8 @@ class AppDatabase {
         payload_json TEXT NOT NULL,
         attempts INTEGER NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'pending',
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE
       )
     ''');
     await db.execute('''
@@ -315,6 +352,67 @@ class AppDatabase {
         )
       ''');
       await DatabaseSeed.apply(db);
+    }
+
+    if (oldVersion < 14) {
+      // SQLite no permite agregar FOREIGN KEY con ALTER TABLE. Se reconstruyen
+      // las tablas operativas para que herramientas de ingeniería inversa
+      // (por ejemplo DBeaver) detecten las relaciones físicas reales.
+      await db.transaction((txn) async {
+
+        Future<void> rebuild(String table, String createSql, List<String> columns) async {
+          final old = '${table}_v13';
+          await txn.execute('ALTER TABLE $table RENAME TO $old');
+          await txn.execute(createSql);
+          final cols = columns.join(', ');
+          await txn.execute('INSERT INTO $table ($cols) SELECT $cols FROM $old');
+          await txn.execute('DROP TABLE $old');
+        }
+
+        await rebuild(Tables.answers, '''
+          CREATE TABLE ${Tables.answers}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+            question_id INTEGER NOT NULL, value REAL NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+            FOREIGN KEY(question_id) REFERENCES ${Tables.questions}(id)
+          )
+        ''', ['id','session_id','question_id','value']);
+
+        await rebuild(Tables.careerOpenAnswers, '''
+          CREATE TABLE ${Tables.careerOpenAnswers}(
+            session_id TEXT NOT NULL, career_id TEXT NOT NULL,
+            question_text TEXT NOT NULL DEFAULT '', answer TEXT NOT NULL,
+            PRIMARY KEY(session_id, career_id),
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+            FOREIGN KEY(career_id) REFERENCES ${Tables.careers}(id)
+          )
+        ''', ['session_id','career_id','question_text','answer']);
+
+        await rebuild(Tables.results, '''
+          CREATE TABLE ${Tables.results}(
+            id TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE,
+            score_r REAL NOT NULL DEFAULT 0, score_i REAL NOT NULL DEFAULT 0,
+            score_a REAL NOT NULL DEFAULT 0, score_s REAL NOT NULL DEFAULT 0,
+            score_e REAL NOT NULL DEFAULT 0, score_c REAL NOT NULL DEFAULT 0,
+            holland_code TEXT NOT NULL, top_career_id TEXT NOT NULL DEFAULT '',
+            top_career_name TEXT NOT NULL DEFAULT '', top_career_affinity REAL NOT NULL DEFAULT 0,
+            full_ranking_json TEXT NOT NULL DEFAULT '[]', is_synced INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+            FOREIGN KEY(top_career_id) REFERENCES ${Tables.careers}(id)
+          )
+        ''', ['id','session_id','score_r','score_i','score_a','score_s','score_e','score_c','holland_code','top_career_id','top_career_name','top_career_affinity','full_ranking_json','is_synced','created_at']);
+
+        await rebuild(Tables.syncQueue, '''
+          CREATE TABLE ${Tables.syncQueue}(
+            id TEXT PRIMARY KEY, session_id TEXT NOT NULL, payload_json TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE
+          )
+        ''', ['id','session_id','payload_json','attempts','status','created_at']);
+
+      });
     }
   }
 }

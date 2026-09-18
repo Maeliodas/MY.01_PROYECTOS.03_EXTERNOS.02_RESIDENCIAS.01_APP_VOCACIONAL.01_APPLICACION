@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../../core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -152,7 +153,7 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                   ),
                   const SizedBox(height: 28),
                   const Text(
-                    'RIASEC · App Vocacional ITTUX',
+                    'RIASEC · ${AppConstants.appName}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,

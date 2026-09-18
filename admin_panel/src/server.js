@@ -4,9 +4,18 @@ import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import http from 'http';
+import { Server as SocketServer } from 'socket.io';
+import PDFDocument from 'pdfkit';
 import { pool } from './db.js';
 
 const app = express();
+const server = http.createServer(app);
+const io = new SocketServer(server, {
+  cors: { origin: true, credentials: true },
+  path: '/socket.io',
+});
+
 const port = Number(process.env.PORT ?? 8080);
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
@@ -231,6 +240,17 @@ app.post('/api/evaluations', requireApiKey, async (req, res) => {
       }
     }
     await connection.commit();
+    // Notificar en tiempo real a los paneles admin conectados
+    io.to('admins').emit('new-evaluation', {
+      id: evaluationInsert.insertId,
+      result_id: body.result_id,
+      holland_code: result.holland_code ?? '',
+      top_career_name: result.top_career_name,
+      school_name: student.school ?? null,
+      state_name: student.state ?? null,
+      municipality_name: student.municipality ?? null,
+      completed_at: body.completed_at ?? new Date().toISOString(),
+    });
     res.status(201).json({ ok: true });
   } catch (error) {
     await connection.rollback();
@@ -609,6 +629,104 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
   } finally { connection.release(); }
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`App Vocacional ITTUX Panel: http://localhost:${port}`);
+// ─── Reporte PDF (usa los mismos filtros del dashboard) ───────────────────────
+app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
+  try {
+    const data = await dashboardData(req.query);
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const filename = `aevum-iter-reporte-${new Date().toISOString().slice(0, 10)}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    doc.pipe(res);
+
+    const green = '#00923f';
+    doc.fillColor(green).fontSize(20).text('AEVUM ITER · Reporte de orientaciones', { align: 'left' });
+    doc.moveDown(0.3);
+    doc.fillColor('#27352e').fontSize(10)
+      .text('Instituto Tecnológico de Tuxtepec')
+      .text(`Generado: ${new Date().toLocaleString('es-MX')}`)
+      .text(`Filtros: estado=${req.query.state || 'todos'} · municipio=${req.query.municipality || 'todos'} · escuela=${req.query.school || 'todos'} · perfil=${req.query.profile || 'todos'} · carrera=${req.query.career || 'todos'}`);
+    doc.moveDown();
+
+    // Totales
+    doc.fillColor(green).fontSize(14).text('Resumen');
+    doc.fillColor('#27352e').fontSize(11).moveDown(0.4);
+    const t = data.totals ?? {};
+    doc.text(`Total de evaluaciones: ${t.total_evaluations ?? 0}`);
+    doc.text(`Escuelas distintas: ${t.schools ?? 0}`);
+    doc.text(`Afinidad promedio: ${t.average_affinity ?? 0}%`);
+    doc.text(`Perfiles Holland distintos: ${t.profiles ?? 0}`);
+    doc.moveDown();
+
+    // Top carreras
+    doc.fillColor(green).fontSize(14).text('Top carreras recomendadas');
+    doc.fillColor('#27352e').fontSize(10).moveDown(0.3);
+    for (const row of (data.careers ?? []).slice(0, 10)) {
+      doc.text(`• ${row.label}: ${row.value}`);
+    }
+    doc.moveDown();
+
+    // Perfiles
+    doc.fillColor(green).fontSize(14).text('Perfiles RIASEC (Holland)');
+    doc.fillColor('#27352e').fontSize(10).moveDown(0.3);
+    for (const row of (data.profiles ?? []).slice(0, 10)) {
+      doc.text(`• ${row.label}: ${row.value}`);
+    }
+    doc.moveDown();
+
+    // Tabla de registros recientes
+    doc.fillColor(green).fontSize(14).text('Registros recientes (máx. 40)');
+    doc.fillColor('#27352e').fontSize(9).moveDown(0.4);
+    const rows = (data.evaluations ?? []).slice(0, 40);
+    if (!rows.length) {
+      doc.text('No hay evaluaciones para los filtros seleccionados.');
+    } else {
+      for (const row of rows) {
+        const fecha = row.completed_at
+          ? new Date(row.completed_at).toLocaleDateString('es-MX')
+          : '—';
+        doc.text(
+          `${fecha} | ${row.municipality_name ?? '—'}, ${row.state_name ?? '—'} | ${row.school_name ?? '—'} | ${row.holland_code ?? '—'} → ${row.top_career_name ?? '—'} (${Number(row.top_career_affinity ?? 0).toFixed(1)}%)`,
+          { width: 500 },
+        );
+        doc.moveDown(0.15);
+      }
+    }
+
+    doc.end();
+  } catch (error) {
+    console.error(error);
+    if (!res.headersSent) res.status(500).json({ error: 'No fue posible generar el PDF' });
+  }
+});
+
+// ─── Socket.IO: salas de administradores ──────────────────────────────────────
+io.use((socket, next) => {
+  // Autenticación simple por cookie de sesión (mismo token que requireAdmin)
+  const cookieHeader = socket.handshake.headers.cookie ?? '';
+  const cookies = Object.fromEntries(
+    String(cookieHeader).split(';').map(v => v.trim()).filter(Boolean).map(v => {
+      const i = v.indexOf('=');
+      return i < 0 ? [v, ''] : [v.slice(0, i), decodeURIComponent(v.slice(i + 1))];
+    }),
+  );
+  const token = cookies.aevum_admin;
+  if (!adminUser || !adminPassword) {
+    // Sin credenciales configuradas, permitir (modo desarrollo)
+    return next();
+  }
+  if (token && validSession(token)) return next();
+  return next(new Error('No autorizado'));
+});
+
+io.on('connection', (socket) => {
+  socket.join('admins');
+  socket.emit('connected', { ok: true, message: 'Panel en tiempo real activo' });
+  socket.on('disconnect', () => {});
+});
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`AEVUM ITER Panel: http://localhost:${port}`);
+  console.log(`  · Tiempo real (Socket.IO) activo`);
+  console.log(`  · Reportes PDF: GET /api/admin/report.pdf`);
 });

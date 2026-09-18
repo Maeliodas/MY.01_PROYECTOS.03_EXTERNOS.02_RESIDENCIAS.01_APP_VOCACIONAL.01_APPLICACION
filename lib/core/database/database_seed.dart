@@ -11,12 +11,12 @@ import 'tables.dart';
 class DatabaseSeed {
   const DatabaseSeed._();
 
-  static const _asset = 'assets/database/aevum_catalog_v13.db';
+  static const _asset = 'assets/database/app_vocacional_catalog_v14.db';
 
   static Future<void> apply(DatabaseExecutor db) async {
     final bytes = await rootBundle.load(_asset);
     final databaseRoot = await getDatabasesPath();
-    final seedPath = join(databaseRoot, 'aevum_catalog_seed_v13.db');
+    final seedPath = join(databaseRoot, 'app_vocacional_catalog_seed_v14.db');
     final file = File(seedPath);
     await file.writeAsBytes(
       bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),

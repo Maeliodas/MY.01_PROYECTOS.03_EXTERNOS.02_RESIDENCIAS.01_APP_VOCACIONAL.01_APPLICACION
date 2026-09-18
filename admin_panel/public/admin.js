@@ -213,3 +213,231 @@ if (careerForm) {
   document.querySelectorAll('.edit-record[data-type="careers"]').forEach(btn=>btn.addEventListener('click',()=>setTimeout(refreshCareerProfile,0)));
   refreshCareerProfile();
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Actualización sin recarga + tiempo real + PDF
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const chartInstances = {};
+
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch (_) {} });
+  for (const k of Object.keys(chartInstances)) delete chartInstances[k];
+}
+
+function renderChartsFromData(payload) {
+  destroyCharts();
+  const ink = '#27352e';
+  const grid = 'rgba(44,66,54,.08)';
+  const palette = ['#00923f','#2eaa63','#8ca48d','#a7baa9','#d3d5bd','#7b6f61','#9c8f7d','#667b70','#b0a58f','#718f7e'];
+  const bar = (id, rows, horizontal = true) => {
+    const el = document.getElementById(id); if (!el) return;
+    chartInstances[id] = new Chart(el, {
+      type: 'bar',
+      data: { labels: (rows || []).map(x => x.label), datasets: [{ data: (rows || []).map(x => x.value), backgroundColor: '#00923f', borderRadius: 5, borderSkipped: false }] },
+      options: { indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: grid }, ticks: { color: ink, precision: 0 } }, y: { grid: { display: false }, ticks: { color: ink } } } },
+    });
+  };
+  const doughnut = (id, rows) => {
+    const el = document.getElementById(id); if (!el) return;
+    chartInstances[id] = new Chart(el, {
+      type: 'doughnut',
+      data: { labels: (rows || []).map(x => x.label), datasets: [{ data: (rows || []).map(x => x.value), backgroundColor: palette, borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '64%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 9, usePointStyle: true, color: ink } } } },
+    });
+  };
+  const line = (id, rows) => {
+    const el = document.getElementById(id); if (!el) return;
+    chartInstances[id] = new Chart(el, {
+      type: 'line',
+      data: { labels: (rows || []).map(x => x.label), datasets: [{ data: (rows || []).map(x => x.value), borderColor: '#00923f', backgroundColor: 'rgba(0,146,63,.10)', fill: true, tension: .3, pointRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: ink } }, y: { beginAtZero: true, grid: { color: grid }, ticks: { color: ink, precision: 0 } } } },
+    });
+  };
+  bar('careerChart', payload.careers, true);
+  doughnut('profileChart', payload.profiles);
+  line('affinityChart', payload.affinity);
+  bar('provenanceChart', payload.provenance, true);
+  bar('schoolChart', payload.schools, true);
+  doughnut('languageChart', payload.languages);
+  doughnut('idiomChart', payload.idioms);
+}
+
+function renderEvaluationRows(evaluations) {
+  const tbody = document.getElementById('evaluationRows');
+  if (!tbody) return;
+  if (!(evaluations || []).length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">No hay evaluaciones para los filtros seleccionados.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = evaluations.map(row => {
+    const fecha = row.completed_at
+      ? new Date(row.completed_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '—';
+    const open = (row.open_answers || []).length
+      ? `<details class="open-answer-details"><summary>Ver ${row.open_answers.length}</summary><div class="open-answer-list">${
+          row.open_answers.map(a => `<article><strong>${escapeHtml(a.career_name || '')}</strong><small>${escapeHtml(a.question_text || 'Pregunta complementaria')}</small><p>${escapeHtml(a.answer || '')}</p></article>`).join('')
+        }</div></details>`
+      : '—';
+    return `<tr>
+      <td><strong>${escapeHtml(row.municipality_name ?? 'No especificado')}</strong><small>${escapeHtml(row.state_name ?? '')}</small></td>
+      <td>${escapeHtml(row.school_name ?? 'No especificada')}</td>
+      <td>${escapeHtml(row.lenguas || '—')}</td>
+      <td>${escapeHtml(row.idiomas || '—')}</td>
+      <td><span class="code">${escapeHtml(row.holland_code || '')}</span></td>
+      <td>${escapeHtml(row.top_career_name || '')}</td>
+      <td><span class="affinity">${Number(row.top_career_affinity ?? 0).toFixed(1)}%</span></td>
+      <td>${fecha}</td>
+      <td>${open}</td>
+    </tr>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function updateKpis(totals) {
+  const t = totals || {};
+  const el = (id) => document.getElementById(id);
+  if (el('kpiEvaluations')) el('kpiEvaluations').textContent = t.total_evaluations ?? 0;
+  if (el('kpiSchools')) el('kpiSchools').textContent = t.schools ?? 0;
+  if (el('kpiProfiles')) el('kpiProfiles').textContent = t.profiles ?? 0;
+  if (el('kpiAffinity')) {
+    el('kpiAffinity').textContent = t.average_affinity != null ? `${t.average_affinity}%` : '—';
+  }
+}
+
+function currentFilterQuery() {
+  const form = document.getElementById('filterForm');
+  if (!form) return '';
+  const params = new URLSearchParams(new FormData(form));
+  // quitar vacíos
+  [...params.keys()].forEach(k => { if (!params.get(k)) params.delete(k); });
+  return params.toString();
+}
+
+function syncPdfLink() {
+  const link = document.getElementById('downloadPdf');
+  if (!link) return;
+  const q = currentFilterQuery();
+  link.href = q ? `/api/admin/report.pdf?${q}` : '/api/admin/report.pdf';
+}
+
+async function refreshDashboard(silent = false) {
+  const q = currentFilterQuery();
+  const url = q ? `/api/dashboard/summary?${q}` : '/api/dashboard/summary';
+  try {
+    if (!silent) {
+      const status = document.getElementById('liveStatus');
+      if (status) status.querySelector('span').textContent = 'Actualizando…';
+    }
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('Error al consultar estadísticas');
+    const payload = await res.json();
+    updateKpis(payload.totals);
+    renderChartsFromData(payload);
+    renderEvaluationRows(payload.evaluations);
+    syncPdfLink();
+    // actualizar history sin reload
+    const newUrl = q ? `/?${q}` : '/';
+    if (location.search !== (q ? `?${q}` : '') && history.replaceState) {
+      history.replaceState(null, '', newUrl);
+    }
+    const status = document.getElementById('liveStatus');
+    if (status) {
+      status.querySelector('span').textContent = 'Datos al día';
+      status.querySelector('i').style.background = '#4a8b5d';
+    }
+  } catch (err) {
+    console.error(err);
+    const status = document.getElementById('liveStatus');
+    if (status) {
+      status.querySelector('span').textContent = 'Error de actualización';
+      status.querySelector('i').style.background = '#a64343';
+    }
+  }
+}
+
+// Interceptar submit de filtros → AJAX
+const filterForm = document.getElementById('filterForm');
+filterForm?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  refreshDashboard(false);
+});
+
+document.getElementById('clearFilters')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  filterForm?.querySelectorAll('select, input[type="date"]').forEach(el => { el.value = ''; });
+  updateDashboardDependencies();
+  refreshDashboard(false);
+});
+
+// PDF siempre con filtros actuales
+syncPdfLink();
+filterForm?.addEventListener('change', syncPdfLink);
+
+// Socket.IO — tiempo real
+(function initRealtime() {
+  if (typeof io === 'undefined') {
+    console.warn('Socket.IO no disponible');
+    return;
+  }
+  const socket = io({ path: '/socket.io', withCredentials: true });
+  const status = document.getElementById('liveStatus');
+
+  socket.on('connect', () => {
+    if (status) {
+      status.querySelector('span').textContent = 'Tiempo real activo';
+      status.querySelector('i').style.background = '#4a8b5d';
+    }
+  });
+  socket.on('disconnect', () => {
+    if (status) {
+      status.querySelector('span').textContent = 'Reconectando…';
+      status.querySelector('i').style.background = '#c9a227';
+    }
+  });
+  socket.on('connected', (msg) => {
+    console.log('[AEVUM]', msg?.message || 'conectado');
+  });
+  socket.on('new-evaluation', (payload) => {
+    // Toast discreto
+    showLiveToast(payload);
+    // Refrescar dashboard con filtros actuales (sin “parpadeo” fuerte)
+    refreshDashboard(true);
+  });
+})();
+
+function showLiveToast(payload) {
+  let toast = document.getElementById('liveToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'liveToast';
+    toast.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:9999;background:#123a2a;color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-width:320px;opacity:0;transition:opacity .25s';
+    document.body.appendChild(toast);
+  }
+  const career = payload?.top_career_name || 'Nueva evaluación';
+  const school = payload?.school_name ? ` · ${payload.school_name}` : '';
+  toast.innerHTML = `<strong>Nueva evaluación</strong><br>${career}${school}`;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 4500);
+}
+
+// Re-render inicial guardando instancias (para poder destruirlas después)
+if (typeof Chart !== 'undefined' && data && Object.keys(data).length) {
+  // Los charts iniciales ya se crearon arriba; registramos referencias si existen
+  ['careerChart','profileChart','affinityChart','provenanceChart','schoolChart','languageChart','idiomChart'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && typeof Chart.getChart === 'function') {
+      const existing = Chart.getChart(el);
+      if (existing) chartInstances[id] = existing;
+    }
+  });
+}

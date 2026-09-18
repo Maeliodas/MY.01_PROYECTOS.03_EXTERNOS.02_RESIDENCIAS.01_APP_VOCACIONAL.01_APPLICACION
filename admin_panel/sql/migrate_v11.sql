@@ -1,5 +1,5 @@
 SET NAMES utf8mb4;
-USE aevum_iter;
+USE app_vocacional_ittux;
 
 ALTER TABLE evaluation_open_answers
   ADD COLUMN question_text VARCHAR(800) NULL AFTER career_id;

@@ -18,6 +18,13 @@ class OpenQuestionPage extends ConsumerStatefulWidget {
 class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
   final TextEditingController _controller = TextEditingController();
   bool _saving = false;
+  bool get _hasAnswer => _controller.text.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() { if (mounted) setState(() {}); });
+  }
 
   @override
   void dispose() {
@@ -29,12 +36,13 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
     CareerCatalog career,
     DepartmentQuestion departmentQuestion,
   ) async {
+    if (!_hasAnswer) return;
     setState(() => _saving = true);
     final notifier = ref.read(testProvider.notifier);
     await notifier.saveCareerOpenAnswer(
       career.id,
       departmentQuestion.questionText,
-      _controller.text,
+      _controller.text.trim(),
     );
     await notifier.completeTest('Pregunta abierta por departamento respondida');
     if (mounted) context.go('/thank-you');
@@ -130,7 +138,7 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Tu carrera con mayor afinidad pertenece al departamento de ${topCareer.department}. Esta respuesta complementa el test y no modifica tu puntuación RIASEC.',
+                    'Esta última respuesta complementa el test y no modifica tu puntuación RIASEC ni el porcentaje de afinidad.',
                     style: TextStyle(
                       height: 1.45,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -144,21 +152,14 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            topCareer.name,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            topCareer.department,
-                            style: const TextStyle(
-                              color: Color(0xFF00923F),
+                            'Pregunta final',
+                            style: TextStyle(
+                              fontSize: 13,
                               fontWeight: FontWeight.w800,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 10),
                           Text(
                             departmentQuestion.questionText,
                             style: const TextStyle(
@@ -176,6 +177,8 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
                               hintText: 'Escribe lo que te gustaría realizar...',
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          Text(_hasAnswer ? 'Respuesta lista para guardar.' : 'Esta respuesta es obligatoria para finalizar el test.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _hasAnswer ? const Color(0xFF00923F) : Theme.of(context).colorScheme.error)),
                         ],
                       ),
                     ),
@@ -185,7 +188,7 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
                     text: 'Finalizar test',
                     icon: Icons.check_rounded,
                     isLoading: _saving,
-                    onPressed: _saving
+                    onPressed: (_saving || !_hasAnswer)
                         ? null
                         : () => _finish(topCareer, departmentQuestion),
                   ),

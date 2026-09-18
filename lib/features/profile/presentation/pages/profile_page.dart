@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../result/presentation/providers/result_provider.dart';
-import '../../../avatar/presentation/providers/avatar_provider.dart';
 import '../../../test/presentation/providers/test_provider.dart';
 import '../providers/profile_provider.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -27,9 +27,9 @@ class ProfilePage extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.fromLTRB(22, 16, 22, 30), children: [
-          Row(children: [const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))), const Spacer(), IconButton(onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined))]),
+          Row(children: [const Text(AppConstants.appName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))), const Spacer(), IconButton(onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined))]),
           const SizedBox(height: 16),
-          Center(child: Stack(clipBehavior: Clip.none, children: [Container(width: 118, height: 118, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: avatar)), Positioned(right: -2, bottom: 3, child: Material(color: AppColors.primary, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () { final avatarPath = profile.avatarConfig.avatarPath; if (avatarPath.startsWith('/') || avatarPath.contains('emulated')) { ref.read(avatarProvider.notifier).selectCustomPhoto(avatarPath); } else { ref.read(avatarProvider.notifier).selectAvatar(avatarPath); } context.push('/choose-avatar?return=profile'); }, child: const SizedBox(width: 38, height: 38, child: Icon(Icons.edit_rounded, color: Colors.white, size: 19))))) ])),
+          Center(child: Stack(clipBehavior: Clip.none, children: [Container(width: 118, height: 118, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: avatar)), Positioned(right: -2, bottom: 3, child: Material(color: AppColors.primary, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () => context.push('/edit-profile'), child: const SizedBox(width: 38, height: 38, child: Icon(Icons.edit_rounded, color: Colors.white, size: 19))))) ])),
           const SizedBox(height: 12),
           Text(profile.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 29, fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),

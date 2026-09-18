@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../providers/test_provider.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class TestIntroPage extends ConsumerWidget {
   const TestIntroPage({super.key});
@@ -11,7 +12,7 @@ class TestIntroPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('App Vocacional ITTUX ITTUX')),
+      appBar: AppBar(title: const Text(AppConstants.appName)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -42,7 +43,7 @@ class TestIntroPage extends ConsumerWidget {
               const SizedBox(height: 40),
               PrimaryButton(
                 text: '¡Iniciar Test!',
-                icon: Icons.explore_rounded,
+                icon: Icons.play_arrow_rounded,
                 onPressed: () async {
                   await ref.read(testProvider.notifier).startNewTestSession();
                   if (context.mounted) context.go('/test');

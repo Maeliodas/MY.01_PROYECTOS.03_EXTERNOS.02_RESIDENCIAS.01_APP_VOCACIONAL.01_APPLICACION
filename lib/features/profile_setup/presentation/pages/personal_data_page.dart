@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../avatar/presentation/providers/avatar_provider.dart';
+import '../../../../core/widgets/app_back_button.dart';
 
 class PersonalDataPage extends ConsumerStatefulWidget {
   const PersonalDataPage({super.key});
@@ -34,13 +35,13 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
 
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF8FFE9), Color(0xFFF4F8E8), Color(0xFFE9FFF7)])),
+        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft,end: Alignment.bottomRight,colors: Theme.of(context).brightness == Brightness.dark ? const [Color(0xFF0F160D),Color(0xFF152013),Color(0xFF101B18)] : const [Color(0xFFF8FFE9),Color(0xFFF4F8E8),Color(0xFFE9FFF7)])),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
             child: Column(
               children: [
-                Align(alignment: Alignment.centerLeft, child: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded))),
+                const Align(alignment: Alignment.centerLeft, child: AppBackButton()),
                 const SizedBox(height: 8),
                 const Align(alignment: Alignment.centerLeft, child: Text('¡Te ves genial!', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, height: 1))),
                 const SizedBox(height: 8),
@@ -49,7 +50,7 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Container(width: 210, height: 210, padding: const EdgeInsets.all(7), decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white, border: Border.all(color: AppColors.primary, width: 3), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 24, offset: const Offset(0, 12))]), child: ClipOval(child: image)),
+                    Container(width: 210, height: 210, padding: const EdgeInsets.all(7), decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surface, border: Border.all(color: AppColors.primary, width: 3), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 24, offset: const Offset(0, 12))]), child: ClipOval(child: image)),
                     Positioned(right: 5, bottom: 8, child: Container(width: 48, height: 48, decoration: const BoxDecoration(color: Color(0xFF7633D5), shape: BoxShape.circle), child: const Icon(Icons.check_circle_rounded, color: Colors.white))),
                   ],
                 ),

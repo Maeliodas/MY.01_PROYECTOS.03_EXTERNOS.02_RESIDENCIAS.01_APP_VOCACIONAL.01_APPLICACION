@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../providers/test_provider.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/app_back_button.dart';
 
 class TestPage extends ConsumerStatefulWidget {
   const TestPage({super.key});
@@ -39,7 +41,7 @@ class _TestPageState extends ConsumerState<TestPage> {
               const SizedBox(height: 18),
               SizedBox(width: double.infinity, height: 54, child: ElevatedButton(onPressed: () => Navigator.pop(dialogContext, false), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: const Color(0xFF1B350C), elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))), child: const Text('×  Cancelar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)))),
               const SizedBox(height: 10),
-              SizedBox(width: double.infinity, height: 52, child: FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))), child: const Text('▣  Guardar y Salir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
+              SizedBox(width: double.infinity, height: 52, child: FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))), child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.save_rounded, size: 20), SizedBox(width: 9), Text('Guardar y Salir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))]))),
             ],
           ),
         ),
@@ -58,7 +60,7 @@ class _TestPageState extends ConsumerState<TestPage> {
     }
     if (state.error != null || state.questions.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('App Vocacional ITTUX')),
+        appBar: AppBar(title: const Text(AppConstants.appName)),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -93,7 +95,7 @@ class _TestPageState extends ConsumerState<TestPage> {
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
               child: Column(
                 children: [
-                  Row(children: [IconButton(onPressed: () async { if (await _confirmExit() && context.mounted) context.pop(); }, icon: const Icon(Icons.arrow_back_rounded)), const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F)))]),
+                  Row(children: [AppBackButton(onPressed: () async { if (await _confirmExit() && context.mounted) context.pop(); }), const Text(AppConstants.appName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F)))]),
                   const SizedBox(height: 20),
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PROGRESO VOCACIONAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: .8)), Text('ETAPA ${state.currentIndex + 1} DE ${state.questions.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: .6))]),
                   const SizedBox(height: 9),

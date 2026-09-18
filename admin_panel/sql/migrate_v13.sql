@@ -1,5 +1,5 @@
 SET NAMES utf8mb4;
-USE aevum_iter;
+USE app_vocacional_ittux;
 
 ALTER TABLE careers
   ADD COLUMN department ENUM(

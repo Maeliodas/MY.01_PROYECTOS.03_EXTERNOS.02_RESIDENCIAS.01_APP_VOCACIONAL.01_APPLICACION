@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_constants.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
@@ -62,14 +63,14 @@ class SettingsPage extends ConsumerWidget {
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
             child: Column(
               children: [
-                _Info(icon: Icons.lock_outline_rounded, iconColor: const Color(0xFF18A9D3), title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza App Vocacional ITTUX y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
+                _Info(icon: Icons.lock_outline_rounded, iconColor: const Color(0xFF18A9D3), title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza ${AppConstants.appName} y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
                 const Divider(height: 1, indent: 70),
-                const _Info(icon: Icons.help_outline_rounded, iconColor: Color(0xFF7432CE), title: 'Ayuda', subtitle: 'App Vocacional ITTUX · Prototipo funcional'),
+                const _Info(icon: Icons.help_outline_rounded, iconColor: Color(0xFF7432CE), title: 'Ayuda', subtitle: '${AppConstants.appName} · Prototipo funcional'),
               ],
             ),
           ),
           const SizedBox(height: 28),
-          Center(child: Text('App Vocacional ITTUX · TUXTEPEC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .55), letterSpacing: 1.4))),
+          Center(child: Text('${AppConstants.appName} · TUXTEPEC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .55), letterSpacing: 1.4))),
         ],
       ),
     );

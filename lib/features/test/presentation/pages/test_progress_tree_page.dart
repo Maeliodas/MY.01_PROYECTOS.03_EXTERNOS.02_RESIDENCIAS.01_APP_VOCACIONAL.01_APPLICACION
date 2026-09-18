@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../../../core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,7 +69,7 @@ class TestProgressTreePage extends ConsumerWidget {
                     ),
                   ),
                   const Text(
-                    'App Vocacional ITTUX',
+                    AppConstants.appName,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -197,7 +198,7 @@ class TestProgressTreePage extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 28),
-                _ActionButton(text: 'Iniciar Test', onTap: continueTest, icon: Icons.explore_rounded),
+                _ActionButton(text: 'Iniciar Test', onTap: continueTest, icon: Icons.play_arrow_rounded),
               ] else ...[
                 _Node(
                   icon: Icons.favorite_rounded,

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
+
   @override
   ConsumerState<SplashPage> createState() => _SplashPageState();
 }
@@ -19,7 +21,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   }
 
   Future<void> _go() async {
-    await Future.delayed(const Duration(milliseconds: 900));
+    await Future.delayed(const Duration(milliseconds: 1200));
     await ref.read(catalogSyncServiceProvider).sync();
     ref.invalidate(statesProvider);
     ref.invalidate(allLanguagesProvider);
@@ -31,13 +33,17 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
+      body: Container(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF7FFE9), Color(0xFFF3F8E7), Color(0xFFE9FFF8)],
+            colors: dark
+                ? const [Color(0xFF071E17), Color(0xFF0A2B20), Color(0xFF071812)]
+                : const [Color(0xFFF7FFE9), Color(0xFFF3F8E7), Color(0xFFE9FFF8)],
           ),
         ),
         child: SafeArea(
@@ -53,45 +59,105 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                         Container(
                           width: 154,
                           height: 122,
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: dark ? const Color(0xFF0D382A) : Colors.white,
                             borderRadius: BorderRadius.circular(32),
-                            border: Border.all(color: AppColors.primary, width: 4),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 18, offset: const Offset(0, 8))],
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 3.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: dark ? .35 : .12),
+                                blurRadius: 22,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                          child: const Icon(Icons.explore_rounded, size: 68, color: Color(0xFF00923F)),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(22),
+                            child: Image.asset(
+                              dark
+                                  ? 'assets/branding/app_logo_dark.png'
+                                  : 'assets/branding/app_logo_light.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                         Positioned(
                           right: -12,
                           top: -14,
                           child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: const BoxDecoration(color: Color(0xFFD7B8FF), shape: BoxShape.circle),
-                            child: const Icon(Icons.school_rounded, color: Color(0xFF6E26C8), size: 25),
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: dark ? const Color(0xFF4A2875) : const Color(0xFFD7B8FF),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: .15),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.school_rounded,
+                              color: dark ? const Color(0xFFE2C4FF) : const Color(0xFF6E26C8),
+                              size: 24,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 25),
-                      const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: -.8)),
-                    const SizedBox(height: 3),
-                    const Text('DESCUBRE TU CAMINO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 2.0, color: Color(0xFF4E5148))),
+                    const SizedBox(height: 28),
+                    Text(
+                      AppConstants.appName,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                        letterSpacing: -.6,
+                        color: dark ? Colors.white : const Color(0xFF00923F),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'DESCUBRE TU CAMINO',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2.1,
+                        color: dark ? const Color(0xFF9ED9B7) : AppColors.primary,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Positioned(
-                bottom: 38,
+                bottom: 32,
                 left: 0,
                 right: 0,
                 child: Column(
                   children: [
-                    const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary)),
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.8,
+                        color: AppColors.primary,
+                      ),
+                    ),
                     const SizedBox(height: 22),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: .55), borderRadius: BorderRadius.circular(28)),
-                      child: const Text('●  TECNM TUXTEPEC', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.4, color: Color(0xFF30342E))),
+                    Opacity(
+                      opacity: dark ? .88 : 1.0,
+                      child: Image.asset(
+                        'assets/institution/tecnm_ittux_wordmark.png',
+                        width: 210,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ],
                 ),

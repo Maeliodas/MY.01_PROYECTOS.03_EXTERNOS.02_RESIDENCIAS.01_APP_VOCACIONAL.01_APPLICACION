@@ -1,7 +1,7 @@
 SET NAMES utf8mb4;
-DROP DATABASE IF EXISTS aevum_iter;
-CREATE DATABASE aevum_iter CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE aevum_iter;
+DROP DATABASE IF EXISTS app_vocacional_ittux;
+CREATE DATABASE app_vocacional_ittux CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE app_vocacional_ittux;
 
 CREATE TABLE catalog_meta (id TINYINT UNSIGNED PRIMARY KEY DEFAULT 1, version BIGINT UNSIGNED NOT NULL DEFAULT 1, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 INSERT INTO catalog_meta(id,version) VALUES(1,1);

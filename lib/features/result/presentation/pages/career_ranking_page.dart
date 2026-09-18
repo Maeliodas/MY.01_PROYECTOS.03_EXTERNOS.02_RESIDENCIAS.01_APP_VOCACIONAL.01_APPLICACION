@@ -1,9 +1,9 @@
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_constants.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/app_notice_dialog.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../providers/result_provider.dart';
 
@@ -13,9 +13,9 @@ class CareerRankingPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(latestResultProvider);
-    final catalogs = ref.watch(careersCatalogProvider).valueOrNull ?? const [];
+    ref.watch(careersCatalogProvider).valueOrNull ?? const [];
     return Scaffold(
-      appBar: AppBar(title: const Text('App Vocacional ITTUX')),
+      appBar: AppBar(title: const Text(AppConstants.appName)),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
         error: (_, __) => const Center(child: Text('Error al cargar las carreras.')),
@@ -82,26 +82,8 @@ class CareerRankingPage extends ConsumerWidget {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () async {
-                            final matches = catalogs.where((c) => c.id == career.careerId).toList();
-                            final url = matches.isEmpty ? '' : matches.first.websiteUrl.trim();
-                            if (url.isEmpty) {
-                              if (context.mounted) {
-                                await showAppNoticeDialog(
-                                  context,
-                                  icon: Icons.language_rounded,
-                                  title: 'Página no disponible',
-                                  content: const Text(
-                                    'La página oficial de esta carrera todavía no está disponible. Puedes volver a consultarla más adelante desde App Vocacional ITTUX.',
-                                    textAlign: TextAlign.center,
-                                  ),
-                                );
-                              }
-                              return;
-                            }
-                            await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                          },
-                          child: const Text('Ver detalles en TecNM →', style: TextStyle(fontWeight: FontWeight.w800)),
+                          onPressed: () => context.push('/result-detail?career=${career.careerId}'),
+                          child: const Text('Ver detalles →', style: TextStyle(fontWeight: FontWeight.w800)),
                         ),
                       ),
                     ],

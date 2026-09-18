@@ -1,6 +1,6 @@
-# Panel administrativo AEVUM ITER V9
+# Panel administrativo App Vocacional ITTUX V9
 
-El panel funciona como interfaz CRUD de la base MySQL/MariaDB `aevum_iter`.
+El panel funciona como interfaz CRUD de la base MySQL/MariaDB `app_vocacional_ittux`.
 
 ## Funciones
 

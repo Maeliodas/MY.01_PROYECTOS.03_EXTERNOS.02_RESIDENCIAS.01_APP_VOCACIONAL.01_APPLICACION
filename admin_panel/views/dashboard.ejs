@@ -11,7 +11,7 @@
 <body>
   <div class="layout">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">A</span><div><strong>App Vocacional ITTUX</strong><small>Administración</small></div></div>
+      <div class="brand"><span class="brand-mark">A</span><div><strong>AEVUM ITER</strong><small>Administración</small></div></div>
       <nav>
         <button class="nav-btn active" data-view="dashboard">Resultados</button>
         <button class="nav-btn" data-view="catalogs">Catálogos</button>
@@ -23,12 +23,17 @@
     <main class="main">
       <header class="topbar">
         <div><p class="eyebrow">INSTITUTO TECNOLÓGICO DE TUXTEPEC</p><h1>Panel de orientación vocacional</h1></div>
-        <div class="status"><i></i><span>Servidor conectado</span></div>
+        <div class="status" id="liveStatus"><i></i><span>Servidor conectado</span></div>
       </header>
 
       <section id="view-dashboard" class="view active">
-        <form class="filters card" method="get" action="/">
-          <div class="filter-head"><div><p class="eyebrow">FILTROS</p><h2>Explorar resultados</h2></div><a class="clear-link" href="/">Limpiar filtros</a></div>
+        <form class="filters card" id="filterForm" method="get" action="/">
+          <div class="filter-head"><div><p class="eyebrow">FILTROS</p><h2>Explorar resultados</h2></div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <a class="clear-link" href="/" id="clearFilters">Limpiar filtros</a>
+              <a class="primary" id="downloadPdf" href="/api/admin/report.pdf" style="text-decoration:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700">Descargar PDF</a>
+            </div>
+          </div>
           <div class="filter-grid">
             <label>Estado
               <select name="state" id="filterState">
@@ -60,11 +65,11 @@
           </div>
         </form>
 
-        <section class="kpis">
-          <article><span>Evaluaciones</span><strong><%= data.totals.total_evaluations ?? 0 %></strong><small>según filtros actuales</small></article>
-          <article><span>Escuelas</span><strong><%= data.totals.schools ?? 0 %></strong><small>con registros</small></article>
-          <article><span>Perfiles</span><strong><%= data.totals.profiles ?? 0 %></strong><small>códigos Holland</small></article>
-          <article><span>Afinidad media</span><strong><%= data.totals.average_affinity ?? '—' %><%= data.totals.average_affinity != null ? '%' : '' %></strong><small>carrera principal</small></article>
+        <section class="kpis" id="kpiSection">
+          <article><span>Evaluaciones</span><strong id="kpiEvaluations"><%= data.totals.total_evaluations ?? 0 %></strong><small>según filtros actuales</small></article>
+          <article><span>Escuelas</span><strong id="kpiSchools"><%= data.totals.schools ?? 0 %></strong><small>con registros</small></article>
+          <article><span>Perfiles</span><strong id="kpiProfiles"><%= data.totals.profiles ?? 0 %></strong><small>códigos Holland</small></article>
+          <article><span>Afinidad media</span><strong id="kpiAffinity"><%= data.totals.average_affinity ?? '—' %><%= data.totals.average_affinity != null ? '%' : '' %></strong><small>carrera principal</small></article>
         </section>
 
         <section class="dashboard-grid">
@@ -110,11 +115,12 @@
         </div>
       </section>
 
-      <footer><strong>App Vocacional ITTUX</strong><span>Administración de resultados y catálogos</span></footer>
+      <footer><strong>AEVUM ITER</strong><span>Administración de resultados y catálogos</span></footer>
     </main>
   </div>
 
   <script id="dashboard-data" type="application/json"><%- JSON.stringify({careers:data.careers,schools:data.schools,provenance:data.provenance,profiles:data.profiles,affinity:data.affinity,languages:data.languages,idioms:data.idioms,municipalities:catalogs.municipalities,schoolCatalog:catalogs.schools}) %></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/admin.js"></script>
 </body>
 </html>

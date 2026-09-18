@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../../../core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import '../../../../core/widgets/secondary_button.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/avatar_provider.dart';
+import '../../../../core/widgets/app_back_button.dart';
 
 class ChooseAvatarPage extends ConsumerWidget {
   final bool returnToProfile;
@@ -56,14 +58,12 @@ class ChooseAvatarPage extends ConsumerWidget {
     final notifier = ref.read(avatarProvider.notifier);
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF4FBF7), Color(0xFFF7FAF8), Color(0xFFEAF7F0)]),
-        ),
+        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft,end: Alignment.bottomRight,colors: Theme.of(context).brightness == Brightness.dark ? const [Color(0xFF0F160D),Color(0xFF152013),Color(0xFF101B18)] : const [Color(0xFFF4FBF7),Color(0xFFF7FAF8),Color(0xFFEAF7F0)])),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
             child: Column(children: [
-              Row(children: [IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded)), const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.primary))]),
+              const Row(children: [AppBackButton(), Text(AppConstants.appName, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.primary))]),
               const SizedBox(height: 10),
               Text(returnToProfile ? 'Cambia tu avatar' : 'Elige tu avatar', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
@@ -76,7 +76,7 @@ class ChooseAvatarPage extends ConsumerWidget {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 18, mainAxisSpacing: 16, childAspectRatio: .95),
                 itemBuilder: (_, i) {
                   final path = defaultAvatars[i]; final active = selected.avatarPath == path;
-                  return GestureDetector(onTap: () => notifier.selectAvatar(path), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .65), borderRadius: BorderRadius.circular(24), border: Border.all(color: active ? AppColors.primary : Colors.transparent, width: 4)), child: Stack(fit: StackFit.expand, children: [ClipRRect(borderRadius: BorderRadius.circular(18), child: Image.asset(path, fit: BoxFit.cover)), if(active) const Positioned(right: 4, top: 4, child: CircleAvatar(radius: 14, backgroundColor: AppColors.primary, child: Icon(Icons.check_rounded, color: Colors.white, size: 18)))])));
+                  return GestureDetector(onTap: () => notifier.selectAvatar(path), child: AnimatedContainer(duration: const Duration(milliseconds: 180), padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface.withValues(alpha: .88), borderRadius: BorderRadius.circular(24), border: Border.all(color: active ? AppColors.primary : Colors.transparent, width: 4)), child: Stack(fit: StackFit.expand, children: [ClipRRect(borderRadius: BorderRadius.circular(18), child: Image.asset(path, fit: BoxFit.cover)), if(active) const Positioned(right: 4, top: 4, child: CircleAvatar(radius: 14, backgroundColor: AppColors.primary, child: Icon(Icons.check_rounded, color: Colors.white, size: 18)))])));
                 },
               )),
               SecondaryButton(text: 'Elegir desde galería o fotos', onPressed: () => _pickGallery(ref)),

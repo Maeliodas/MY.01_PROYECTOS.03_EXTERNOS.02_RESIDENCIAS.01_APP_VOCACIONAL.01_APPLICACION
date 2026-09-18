@@ -8,9 +8,9 @@ import 'core/sync/sync_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('AEVUM_API_URL: ${AppConstants.apiBaseUrl}');
+  debugPrint('APP_VOCACIONAL_API_URL: ${AppConstants.apiBaseUrl}');
   debugPrint(
-  'AEVUM_API_KEY cargada: ${AppConstants.apiKey.isNotEmpty}',
+  'APP_VOCACIONAL_API_KEY cargada: ${AppConstants.apiKey.isNotEmpty}',
 );
   runApp(const ProviderScope(child: VocationalApp()));
   unawaited(SyncService().syncPendingQueue());
