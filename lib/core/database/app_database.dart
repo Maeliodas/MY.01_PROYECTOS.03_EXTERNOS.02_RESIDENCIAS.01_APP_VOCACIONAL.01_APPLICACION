@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static final instance = AppDatabase._();
-  static const databaseVersion = 13;
+  static const databaseVersion = 16;
 
   Database? _db;
 
@@ -16,9 +16,11 @@ class AppDatabase {
     if (_db != null) return _db!;
     final root = await getDatabasesPath();
     _db = await openDatabase(
-      join(root, 'aevum_iter.db'),
+      join(root, 'app_vocacional_ittux.db'),
       version: databaseVersion,
-      onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: _create,
       onUpgrade: _upgrade,
     );
@@ -52,11 +54,9 @@ class AppDatabase {
       CREATE TABLE ${Tables.schools}(
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        state_id TEXT,
         municipality_id TEXT,
         type TEXT,
         active INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY(state_id) REFERENCES ${Tables.states}(id),
         FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id)
       )
     ''');
@@ -75,7 +75,8 @@ class AppDatabase {
         dimension TEXT NOT NULL,
         position INTEGER NOT NULL,
         related_career_id TEXT,
-        active INTEGER NOT NULL DEFAULT 1
+        active INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY(related_career_id) REFERENCES ${Tables.careers}(id) ON DELETE SET NULL
       )
     ''');
     await db.execute('''
@@ -118,25 +119,31 @@ class AppDatabase {
 
   Future<void> _createOperationalTables(Database db) async {
     await db.execute('''
+      CREATE TABLE ${Tables.catalogSuggestionQueue}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        municipality_id TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
+        UNIQUE(kind, name, municipality_id)
+      )
+    ''');
+    await db.execute('''
       CREATE TABLE ${Tables.profile}(
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         age INTEGER NOT NULL,
         gender TEXT NOT NULL,
-        state_id TEXT,
-        state TEXT NOT NULL DEFAULT 'No especificado',
-        municipality_id TEXT,
-        municipality TEXT NOT NULL DEFAULT 'No especificado',
         school_id TEXT,
-        school TEXT NOT NULL DEFAULT 'No especificada',
+        pending_school_suggestion_id INTEGER,
         speaks_languages INTEGER NOT NULL DEFAULT 0,
         languages_list TEXT NOT NULL DEFAULT '',
         avatar_config_json TEXT NOT NULL DEFAULT '{}',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(state_id) REFERENCES ${Tables.states}(id),
-        FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
-        FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id)
+        FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id),
+        FOREIGN KEY(pending_school_suggestion_id) REFERENCES ${Tables.catalogSuggestionQueue}(id)
       )
     ''');
     await db.execute('''
@@ -152,9 +159,45 @@ class AppDatabase {
     ''');
     await db.execute('CREATE TABLE ${Tables.avatar}(id INTEGER PRIMARY KEY CHECK(id=1), base_avatar_id TEXT, hair_style TEXT, hair_color TEXT, outfit TEXT, accessory TEXT, skin_tone TEXT)');
     await db.execute('CREATE TABLE ${Tables.sessions}(id TEXT PRIMARY KEY, started_at TEXT NOT NULL, completed_at TEXT, current_index INTEGER NOT NULL DEFAULT 0, question_order TEXT NOT NULL, open_answer TEXT)');
-    await db.execute('CREATE TABLE ${Tables.answers}(id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, question_id INTEGER NOT NULL, value REAL NOT NULL)');
-    await db.execute("CREATE TABLE ${Tables.careerOpenAnswers}(session_id TEXT NOT NULL, career_id TEXT NOT NULL, question_text TEXT NOT NULL DEFAULT '', answer TEXT NOT NULL, PRIMARY KEY(session_id, career_id))");
-    await db.execute("CREATE TABLE ${Tables.results}(id TEXT PRIMARY KEY, session_id TEXT NOT NULL, score_r REAL NOT NULL DEFAULT 0, score_i REAL NOT NULL DEFAULT 0, score_a REAL NOT NULL DEFAULT 0, score_s REAL NOT NULL DEFAULT 0, score_e REAL NOT NULL DEFAULT 0, score_c REAL NOT NULL DEFAULT 0, holland_code TEXT NOT NULL, top_career_id TEXT NOT NULL DEFAULT '', top_career_name TEXT NOT NULL DEFAULT '', top_career_affinity REAL NOT NULL DEFAULT 0, full_ranking_json TEXT NOT NULL DEFAULT '[]', is_synced INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)");
+    await db.execute('''
+      CREATE TABLE ${Tables.answers}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        question_id INTEGER NOT NULL,
+        value REAL NOT NULL,
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+        FOREIGN KEY(question_id) REFERENCES ${Tables.questions}(id)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE ${Tables.careerOpenAnswers}(
+        session_id TEXT NOT NULL,
+        career_id TEXT NOT NULL,
+        question_text TEXT NOT NULL DEFAULT '',
+        answer TEXT NOT NULL,
+        PRIMARY KEY(session_id, career_id),
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+        FOREIGN KEY(career_id) REFERENCES ${Tables.careers}(id)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE ${Tables.results}(
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL UNIQUE,
+        score_r REAL NOT NULL DEFAULT 0, score_i REAL NOT NULL DEFAULT 0,
+        score_a REAL NOT NULL DEFAULT 0, score_s REAL NOT NULL DEFAULT 0,
+        score_e REAL NOT NULL DEFAULT 0, score_c REAL NOT NULL DEFAULT 0,
+        holland_code TEXT NOT NULL,
+        top_career_id TEXT NOT NULL DEFAULT '',
+        top_career_name TEXT NOT NULL DEFAULT '',
+        top_career_affinity REAL NOT NULL DEFAULT 0,
+        full_ranking_json TEXT NOT NULL DEFAULT '[]',
+        is_synced INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+        FOREIGN KEY(top_career_id) REFERENCES ${Tables.careers}(id)
+      )
+    ''');
     await db.execute('CREATE TABLE ${Tables.metadata}(key TEXT PRIMARY KEY, value TEXT)');
     await db.execute('''
       CREATE TABLE ${Tables.syncQueue}(
@@ -163,16 +206,8 @@ class AppDatabase {
         payload_json TEXT NOT NULL,
         attempts INTEGER NOT NULL DEFAULT 0,
         status TEXT NOT NULL DEFAULT 'pending',
-        created_at TEXT NOT NULL
-      )
-    ''');
-    await db.execute('''
-      CREATE TABLE ${Tables.catalogSuggestionQueue}(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        kind TEXT NOT NULL,
-        name TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        UNIQUE(kind, name)
+        FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE
       )
     ''');
   }
@@ -316,5 +351,227 @@ class AppDatabase {
       ''');
       await DatabaseSeed.apply(db);
     }
+
+    if (oldVersion < 14) {
+      // SQLite no permite agregar FOREIGN KEY con ALTER TABLE. Se reconstruyen
+      // las tablas operativas para que herramientas de ingeniería inversa
+      // (por ejemplo DBeaver) detecten las relaciones físicas reales.
+      await db.transaction((txn) async {
+
+        Future<void> rebuild(String table, String createSql, List<String> columns) async {
+          final old = '${table}_v13';
+          await txn.execute('ALTER TABLE $table RENAME TO $old');
+          await txn.execute(createSql);
+          final cols = columns.join(', ');
+          await txn.execute('INSERT INTO $table ($cols) SELECT $cols FROM $old');
+          await txn.execute('DROP TABLE $old');
+        }
+
+        await rebuild(Tables.answers, '''
+          CREATE TABLE ${Tables.answers}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+            question_id INTEGER NOT NULL, value REAL NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+            FOREIGN KEY(question_id) REFERENCES ${Tables.questions}(id)
+          )
+        ''', ['id','session_id','question_id','value']);
+
+        await rebuild(Tables.careerOpenAnswers, '''
+          CREATE TABLE ${Tables.careerOpenAnswers}(
+            session_id TEXT NOT NULL, career_id TEXT NOT NULL,
+            question_text TEXT NOT NULL DEFAULT '', answer TEXT NOT NULL,
+            PRIMARY KEY(session_id, career_id),
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+            FOREIGN KEY(career_id) REFERENCES ${Tables.careers}(id)
+          )
+        ''', ['session_id','career_id','question_text','answer']);
+
+        await rebuild(Tables.results, '''
+          CREATE TABLE ${Tables.results}(
+            id TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE,
+            score_r REAL NOT NULL DEFAULT 0, score_i REAL NOT NULL DEFAULT 0,
+            score_a REAL NOT NULL DEFAULT 0, score_s REAL NOT NULL DEFAULT 0,
+            score_e REAL NOT NULL DEFAULT 0, score_c REAL NOT NULL DEFAULT 0,
+            holland_code TEXT NOT NULL, top_career_id TEXT NOT NULL DEFAULT '',
+            top_career_name TEXT NOT NULL DEFAULT '', top_career_affinity REAL NOT NULL DEFAULT 0,
+            full_ranking_json TEXT NOT NULL DEFAULT '[]', is_synced INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE,
+            FOREIGN KEY(top_career_id) REFERENCES ${Tables.careers}(id)
+          )
+        ''', ['id','session_id','score_r','score_i','score_a','score_s','score_e','score_c','holland_code','top_career_id','top_career_name','top_career_affinity','full_ranking_json','is_synced','created_at']);
+
+        await rebuild(Tables.syncQueue, '''
+          CREATE TABLE ${Tables.syncQueue}(
+            id TEXT PRIMARY KEY, session_id TEXT NOT NULL, payload_json TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE
+          )
+        ''', ['id','session_id','payload_json','attempts','status','created_at']);
+
+      });
+    }
+
+    if (oldVersion < 15) {
+      // Normalización geográfica: una escuela obtiene su estado a través de
+      // municipality_id -> municipalities.state_id. Se elimina schools.state_id
+      // para evitar almacenar dos veces la misma dependencia funcional.
+      await db.transaction((txn) async {
+        await txn.execute('ALTER TABLE ${Tables.profileLanguages} RENAME TO user_languages_v14');
+        await txn.execute('ALTER TABLE ${Tables.profile} RENAME TO user_profile_v14');
+        await txn.execute('ALTER TABLE ${Tables.schools} RENAME TO schools_v14');
+
+        await txn.execute('''
+          CREATE TABLE ${Tables.schools}(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            municipality_id TEXT,
+            type TEXT,
+            active INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.schools}(id,name,municipality_id,type,active)
+          SELECT id,name,municipality_id,type,active FROM schools_v14
+        ''');
+
+        await txn.execute('''
+          CREATE TABLE ${Tables.profile}(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            state_id TEXT,
+            state TEXT NOT NULL DEFAULT 'No especificado',
+            municipality_id TEXT,
+            municipality TEXT NOT NULL DEFAULT 'No especificado',
+            school_id TEXT,
+            school TEXT NOT NULL DEFAULT 'No especificada',
+            speaks_languages INTEGER NOT NULL DEFAULT 0,
+            languages_list TEXT NOT NULL DEFAULT '',
+            avatar_config_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(state_id) REFERENCES ${Tables.states}(id),
+            FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
+            FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profile}(
+            id,name,age,gender,state_id,state,municipality_id,municipality,
+            school_id,school,speaks_languages,languages_list,avatar_config_json,
+            created_at,updated_at
+          )
+          SELECT id,name,age,gender,state_id,state,municipality_id,municipality,
+            school_id,school,speaks_languages,languages_list,avatar_config_json,
+            created_at,updated_at
+          FROM user_profile_v14
+        ''');
+
+        await txn.execute('''
+          CREATE TABLE ${Tables.profileLanguages}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id TEXT NOT NULL DEFAULT '1',
+            language_id TEXT,
+            type TEXT NOT NULL,
+            custom_name TEXT,
+            FOREIGN KEY(profile_id) REFERENCES ${Tables.profile}(id) ON DELETE CASCADE,
+            FOREIGN KEY(language_id) REFERENCES ${Tables.languages}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profileLanguages}(id,profile_id,language_id,type,custom_name)
+          SELECT id,profile_id,language_id,type,custom_name FROM user_languages_v14
+        ''');
+
+        await txn.execute('DROP TABLE user_languages_v14');
+        await txn.execute('DROP TABLE user_profile_v14');
+        await txn.execute('DROP TABLE schools_v14');
+      });
+    }
+
+    if (oldVersion < 16) {
+      await db.transaction((txn) async {
+        // La cola ahora también soporta sugerencias de escuelas por municipio.
+        await txn.execute('ALTER TABLE ${Tables.catalogSuggestionQueue} RENAME TO catalog_suggestion_queue_v15');
+        await txn.execute('''
+          CREATE TABLE ${Tables.catalogSuggestionQueue}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL,
+            name TEXT NOT NULL,
+            municipality_id TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
+            UNIQUE(kind, name, municipality_id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.catalogSuggestionQueue}(id,kind,name,created_at)
+          SELECT id,kind,name,created_at FROM catalog_suggestion_queue_v15
+        ''');
+
+        await txn.execute('ALTER TABLE ${Tables.profileLanguages} RENAME TO user_languages_v15');
+        await txn.execute('ALTER TABLE ${Tables.profile} RENAME TO user_profile_v15');
+        await txn.execute('''
+          CREATE TABLE ${Tables.profile}(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            school_id TEXT,
+            pending_school_suggestion_id INTEGER,
+            speaks_languages INTEGER NOT NULL DEFAULT 0,
+            languages_list TEXT NOT NULL DEFAULT '',
+            avatar_config_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id),
+            FOREIGN KEY(pending_school_suggestion_id) REFERENCES ${Tables.catalogSuggestionQueue}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT OR IGNORE INTO ${Tables.catalogSuggestionQueue}(kind,name,municipality_id,created_at)
+          SELECT 'escuela', school, municipality_id, updated_at
+          FROM user_profile_v15
+          WHERE municipality_id IS NOT NULL
+            AND (school_id IS NULL OR school_id IN (SELECT id FROM ${Tables.schools} WHERE municipality_id IS NULL))
+            AND TRIM(school) <> '' AND LOWER(TRIM(school)) NOT IN ('otra escuela','no especificada')
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profile}(
+            id,name,age,gender,school_id,pending_school_suggestion_id,speaks_languages,languages_list,
+            avatar_config_json,created_at,updated_at
+          )
+          SELECT p.id,p.name,p.age,p.gender,
+            CASE WHEN p.school_id IN (SELECT id FROM ${Tables.schools} WHERE municipality_id IS NOT NULL) THEN p.school_id ELSE NULL END,
+            (SELECT q.id FROM ${Tables.catalogSuggestionQueue} q
+              WHERE q.kind='escuela' AND q.name=p.school AND q.municipality_id=p.municipality_id LIMIT 1),
+            p.speaks_languages,p.languages_list,p.avatar_config_json,p.created_at,p.updated_at
+          FROM user_profile_v15 p
+        ''');
+        await txn.execute('''
+          CREATE TABLE ${Tables.profileLanguages}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id TEXT NOT NULL DEFAULT '1',
+            language_id TEXT,
+            type TEXT NOT NULL,
+            custom_name TEXT,
+            FOREIGN KEY(profile_id) REFERENCES ${Tables.profile}(id) ON DELETE CASCADE,
+            FOREIGN KEY(language_id) REFERENCES ${Tables.languages}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profileLanguages}(id,profile_id,language_id,type,custom_name)
+          SELECT id,profile_id,language_id,type,custom_name FROM user_languages_v15
+        ''');
+        await txn.execute('DROP TABLE user_languages_v15');
+        await txn.execute('DROP TABLE user_profile_v15');
+        await txn.execute('DROP TABLE catalog_suggestion_queue_v15');
+      });
+    }
+
   }
 }

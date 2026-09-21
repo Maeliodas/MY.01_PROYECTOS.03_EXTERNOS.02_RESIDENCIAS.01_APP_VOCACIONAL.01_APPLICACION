@@ -31,3 +31,5 @@ flutter:
   assets:
     - assets/avatars/
     - assets/database/
+    - assets/institution/
+    - assets/branding/

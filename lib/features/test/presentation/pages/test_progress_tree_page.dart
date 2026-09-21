@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../../../core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,7 +69,7 @@ class TestProgressTreePage extends ConsumerWidget {
                     ),
                   ),
                   const Text(
-                    'App Vocacional ITTUX',
+                    AppConstants.appName,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -94,14 +95,21 @@ class TestProgressTreePage extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'PROGRESO ACTUAL',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF18A9D3),
-                        letterSpacing: 1,
-                      ),
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'PROGRESO ACTUAL',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF18A9D3),
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.rocket_launch_rounded, color: Color(0xFF18A9D3), size: 30),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -197,7 +205,7 @@ class TestProgressTreePage extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 28),
-                _ActionButton(text: 'Iniciar Test', onTap: continueTest, icon: Icons.explore_rounded),
+                _ActionButton(text: 'Iniciar Test', onTap: continueTest, icon: Icons.play_arrow_rounded),
               ] else ...[
                 _Node(
                   icon: Icons.favorite_rounded,

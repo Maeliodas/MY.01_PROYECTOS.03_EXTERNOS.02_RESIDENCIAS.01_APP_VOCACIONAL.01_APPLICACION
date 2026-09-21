@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../settings/presentation/pages/privacy_page.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/app_back_button.dart';
 
 class _OnboardingItem {
   final String title;
@@ -23,7 +25,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int index = 0;
 
   final pages = const [
-    _OnboardingItem('Tu futuro empieza\naquí', 'Descubre en 5 minutos la carrera del TecNM Tuxtepec que es para ti.', Icons.landscape_rounded, AppColors.primary),
+    _OnboardingItem('Tu futuro empieza\naquí', 'Descubre qué carrera del TecNM Tuxtepec es para ti.', Icons.landscape_rounded, AppColors.primary),
     _OnboardingItem('Aprende sobre ti', 'Evaluamos tus intereses y habilidades con un divertido test.', Icons.lightbulb_rounded, Color(0xFF4DAEED)),
     _OnboardingItem('Logra tus metas', 'Evita la deserción y elige el camino que te apasiona.', Icons.emoji_events_rounded, Color(0xFF8D3DDF)),
   ];
@@ -40,8 +42,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF7FFE8), Color(0xFFF4FAE8), Color(0xFFE8FFF7)]),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: Theme.of(context).brightness == Brightness.dark ? const [Color(0xFF0F160D), Color(0xFF152013), Color(0xFF101B18)] : const [Color(0xFFF7FFE8), Color(0xFFF4FAE8), Color(0xFFE8FFF7)]),
         ),
         child: SafeArea(
           child: Padding(
@@ -51,8 +53,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 Row(
                   children: [
                     if (index > 0)
-                      IconButton(onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut), icon: const Icon(Icons.arrow_back_rounded)),
-                      const Spacer(),
+                      AppBackButton(onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut)),
+                    const Text(AppConstants.appName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))),
+                    const Spacer(),
                     TextButton(onPressed: () => context.go('/choose-avatar'), child: const Text('SALTAR', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: 1))),
                   ],
                 ),
@@ -70,7 +73,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             width: 260,
                             height: 220,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(36),
                               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .15), blurRadius: 28, offset: const Offset(0, 14))],
                             ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../providers/result_provider.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class ResultUnlockedPage extends ConsumerWidget {
   const ResultUnlockedPage({super.key});
@@ -20,7 +21,7 @@ class ResultUnlockedPage extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
               children: [
-                const Text('App Vocacional ITTUX', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))),
+                const Text(AppConstants.appName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF00923F))),
                 const SizedBox(height: 28),
                 Center(child: Container(width: 108, height: 108, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: const Icon(Icons.star_rounded, color: Colors.white, size: 58))),
                 const SizedBox(height: 20),
@@ -56,4 +57,4 @@ class ResultUnlockedPage extends ConsumerWidget {
   }
 }
 class _Tag extends StatelessWidget { final String t; const _Tag(this.t); @override Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: dark ? const Color(0xFF263320) : const Color(0xFFF1F8E8), borderRadius: BorderRadius.circular(10)), child: Text(t, style: TextStyle(fontSize: 11, color: dark ? const Color(0xFFCEE4BC) : const Color(0xFF3B5A27)))); } }
-class _Empty extends StatelessWidget { final VoidCallback onStart; const _Empty({required this.onStart}); @override Widget build(BuildContext context) => Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [Container(width: 110, height: 110, decoration: const BoxDecoration(color: Color(0xFFEAF8D9), shape: BoxShape.circle), child: const Icon(Icons.route_rounded, size: 58, color: AppColors.primary)), const SizedBox(height: 22), const Text('Tu viaje aún no comienza.', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)), const SizedBox(height: 10), Text('Completa el test para desbloquear tus resultados.', textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68))), const SizedBox(height: 26), PrimaryButton(text: 'Iniciar Test', icon: Icons.explore_rounded, onPressed: onStart)]))); }
+class _Empty extends StatelessWidget { final VoidCallback onStart; const _Empty({required this.onStart}); @override Widget build(BuildContext context) => Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [Container(width: 110, height: 110, decoration: const BoxDecoration(color: Color(0xFFEAF8D9), shape: BoxShape.circle), child: const Icon(Icons.route_rounded, size: 58, color: AppColors.primary)), const SizedBox(height: 22), const Text('Tu viaje aún no comienza.', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)), const SizedBox(height: 10), Text('Completa el test para desbloquear tus resultados.', textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68))), const SizedBox(height: 26), PrimaryButton(text: 'Iniciar Test', icon: Icons.play_arrow_rounded, onPressed: onStart)]))); }

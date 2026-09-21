@@ -1,4 +1,4 @@
-# AEVUM ITER V10
+# App Vocacional ITTUX V10
 
 Aplicación Flutter de orientación vocacional RIASEC con operación offline-first, SQLite local, backend Node/Express, MySQL/MariaDB y panel administrativo CRUD.
 

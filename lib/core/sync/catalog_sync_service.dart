@@ -17,7 +17,7 @@ class CatalogSyncService {
   /// Descarga el catálogo maestro del servidor institucional y lo guarda
   /// localmente. Si no hay conexión, se conserva el catálogo SQLite actual.
   Future<bool> sync() async {
-    if (!await NetworkInfo.hasConnection()) return false;
+    if (!await NetworkInfo.hasBackendConnection()) return false;
     await _flushSuggestionQueue();
     final snapshot = await _api.fetchCatalogSnapshot();
     if (snapshot == null) return false;
@@ -32,7 +32,7 @@ class CatalogSyncService {
     final lower = raw.toLowerCase();
     final clean = lower.isEmpty ? '' : lower[0].toUpperCase() + lower.substring(1);
     if (clean.isEmpty) return false;
-    if (await NetworkInfo.hasConnection()) {
+    if (await NetworkInfo.hasBackendConnection()) {
       final sent = await _api.sendCatalogSuggestion(kind: kind, name: clean);
       if (sent) return true;
     }
@@ -45,6 +45,38 @@ class CatalogSyncService {
     return false;
   }
 
+
+  /// Registra una escuela no encontrada asociada a su municipio. La fila local
+  /// se conserva porque user_profile puede referenciarla mientras está pendiente.
+  Future<int?> suggestSchool({required String name, required String municipalityId}) async {
+    final raw = name.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final lower = raw.toLowerCase();
+    final clean = lower.isEmpty ? '' : lower[0].toUpperCase() + lower.substring(1);
+    if (clean.length < 2) return null;
+    final db = await AppDatabase.instance.database;
+    await db.insert(
+      Tables.catalogSuggestionQueue,
+      {
+        'kind': 'escuela',
+        'name': clean,
+        'municipality_id': municipalityId,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+    final rows = await db.query(
+      Tables.catalogSuggestionQueue,
+      columns: ['id'],
+      where: 'kind = ? AND name = ? AND municipality_id = ?',
+      whereArgs: ['escuela', clean, municipalityId],
+      limit: 1,
+    );
+    if (await NetworkInfo.hasBackendConnection()) {
+      await _api.sendCatalogSuggestion(kind: 'escuela', name: clean, municipalityId: municipalityId);
+    }
+    return rows.isEmpty ? null : (rows.first['id'] as num).toInt();
+  }
+
   Future<void> _flushSuggestionQueue() async {
     final db = await AppDatabase.instance.database;
     final rows = await db.query(Tables.catalogSuggestionQueue, orderBy: 'id ASC');
@@ -53,8 +85,9 @@ class CatalogSyncService {
       final kind = row['kind']?.toString() ?? '';
       final name = row['name']?.toString() ?? '';
       if (kind.isEmpty || name.isEmpty) continue;
-      final sent = await _api.sendCatalogSuggestion(kind: kind, name: name);
-      if (sent) await db.delete(Tables.catalogSuggestionQueue, where: 'id = ?', whereArgs: [id]);
+      final municipalityId = row['municipality_id']?.toString();
+      final sent = await _api.sendCatalogSuggestion(kind: kind, name: name, municipalityId: municipalityId);
+      if (sent && kind != 'escuela') await db.delete(Tables.catalogSuggestionQueue, where: 'id = ?', whereArgs: [id]);
     }
   }
 }

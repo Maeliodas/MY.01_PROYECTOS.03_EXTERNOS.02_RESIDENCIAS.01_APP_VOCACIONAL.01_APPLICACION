@@ -49,13 +49,14 @@ class DashboardApi {
   Future<bool> sendCatalogSuggestion({
     required String kind,
     required String name,
+    String? municipalityId,
   }) async {
     try {
       final response = await _client
           .post(
             Uri.parse('${AppConstants.apiBaseUrl}/catalog-suggestions'),
             headers: _headers,
-            body: jsonEncode({'kind': kind, 'name': name}),
+            body: jsonEncode({'kind': kind, 'name': name, if (municipalityId != null) 'municipality_id': municipalityId}),
           )
           .timeout(const Duration(seconds: 10));
       return response.statusCode >= 200 && response.statusCode < 300;

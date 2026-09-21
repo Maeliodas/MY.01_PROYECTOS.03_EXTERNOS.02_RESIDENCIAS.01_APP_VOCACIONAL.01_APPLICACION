@@ -7,6 +7,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../result/presentation/providers/result_provider.dart';
+import '../../../../core/widgets/app_back_button.dart';
 
 class TestHistoryPage extends ConsumerWidget {
   const TestHistoryPage({super.key});
@@ -33,10 +34,7 @@ class TestHistoryPage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(12, 8, 20, 8),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.maybePop(context),
-                      icon: const Icon(Icons.arrow_back_rounded),
-                    ),
+                    AppBackButton(onPressed: () => Navigator.maybePop(context)),
                     const SizedBox(width: 4),
                     const Expanded(
                       child: Text(

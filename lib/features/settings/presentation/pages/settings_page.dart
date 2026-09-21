@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_constants.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
@@ -43,7 +44,42 @@ class SettingsPage extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
-                final ok = await ref.read(catalogSyncServiceProvider).sync();
+                // Pantalla de espera: la descarga por ngrok puede tardar varios
+                // segundos y sin indicador parece que la app se trabó.
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (dialogContext) => AlertDialog(
+                    content: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.8),
+                        ),
+                        const SizedBox(width: 16),
+                        Flexible(
+                          child: Text(
+                            'Actualizando catálogos…',
+                            style: TextStyle(
+                              color: Theme.of(dialogContext).colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+                bool ok = false;
+                try {
+                  ok = await ref.read(catalogSyncServiceProvider).sync();
+                } catch (_) {
+                  ok = false;
+                } finally {
+                  if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+                }
                 if (ok) {
                   ref.invalidate(statesProvider);
                   ref.invalidate(schoolsProvider);
@@ -62,14 +98,14 @@ class SettingsPage extends ConsumerWidget {
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
             child: Column(
               children: [
-                _Info(icon: Icons.lock_outline_rounded, iconColor: const Color(0xFF18A9D3), title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza App Vocacional ITTUX y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
+                _Info(icon: Icons.lock_outline_rounded, iconColor: const Color(0xFF18A9D3), title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza ${AppConstants.appName} y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
                 const Divider(height: 1, indent: 70),
-                const _Info(icon: Icons.help_outline_rounded, iconColor: Color(0xFF7432CE), title: 'Ayuda', subtitle: 'App Vocacional ITTUX · Prototipo funcional'),
+                const _Info(icon: Icons.help_outline_rounded, iconColor: Color(0xFF7432CE), title: 'Ayuda', subtitle: '${AppConstants.appName} · Prototipo funcional'),
               ],
             ),
           ),
           const SizedBox(height: 28),
-          Center(child: Text('App Vocacional ITTUX · TUXTEPEC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .55), letterSpacing: 1.4))),
+          Center(child: Text('${AppConstants.appName} · TUXTEPEC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .55), letterSpacing: 1.4))),
         ],
       ),
     );

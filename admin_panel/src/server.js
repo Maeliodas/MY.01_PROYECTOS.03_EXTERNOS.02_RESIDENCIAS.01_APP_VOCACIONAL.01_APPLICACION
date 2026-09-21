@@ -4,9 +4,24 @@ import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import http from 'http';
+import { Server as SocketServer } from 'socket.io';
+import PDFDocument from 'pdfkit';
 import { pool } from './db.js';
 
 const app = express();
+const server = http.createServer(app);
+const io = new SocketServer(server, {
+  cors: { origin: true, credentials: true },
+  path: '/socket.io',
+});
+
+/** Emite un evento a todos los paneles admin conectados (tiempo real). */
+function notifyAdmins(event, payload = {}) {
+  io.to('admins').emit(event, { ...payload, at: new Date().toISOString() });
+}
+
+
 const port = Number(process.env.PORT ?? 8080);
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
@@ -59,7 +74,7 @@ function validSession(token) {
 }
 function requireAdmin(req, res, next) {
   if (!adminUser || !adminPassword) return next();
-  const token = parseCookies(req).aevum_admin;
+  const token = parseCookies(req).app_vocacional_admin;
   if (token && validSession(token)) return next();
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Sesión administrativa requerida' });
   return res.redirect('/login');
@@ -104,7 +119,7 @@ async function bumpCatalogVersion(connection = pool) {
 
 app.get('/health', async (_req, res) => {
   await pool.query('SELECT 1');
-  res.json({ ok: true, service: 'aevum-iter-panel' });
+  res.json({ ok: true, service: 'app-vocacional-ittux-panel' });
 });
 
 // ---------------------------------------------------------------------------
@@ -117,7 +132,7 @@ app.get('/api/catalogs', requireApiKey, async (_req, res) => {
       pool.query('SELECT version, updated_at FROM catalog_meta WHERE id=1'),
       pool.query('SELECT id,name,active FROM states ORDER BY name'),
       pool.query('SELECT id,state_id,name,active FROM municipalities ORDER BY state_id,name'),
-      pool.query('SELECT id,name,state_id,municipality_id,type,active FROM schools ORDER BY name'),
+      pool.query('SELECT id,name,municipality_id,type,active FROM schools ORDER BY name'),
       pool.query('SELECT id,name,kind,active FROM languages ORDER BY kind,name'),
       pool.query('SELECT id,text,dimension,position,related_career_id,active FROM questions ORDER BY position,id'),
       pool.query('SELECT id,name,description,holland_code,department,website_url,active FROM careers ORDER BY name'),
@@ -148,20 +163,22 @@ app.get('/api/catalogs', requireApiKey, async (_req, res) => {
 app.post('/api/catalog-suggestions', requireApiKey, async (req, res) => {
   const kind = req.body?.kind;
   const name = normalizeDisplayName(req.body?.name);
-  if (!['lengua', 'idioma'].includes(kind) || name.length < 2 || name.length > 120) {
+  const municipalityId = req.body?.municipality_id ? String(req.body.municipality_id) : null;
+  if (!['lengua', 'idioma', 'escuela'].includes(kind) || name.length < 2 || name.length > 200 || (kind === 'escuela' && !municipalityId)) {
     return res.status(400).json({ error: 'Sugerencia inválida' });
   }
   try {
-    const [existing] = await pool.execute(
-      'SELECT id FROM languages WHERE kind=? AND LOWER(name)=LOWER(?) LIMIT 1',
-      [kind, name],
-    );
+    const existingSql = kind === 'escuela'
+      ? 'SELECT id FROM schools WHERE municipality_id=? AND LOWER(name)=LOWER(?) LIMIT 1'
+      : 'SELECT id FROM languages WHERE kind=? AND LOWER(name)=LOWER(?) LIMIT 1';
+    const [existing] = await pool.execute(existingSql, [kind === 'escuela' ? municipalityId : kind, name]);
     if (existing.length) return res.status(200).json({ ok: true, already_exists: true });
     await pool.execute(
-      `INSERT INTO catalog_suggestions(kind,name,status) VALUES(?,?,'pending')
+      `INSERT INTO catalog_suggestions(kind,name,municipality_id,status) VALUES(?,?,?,'pending')
        ON DUPLICATE KEY UPDATE created_at=created_at`,
-      [kind, name],
+      [kind, name, kind === 'escuela' ? municipalityId : null],
     );
+    notifyAdmins('suggestion-created', { kind, name });
     res.status(201).json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -185,15 +202,23 @@ app.post('/api/evaluations', requireApiKey, async (req, res) => {
       await connection.rollback();
       return res.status(200).json({ ok: true, duplicated: true });
     }
+    let schoolSuggestionId = null;
+    if (!student.school_id && student.pending_school?.name && student.pending_school?.municipality_id) {
+      await connection.execute(
+        `INSERT INTO catalog_suggestions(kind,name,municipality_id,status) VALUES('escuela',?,?,'pending')
+         ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)`,
+        [normalizeDisplayName(student.pending_school.name), student.pending_school.municipality_id],
+      );
+      const [suggestionRows] = await connection.execute(
+        `SELECT id FROM catalog_suggestions WHERE kind='escuela' AND LOWER(name)=LOWER(?) AND municipality_id=? AND status='pending' LIMIT 1`,
+        [normalizeDisplayName(student.pending_school.name), student.pending_school.municipality_id],
+      );
+      schoolSuggestionId = suggestionRows[0]?.id ?? null;
+    }
     const [studentInsert] = await connection.execute(
-      `INSERT INTO students
-      (local_profile_id,name,age,gender,state_id,state_name,municipality_id,municipality_name,school_id,school_name)
-      VALUES (?,?,?,?,?,?,?,?,?,?)`,
-      [
-        student.local_profile_id ?? null, student.name, Number(student.age), student.gender ?? null,
-        student.state_id ?? null, student.state ?? null, student.municipality_id ?? null,
-        student.municipality ?? null, student.school_id ?? null, student.school ?? null,
-      ],
+      `INSERT INTO students (local_profile_id,name,age,gender,school_id,school_suggestion_id)
+       VALUES (?,?,?,?,?,?)`,
+      [student.local_profile_id ?? null, student.name, Number(student.age), student.gender ?? null, student.school_id ?? null, schoolSuggestionId],
     );
     for (const name of Array.isArray(student.languages) ? student.languages : []) {
       await connection.execute('INSERT INTO student_languages (student_id, kind, name) VALUES (?, ?, ?)', [studentInsert.insertId, 'lengua', String(name)]);
@@ -231,6 +256,17 @@ app.post('/api/evaluations', requireApiKey, async (req, res) => {
       }
     }
     await connection.commit();
+    // Notificar en tiempo real a los paneles admin conectados
+    notifyAdmins('new-evaluation', {
+      id: evaluationInsert.insertId,
+      result_id: body.result_id,
+      holland_code: result.holland_code ?? '',
+      top_career_name: result.top_career_name,
+      school_name: student.school ?? null,
+      state_name: student.state ?? null,
+      municipality_name: student.municipality ?? null,
+      completed_at: body.completed_at ?? new Date().toISOString(),
+    });
     res.status(201).json({ ok: true });
   } catch (error) {
     await connection.rollback();
@@ -245,8 +281,8 @@ function buildEvaluationFilter(query) {
   const clauses = [];
   const params = [];
   const push = (sql, value) => { if (value) { clauses.push(sql); params.push(value); } };
-  push('s.state_id = ?', query.state);
-  push('s.municipality_id = ?', query.municipality);
+  push('COALESCE(st.id, pst.id) = ?', query.state);
+  push('COALESCE(m.id, pm.id) = ?', query.municipality);
   push('s.school_id = ?', query.school);
   push('e.holland_code = ?', query.profile);
   push('e.top_career_id = ?', query.career);
@@ -257,16 +293,23 @@ function buildEvaluationFilter(query) {
 
 async function dashboardData(query = {}) {
   const { where, params } = buildEvaluationFilter(query);
-  const base = 'FROM evaluations e JOIN students s ON s.id=e.student_id';
+  const base = `FROM evaluations e
+    JOIN students s ON s.id=e.student_id
+    LEFT JOIN schools sc ON sc.id=s.school_id
+    LEFT JOIN municipalities m ON m.id=sc.municipality_id
+    LEFT JOIN states st ON st.id=m.state_id
+    LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela'
+    LEFT JOIN municipalities pm ON pm.id=cs.municipality_id
+    LEFT JOIN states pst ON pst.id=pm.state_id`;
   const [[totals]] = await pool.query(
-    `SELECT COUNT(*) total_evaluations, COUNT(DISTINCT s.school_name) schools,
+    `SELECT COUNT(*) total_evaluations, COUNT(DISTINCT COALESCE(sc.name,cs.name)) schools,
             ROUND(AVG(e.top_career_affinity),1) average_affinity,
             COUNT(DISTINCT e.holland_code) profiles ${base} ${where}`,
     params,
   );
   const [careers] = await pool.query(`SELECT e.top_career_name label, COUNT(*) value ${base} ${where} GROUP BY e.top_career_name ORDER BY value DESC LIMIT 10`, params);
-  const [schools] = await pool.query(`SELECT COALESCE(s.school_name,'No especificada') label, COUNT(*) value ${base} ${where} GROUP BY s.school_name ORDER BY value DESC LIMIT 10`, params);
-  const [provenance] = await pool.query(`SELECT CONCAT(COALESCE(s.municipality_name,'No especificado'), ', ', COALESCE(s.state_name,'No especificado')) label, COUNT(*) value ${base} ${where} GROUP BY s.municipality_name,s.state_name ORDER BY value DESC LIMIT 10`, params);
+  const [schools] = await pool.query(`SELECT COALESCE(sc.name,cs.name,'No especificada') label, COUNT(*) value ${base} ${where} GROUP BY COALESCE(sc.name,cs.name,'No especificada') ORDER BY value DESC LIMIT 10`, params);
+  const [provenance] = await pool.query(`SELECT CONCAT(COALESCE(m.name,pm.name,'No especificado'), ', ', COALESCE(st.name,pst.name,'No especificado')) label, COUNT(*) value ${base} ${where} GROUP BY CONCAT(COALESCE(m.name,pm.name,'No especificado'), ', ', COALESCE(st.name,pst.name,'No especificado')) ORDER BY value DESC LIMIT 10`, params);
   const [profiles] = await pool.query(`SELECT e.holland_code label, COUNT(*) value ${base} ${where} GROUP BY e.holland_code ORDER BY value DESC LIMIT 10`, params);
   const [affinity] = await pool.query(
     `SELECT CASE WHEN e.top_career_affinity < 50 THEN 'Menos de 50%' WHEN e.top_career_affinity < 65 THEN '50–64%' WHEN e.top_career_affinity < 80 THEN '65–79%' WHEN e.top_career_affinity < 90 THEN '80–89%' ELSE '90–100%' END label,
@@ -280,12 +323,16 @@ async function dashboardData(query = {}) {
   const [languages] = await pool.query(
     `SELECT sl.name label, COUNT(*) value FROM student_languages sl
      JOIN students s ON s.id=sl.student_id JOIN evaluations e ON e.student_id=s.id
+     LEFT JOIN schools sc ON sc.id=s.school_id LEFT JOIN municipalities m ON m.id=sc.municipality_id LEFT JOIN states st ON st.id=m.state_id
+     LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela' LEFT JOIN municipalities pm ON pm.id=cs.municipality_id LEFT JOIN states pst ON pst.id=pm.state_id
      WHERE sl.kind='lengua' ${languageFilter} GROUP BY sl.name ORDER BY value DESC,sl.name LIMIT 10`,
     params,
   );
   const [idioms] = await pool.query(
     `SELECT sl.name label, COUNT(*) value FROM student_languages sl
      JOIN students s ON s.id=sl.student_id JOIN evaluations e ON e.student_id=s.id
+     LEFT JOIN schools sc ON sc.id=s.school_id LEFT JOIN municipalities m ON m.id=sc.municipality_id LEFT JOIN states st ON st.id=m.state_id
+     LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela' LEFT JOIN municipalities pm ON pm.id=cs.municipality_id LEFT JOIN states pst ON pst.id=pm.state_id
      WHERE sl.kind='idioma' ${languageFilter} GROUP BY sl.name ORDER BY value DESC,sl.name LIMIT 10`,
     params,
   );
@@ -293,7 +340,7 @@ async function dashboardData(query = {}) {
   // Esto evita que una evaluación válida desaparezca del panel por diferencias
   // de SQL mode o por no tener lenguas/idiomas asociados.
   const [recentEvaluations] = await pool.query(
-    `SELECT e.id,s.state_name,s.municipality_name,s.school_name,e.holland_code,
+    `SELECT e.id,COALESCE(st.name,pst.name) state_name,COALESCE(m.name,pm.name) municipality_name,COALESCE(sc.name,cs.name) school_name,e.holland_code,
             e.top_career_name,e.top_career_affinity,e.completed_at,
             (SELECT GROUP_CONCAT(DISTINCT sl.name ORDER BY sl.name SEPARATOR ', ')
                FROM student_languages sl WHERE sl.student_id=s.id AND sl.kind='lengua') lenguas,
@@ -329,12 +376,12 @@ async function catalogAdminData() {
     pool.query('SELECT version,updated_at FROM catalog_meta WHERE id=1'),
     pool.query('SELECT * FROM states ORDER BY active DESC,name'),
     pool.query(`SELECT m.*,s.name state_name FROM municipalities m JOIN states s ON s.id=m.state_id ORDER BY m.active DESC,s.name,m.name`),
-    pool.query(`SELECT sc.*,s.name state_name,m.name municipality_name FROM schools sc LEFT JOIN states s ON s.id=sc.state_id LEFT JOIN municipalities m ON m.id=sc.municipality_id ORDER BY sc.active DESC,sc.name`),
+    pool.query(`SELECT sc.*,m.state_id,s.name state_name,m.name municipality_name FROM schools sc LEFT JOIN municipalities m ON m.id=sc.municipality_id LEFT JOIN states s ON s.id=m.state_id ORDER BY sc.active DESC,sc.name`),
     pool.query('SELECT * FROM languages ORDER BY active DESC,kind,name'),
     pool.query('SELECT * FROM careers ORDER BY active DESC,name'),
     pool.query('SELECT * FROM department_open_questions ORDER BY department'),
     pool.query('SELECT * FROM questions ORDER BY active DESC,position,id'),
-    pool.query("SELECT * FROM catalog_suggestions ORDER BY FIELD(status,'pending','approved','rejected'),created_at DESC LIMIT 200"),
+    pool.query("SELECT cs.*,m.name municipality_name,st.name state_name FROM catalog_suggestions cs LEFT JOIN municipalities m ON m.id=cs.municipality_id LEFT JOIN states st ON st.id=m.state_id ORDER BY FIELD(cs.status,'pending','approved','rejected'),cs.created_at DESC LIMIT 200"),
     pool.query('SELECT career_id,dimension,weight FROM career_riasec_weights'),
     pool.query('SELECT career_id,question_id FROM career_questions ORDER BY question_id'),
   ]);
@@ -365,11 +412,11 @@ app.post('/login', (req, res) => {
   const user = String(req.body.user ?? '');
   const password = String(req.body.password ?? '');
   if (user !== adminUser || password !== adminPassword) return res.status(401).render('login', { error: 'Usuario o contraseña incorrectos.' });
-  res.setHeader('Set-Cookie', `aevum_admin=${encodeURIComponent(sessionToken())}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800`);
+  res.setHeader('Set-Cookie', `app_vocacional_admin=${encodeURIComponent(sessionToken())}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800`);
   res.redirect('/');
 });
 app.post('/logout', (_req, res) => {
-  res.setHeader('Set-Cookie', 'aevum_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+  res.setHeader('Set-Cookie', 'app_vocacional_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
   res.redirect('/login');
 });
 
@@ -386,7 +433,7 @@ app.get('/', requireAdmin, async (req, res) => {
 const simpleCatalogs = {
   states: { table: 'states', fields: ['id','name','active'] },
   municipalities: { table: 'municipalities', fields: ['id','state_id','name','active'] },
-  schools: { table: 'schools', fields: ['id','name','state_id','municipality_id','type','active'] },
+  schools: { table: 'schools', fields: ['id','name','municipality_id','type','active'] },
   languages: { table: 'languages', fields: ['id','name','kind','active'] },
 };
 
@@ -452,6 +499,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
         await connection.rollback();
         throw error;
       } finally { connection.release(); }
+      notifyAdmins('catalog-updated', { type: 'careers', action: 'create', id });
       return res.status(201).json({ ok: true, id });
     }
     if (type === 'questions') {
@@ -467,6 +515,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
         const position = Number(req.body.position) || Number(maxRow.max_position) + 1;
         await connection.execute('INSERT INTO questions(id,text,dimension,position,related_career_id,active) VALUES(?,?,?,?,?,?)', [id,text,dimension,position,related,Number(req.body.active ?? 1)]);
         await bumpCatalogVersion(connection);
+        notifyAdmins('catalog-updated', { type: 'questions', action: 'create', id });
         return res.status(201).json({ok:true,id});
       } finally { connection.release(); }
     }
@@ -477,6 +526,7 @@ app.post('/api/admin/catalog/:type', requireAdmin, async (req, res) => {
     const fields = Object.keys(values);
     await pool.execute(`INSERT INTO ${cfg.table} (${fields.join(',')}) VALUES (${fields.map(()=>'?').join(',')})`, fields.map(f => values[f]));
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'create', id: values.id });
     res.status(201).json({ ok: true, id: values.id });
   } catch (error) {
     console.error(error);
@@ -516,6 +566,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
         await connection.rollback();
         throw error;
       } finally { connection.release(); }
+      notifyAdmins('catalog-updated', { type: 'careers', action: 'update', id: req.params.id });
       return res.json({ ok: true });
     }
     if (type === 'questions') {
@@ -528,6 +579,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
         const related = await validateRelatedCareer(connection, req.body.related_career_id || null);
         await connection.execute('UPDATE questions SET text=?,dimension=?,position=?,related_career_id=?,active=? WHERE id=?', [text,dimension,Number(req.body.position)||1,related,Number(req.body.active ?? 1),id]);
         await bumpCatalogVersion(connection);
+        notifyAdmins('catalog-updated', { type: 'questions', action: 'update', id });
         return res.json({ok:true});
       } finally { connection.release(); }
     }
@@ -538,6 +590,7 @@ app.put('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
     if (!fields.length) return res.status(400).json({ error: 'Sin cambios' });
     await pool.execute(`UPDATE ${cfg.table} SET ${fields.map(f=>`${f}=?`).join(',')} WHERE id=?`, [...fields.map(f => values[f]), id]);
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'update', id });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -558,6 +611,7 @@ app.put('/api/admin/department-questions/:department', requireAdmin, async (req,
       [department, questionText],
     );
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type: 'department-questions', action: 'update', department });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -573,6 +627,7 @@ app.delete('/api/admin/catalog/:type/:id', requireAdmin, async (req, res) => {
     // Baja lógica: la app recibe active=0 y deja de mostrar el registro sin romper históricos.
     await pool.execute(`UPDATE ${cfg.table} SET active=0 WHERE id=?`, [req.params.id]);
     await bumpCatalogVersion();
+    notifyAdmins('catalog-updated', { type, action: 'delete', id: req.params.id });
     res.json({ ok: true });
   } catch (error) {
     console.error(error);
@@ -591,16 +646,34 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
     const item = rows[0];
     if (action === 'approve') {
       const id = `${item.kind}_${slug(item.name)}_${String(item.id).padStart(3,'0')}`.slice(0,80);
-      await connection.execute(
-        'INSERT INTO languages(id,name,kind,active) VALUES(?,?,?,1) ON DUPLICATE KEY UPDATE active=1',
-        [id, item.name, item.kind],
-      );
+      if (item.kind === 'escuela') {
+        await connection.execute(
+          'INSERT INTO schools(id,name,municipality_id,active) VALUES(?,?,?,1) ON DUPLICATE KEY UPDATE active=1',
+          [id, item.name, item.municipality_id],
+        );
+        await connection.execute('UPDATE students SET school_id=?, school_suggestion_id=NULL WHERE school_suggestion_id=?', [id, item.id]);
+      } else {
+        await connection.execute(
+          'INSERT INTO languages(id,name,kind,active) VALUES(?,?,?,1) ON DUPLICATE KEY UPDATE active=1',
+          [id, item.name, item.kind],
+        );
+      }
       await connection.execute("UPDATE catalog_suggestions SET status='approved',reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [item.id]);
       await bumpCatalogVersion(connection);
     } else {
       await connection.execute("UPDATE catalog_suggestions SET status='rejected',reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [item.id]);
     }
     await connection.commit();
+    notifyAdmins('suggestion-updated', {
+      id: item.id,
+      action,
+      kind: item.kind,
+      name: item.name,
+      catalogChanged: action === 'approve',
+    });
+    if (action === 'approve') {
+      notifyAdmins('catalog-updated', { type: item.kind === 'escuela' ? 'schools' : 'languages', action: 'create', name: item.name });
+    }
     res.json({ ok: true });
   } catch (error) {
     await connection.rollback();
@@ -609,6 +682,438 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
   } finally { connection.release(); }
 });
 
-app.listen(port, '0.0.0.0', () => {
+
+// ─── Estado en vivo + sugerencias (refresco sin recargar la página) ─────────
+app.get('/api/admin/live-state', requireAdmin, async (req, res) => {
+  try {
+    const [metaResult, pendingResult, totalsResult] = await Promise.all([
+      pool.query('SELECT version, updated_at FROM catalog_meta WHERE id=1'),
+      pool.query("SELECT COUNT(*) AS c FROM catalog_suggestions WHERE status='pending'"),
+      pool.query(`SELECT COUNT(*) total_evaluations,
+                         COUNT(DISTINCT COALESCE(sc.name,cs.name)) schools,
+                         COUNT(DISTINCT e.holland_code) profiles,
+                         ROUND(AVG(e.top_career_affinity),1) average_affinity
+                    FROM evaluations e JOIN students s ON s.id=e.student_id LEFT JOIN schools sc ON sc.id=s.school_id LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id`),
+    ]);
+    const meta = metaResult[0][0] ?? {};
+    const pending = pendingResult[0][0] ?? {};
+    const totals = totalsResult[0][0] ?? {};
+    res.json({
+      catalogVersion: meta.version ?? 1,
+      catalogUpdatedAt: meta.updated_at ?? null,
+      pendingSuggestions: Number(pending.c ?? 0),
+      totals: {
+        total_evaluations: Number(totals.total_evaluations ?? 0),
+        schools: Number(totals.schools ?? 0),
+        profiles: Number(totals.profiles ?? 0),
+        average_affinity: totals.average_affinity != null ? Number(totals.average_affinity) : null,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No fue posible obtener el estado en vivo' });
+  }
+});
+
+app.get('/api/admin/suggestions', requireAdmin, async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT cs.id, cs.kind, cs.name, cs.municipality_id, m.name municipality_name, st.name state_name, cs.status, cs.created_at, cs.reviewed_at FROM catalog_suggestions cs LEFT JOIN municipalities m ON m.id=cs.municipality_id LEFT JOIN states st ON st.id=m.state_id ORDER BY FIELD(status,'pending','approved','rejected'), created_at DESC LIMIT 200",
+    );
+    res.json({ suggestions: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No fue posible listar sugerencias' });
+  }
+});
+
+// ─── Reporte PDF (plantilla formal + gráficos + encabezado/pie) ───────────────
+app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
+  try {
+    const data = await dashboardData(req.query);
+    const filters = req.query ?? {};
+
+    // Resolver nombres legibles de filtros (si vienen como id)
+    let filterLabels = {
+      state: filters.state || null,
+      municipality: filters.municipality || null,
+      school: filters.school || null,
+      profile: filters.profile || null,
+      career: filters.career || null,
+      from: filters.from || null,
+      to: filters.to || null,
+    };
+    try {
+      if (filters.state) {
+        const [[r]] = await pool.query('SELECT name FROM states WHERE id=? LIMIT 1', [filters.state]);
+        if (r?.name) filterLabels.state = r.name;
+      }
+      if (filters.municipality) {
+        const [[r]] = await pool.query('SELECT name FROM municipalities WHERE id=? LIMIT 1', [filters.municipality]);
+        if (r?.name) filterLabels.municipality = r.name;
+      }
+      if (filters.school) {
+        const [[r]] = await pool.query('SELECT name FROM schools WHERE id=? LIMIT 1', [filters.school]);
+        if (r?.name) filterLabels.school = r.name;
+      }
+      if (filters.career) {
+        const [[r]] = await pool.query('SELECT name FROM careers WHERE id=? LIMIT 1', [filters.career]);
+        if (r?.name) filterLabels.career = r.name;
+      }
+    } catch (_) { /* nombres opcionales */ }
+
+    const doc = new PDFDocument({
+      size: 'A4',
+      bufferPages: true,
+      margins: { top: 90, bottom: 70, left: 50, right: 50 },
+      info: {
+        Title: 'Reporte de orientación vocacional — App Vocacional ITTUX',
+        Author: 'Instituto Tecnológico de Tuxtepec',
+        Subject: 'Estadísticas de evaluaciones RIASEC filtradas',
+        Creator: 'App Vocacional ITTUX Admin Panel',
+      },
+    });
+    const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    doc.pipe(res);
+
+    const GREEN = '#00923f';
+    const INK = '#1a2420';
+    const MUTED = '#5a6b62';
+    const LINE = '#c5d0c8';
+    const BAR = '#00923f';
+    const BAR_BG = '#e8f0eb';
+    const pageW = doc.page.width;
+    const pageH = doc.page.height;
+    const marginL = 50;
+    const marginR = 50;
+    const contentW = pageW - marginL - marginR;
+
+    const generatedAt = new Date().toLocaleString('es-MX', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+
+    function drawHeader() {
+      doc.save();
+      // franja superior
+      doc.rect(0, 0, pageW, 64).fill(GREEN);
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(13)
+        .text('INSTITUTO TECNOLÓGICO DE TUXTEPEC', marginL, 14, { width: contentW, align: 'left' });
+      doc.font('Helvetica').fontSize(9)
+        .text('App Vocacional ITTUX  ·  Panel de orientación vocacional', marginL, 32, { width: contentW });
+      doc.font('Helvetica').fontSize(8)
+        .text('Documento oficial de resultados', marginL, 46, { width: contentW });
+      // línea decorativa
+      doc.rect(0, 64, pageW, 3).fill('#d3d5bd');
+      doc.restore();
+      doc.y = 90;
+    }
+
+    function drawFooter() {
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(range.start + i);
+        doc.save();
+        doc.strokeColor(LINE).lineWidth(0.6)
+          .moveTo(marginL, pageH - 48)
+          .lineTo(pageW - marginR, pageH - 48)
+          .stroke();
+        doc.fillColor(MUTED).font('Helvetica').fontSize(8);
+        doc.text(
+          'Confidencial — uso institucional · Generado automáticamente por el panel administrativo',
+          marginL,
+          pageH - 40,
+          { width: contentW * 0.72, align: 'left' },
+        );
+        doc.text(
+          `Página ${i + 1} de ${range.count}`,
+          marginL,
+          pageH - 40,
+          { width: contentW, align: 'right' },
+        );
+        doc.restore();
+      }
+    }
+
+    function ensureSpace(needed = 80) {
+      if (doc.y + needed > pageH - 70) {
+        doc.addPage();
+        drawHeader();
+      }
+    }
+
+    function sectionTitle(title) {
+      ensureSpace(36);
+      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(12).text(title, marginL, doc.y, { width: contentW });
+      doc.moveDown(0.25);
+      doc.strokeColor(LINE).lineWidth(0.8)
+        .moveTo(marginL, doc.y)
+        .lineTo(marginL + contentW, doc.y)
+        .stroke();
+      doc.moveDown(0.6);
+      doc.fillColor(INK);
+    }
+
+    function formalParagraph(text) {
+      ensureSpace(40);
+      doc.fillColor(INK).font('Helvetica').fontSize(10).text(text, marginL, doc.y, {
+        width: contentW,
+        align: 'justify',
+        lineGap: 2,
+      });
+      doc.moveDown(0.7);
+    }
+
+    /** Gráfico de barras horizontales dibujado con primitivas PDFKit */
+    function drawBarChart(title, rows, { maxBars = 8, barHeight = 14, gap = 8 } = {}) {
+      const series = (rows || []).slice(0, maxBars).filter(r => r && r.label != null);
+      ensureSpace(60 + series.length * (barHeight + gap));
+      doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(title, marginL, doc.y, { width: contentW });
+      doc.moveDown(0.4);
+
+      if (!series.length) {
+        doc.fillColor(MUTED).font('Helvetica-Oblique').fontSize(9)
+          .text('Sin datos para los filtros seleccionados.', marginL, doc.y);
+        doc.moveDown(0.8);
+        return;
+      }
+
+      const maxVal = Math.max(...series.map(r => Number(r.value) || 0), 1);
+      const labelW = 150;
+      const valueW = 36;
+      const barMaxW = contentW - labelW - valueW - 12;
+      let y = doc.y;
+
+      for (const row of series) {
+        ensureSpace(barHeight + gap + 8);
+        y = doc.y;
+        const val = Number(row.value) || 0;
+        const w = Math.max(2, (val / maxVal) * barMaxW);
+        const label = String(row.label).slice(0, 42);
+
+        doc.fillColor(INK).font('Helvetica').fontSize(8)
+          .text(label, marginL, y + 2, { width: labelW, ellipsis: true });
+
+        // fondo de barra
+        doc.roundedRect(marginL + labelW + 6, y, barMaxW, barHeight, 3).fill(BAR_BG);
+        // valor
+        doc.roundedRect(marginL + labelW + 6, y, w, barHeight, 3).fill(BAR);
+
+        doc.fillColor(INK).font('Helvetica-Bold').fontSize(8)
+          .text(String(val), marginL + labelW + 6 + barMaxW + 6, y + 2, { width: valueW });
+
+        doc.y = y + barHeight + gap;
+      }
+      doc.moveDown(0.5);
+    }
+
+    function kpiRow(totals) {
+      ensureSpace(70);
+      const items = [
+        { label: 'Evaluaciones', value: String(totals.total_evaluations ?? 0) },
+        { label: 'Escuelas', value: String(totals.schools ?? 0) },
+        { label: 'Perfiles Holland', value: String(totals.profiles ?? 0) },
+        {
+          label: 'Afinidad media',
+          value: totals.average_affinity != null ? `${totals.average_affinity}%` : '—',
+        },
+      ];
+      const boxW = (contentW - 18) / 4;
+      const y = doc.y;
+      items.forEach((item, i) => {
+        const x = marginL + i * (boxW + 6);
+        doc.roundedRect(x, y, boxW, 48, 4).fill('#f4f7f5');
+        doc.fillColor(MUTED).font('Helvetica').fontSize(7)
+          .text(item.label.toUpperCase(), x + 8, y + 8, { width: boxW - 16 });
+        doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(14)
+          .text(item.value, x + 8, y + 22, { width: boxW - 16 });
+      });
+      doc.y = y + 56;
+      doc.moveDown(0.3);
+    }
+
+    // ── Página 1: portada / introducción ────────────────────────────────────
+    drawHeader();
+
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(16)
+      .text('Reporte de orientación vocacional', marginL, doc.y, { width: contentW });
+    doc.moveDown(0.3);
+    doc.fillColor(MUTED).font('Helvetica').fontSize(9)
+      .text(`Fecha de emisión: ${generatedAt}`, marginL, doc.y, { width: contentW });
+    doc.moveDown(0.8);
+
+    sectionTitle('1. Alcance del reporte');
+
+    const scopeParts = [];
+    if (filterLabels.state) scopeParts.push(`entidad federativa «${filterLabels.state}»`);
+    if (filterLabels.municipality) scopeParts.push(`municipio «${filterLabels.municipality}»`);
+    if (filterLabels.school) scopeParts.push(`plantel «${filterLabels.school}»`);
+    if (filterLabels.profile) scopeParts.push(`código Holland «${filterLabels.profile}»`);
+    if (filterLabels.career) scopeParts.push(`carrera principal «${filterLabels.career}»`);
+    if (filterLabels.from || filterLabels.to) {
+      const a = filterLabels.from || 'inicio';
+      const b = filterLabels.to || 'fecha actual';
+      scopeParts.push(`periodo del ${a} al ${b}`);
+    }
+
+    const scopeText = scopeParts.length
+      ? `El presente documento consolida los resultados de las evaluaciones vocacionales (modelo RIASEC / Holland) registradas en el sistema App Vocacional ITTUX, limitados a los siguientes criterios de filtrado: ${scopeParts.join('; ')}.`
+      : 'El presente documento consolida los resultados de las evaluaciones vocacionales (modelo RIASEC / Holland) registradas en el sistema App Vocacional ITTUX, sin criterios de filtrado adicionales: se incluyen todos los registros disponibles en la base de datos al momento de la generación.';
+
+    formalParagraph(scopeText);
+    formalParagraph(
+      'La información se presenta con fines de análisis institucional y toma de decisiones en materia de orientación educativa. Los datos personales de los estudiantes no se exponen de forma nominativa en este reporte; las cifras corresponden a agregados estadísticos y a registros anonimizados o seudonimizados según la configuración del panel.',
+    );
+
+    sectionTitle('2. Indicadores generales');
+    formalParagraph(
+      'A continuación se resumen los indicadores principales derivados del conjunto de evaluaciones que cumplen los filtros indicados. La afinidad media expresa el promedio del porcentaje de coincidencia entre el perfil RIASEC del estudiante y la carrera recomendada en primer lugar.',
+    );
+    kpiRow(data.totals ?? {});
+
+    sectionTitle('3. Distribución de carreras recomendadas');
+    formalParagraph(
+      'La gráfica muestra las carreras con mayor frecuencia como recomendación principal. Cada barra representa el número de evaluaciones en las que dicha carrera ocupó el primer lugar del ranking individual.',
+    );
+    drawBarChart('Carreras más recomendadas', data.careers, { maxBars: 10 });
+
+    sectionTitle('4. Perfiles RIASEC (códigos Holland)');
+    formalParagraph(
+      'Los códigos Holland agrupan las tres dimensiones RIASEC predominantes de cada evaluación (Realista, Investigador, Artístico, Social, Emprendedor, Convencional). La distribución permite identificar los perfiles vocacionales más frecuentes en la población filtrada.',
+    );
+    drawBarChart('Frecuencia de códigos Holland', data.profiles, { maxBars: 10 });
+
+    sectionTitle('5. Afinidad con la carrera principal');
+    formalParagraph(
+      'Se agrupan las evaluaciones según el intervalo de afinidad porcentual respecto a la carrera recomendada en primer lugar. Intervalos altos sugieren una coincidencia sólida entre intereses del estudiante y la oferta formativa sugerida.',
+    );
+    drawBarChart('Distribución por rango de afinidad', data.affinity, { maxBars: 6 });
+
+    sectionTitle('6. Planteles y procedencia');
+    formalParagraph(
+      'Se detalla la participación por escuela de procedencia y por municipio/estado, útil para contrastar cobertura territorial y carga de orientación por plantel.',
+    );
+    drawBarChart('Evaluaciones por escuela', data.schools, { maxBars: 8 });
+    drawBarChart('Evaluaciones por municipio / estado', data.provenance, { maxBars: 8 });
+
+    if ((data.languages ?? []).length || (data.idioms ?? []).length) {
+      sectionTitle('7. Lenguas originarias e idiomas');
+      formalParagraph(
+        'Cuando los estudiantes declararon lenguas originarias o idiomas adicionales, se resume su frecuencia en el conjunto filtrado. Estos datos contextualizan la diversidad lingüística de la población atendida.',
+      );
+      if ((data.languages ?? []).length) {
+        drawBarChart('Lenguas originarias declaradas', data.languages, { maxBars: 8 });
+      }
+      if ((data.idioms ?? []).length) {
+        drawBarChart('Idiomas declarados', data.idioms, { maxBars: 8 });
+      }
+    }
+
+    sectionTitle('8. Registro detallado de evaluaciones recientes');
+    formalParagraph(
+      'Se listan hasta cuarenta evaluaciones más recientes que cumplen los filtros. Cada fila indica procedencia, plantel, código Holland, carrera principal recomendada, afinidad y fecha de conclusión. Las respuestas abiertas complementarias, de existir, se indican de forma resumida.',
+    );
+
+    const evalRows = (data.evaluations ?? []).slice(0, 40);
+    if (!evalRows.length) {
+      doc.fillColor(MUTED).font('Helvetica-Oblique').fontSize(9)
+        .text('No hay evaluaciones para los filtros seleccionados.', marginL, doc.y);
+    } else {
+      // encabezado de tabla
+      ensureSpace(30);
+      const cols = [
+        { key: 'fecha', w: 62, title: 'Fecha' },
+        { key: 'lugar', w: 110, title: 'Municipio / Edo.' },
+        { key: 'escuela', w: 100, title: 'Escuela' },
+        { key: 'holland', w: 40, title: 'Holland' },
+        { key: 'carrera', w: 120, title: 'Carrera principal' },
+        { key: 'afinidad', w: 48, title: 'Afinidad' },
+      ];
+      const headerY = doc.y;
+      doc.rect(marginL, headerY, contentW, 16).fill('#e8f0eb');
+      let x = marginL + 3;
+      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(7);
+      for (const c of cols) {
+        doc.text(c.title, x, headerY + 4, { width: c.w - 4 });
+        x += c.w;
+      }
+      doc.y = headerY + 18;
+
+      doc.font('Helvetica').fontSize(7).fillColor(INK);
+      for (const row of evalRows) {
+        ensureSpace(22);
+        const fecha = row.completed_at
+          ? new Date(row.completed_at).toLocaleDateString('es-MX')
+          : '—';
+        const lugar = `${row.municipality_name ?? '—'}, ${row.state_name ?? '—'}`.slice(0, 40);
+        const escuela = String(row.school_name ?? '—').slice(0, 36);
+        const holland = String(row.holland_code ?? '—');
+        const carrera = String(row.top_career_name ?? '—').slice(0, 42);
+        const afinidad = `${Number(row.top_career_affinity ?? 0).toFixed(1)}%`;
+        const values = [fecha, lugar, escuela, holland, carrera, afinidad];
+        const rowY = doc.y;
+        x = marginL + 3;
+        values.forEach((v, i) => {
+          doc.fillColor(INK).text(v, x, rowY, { width: cols[i].w - 4, ellipsis: true });
+          x += cols[i].w;
+        });
+        doc.y = rowY + 12;
+        doc.strokeColor(LINE).lineWidth(0.3)
+          .moveTo(marginL, doc.y)
+          .lineTo(marginL + contentW, doc.y)
+          .stroke();
+        doc.moveDown(0.25);
+      }
+    }
+
+    doc.moveDown(1);
+    ensureSpace(50);
+    sectionTitle('9. Nota metodológica');
+    formalParagraph(
+      'Las evaluaciones se basan en un instrumento de treinta reactivos alineados al modelo RIASEC. El código Holland se obtiene a partir de las tres dimensiones con mayor puntuación. El ranking de carreras combina el perfil del estudiante con los pesos RIASEC definidos en el catálogo institucional. Este reporte no sustituye la asesoría personalizada de orientadores educativos.',
+    );
+    formalParagraph(
+      `Documento generado el ${generatedAt}. Cualquier reproducción o difusión fuera del ámbito institucional del Instituto Tecnológico de Tuxtepec debe autorizarse expresamente.`,
+    );
+
+    // Pie de página en todas las páginas (después de buffer completo)
+    drawFooter();
+    doc.end();
+  } catch (error) {
+    console.error(error);
+    if (!res.headersSent) res.status(500).json({ error: 'No fue posible generar el PDF' });
+  }
+});
+
+// ─── Socket.IO: salas de administradores ──────────────────────────────────────
+io.use((socket, next) => {
+  // Autenticación simple por cookie de sesión (mismo token que requireAdmin)
+  const cookieHeader = socket.handshake.headers.cookie ?? '';
+  const cookies = Object.fromEntries(
+    String(cookieHeader).split(';').map(v => v.trim()).filter(Boolean).map(v => {
+      const i = v.indexOf('=');
+      return i < 0 ? [v, ''] : [v.slice(0, i), decodeURIComponent(v.slice(i + 1))];
+    }),
+  );
+  const token = cookies.app_vocacional_admin;
+  if (!adminUser || !adminPassword) {
+    // Sin credenciales configuradas, permitir (modo desarrollo)
+    return next();
+  }
+  if (token && validSession(token)) return next();
+  return next(new Error('No autorizado'));
+});
+
+io.on('connection', (socket) => {
+  socket.join('admins');
+  socket.emit('connected', { ok: true, message: 'Panel en tiempo real activo' });
+  socket.on('disconnect', () => {});
+});
+
+server.listen(port, '0.0.0.0', () => {
   console.log(`App Vocacional ITTUX Panel: http://localhost:${port}`);
+  console.log(`  · Tiempo real (Socket.IO) activo`);
+  console.log(`  · Reportes PDF: GET /api/admin/report.pdf`);
 });

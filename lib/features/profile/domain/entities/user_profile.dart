@@ -12,7 +12,9 @@ class UserProfile {
   final String? municipalityId;
   final String municipality;
   final String? schoolId;
+  final int? pendingSchoolSuggestionId;
   final String school;
+  final String? pendingSchoolName;
   final bool speaksLanguages;
   final List<String> languageIds;
   final List<String> languagesList;
@@ -29,7 +31,9 @@ class UserProfile {
     this.municipalityId,
     required this.municipality,
     this.schoolId,
+    this.pendingSchoolSuggestionId,
     required this.school,
+    this.pendingSchoolName,
     required this.speaksLanguages,
     this.languageIds = const [],
     required this.languagesList,
@@ -46,7 +50,9 @@ class UserProfile {
     String? municipalityId,
     String? municipality,
     String? schoolId,
+    int? pendingSchoolSuggestionId,
     String? school,
+    String? pendingSchoolName,
     bool? speaksLanguages,
     List<String>? languageIds,
     List<String>? languagesList,
@@ -62,7 +68,9 @@ class UserProfile {
       municipalityId: municipalityId ?? this.municipalityId,
       municipality: municipality ?? this.municipality,
       schoolId: schoolId ?? this.schoolId,
+      pendingSchoolSuggestionId: pendingSchoolSuggestionId ?? this.pendingSchoolSuggestionId,
       school: school ?? this.school,
+      pendingSchoolName: pendingSchoolName ?? this.pendingSchoolName,
       speaksLanguages: speaksLanguages ?? this.speaksLanguages,
       languageIds: languageIds ?? this.languageIds,
       languagesList: languagesList ?? this.languagesList,
@@ -77,12 +85,8 @@ class UserProfile {
       'name': name,
       'age': age,
       'gender': gender,
-      'state_id': stateId,
-      'state': state,
-      'municipality_id': municipalityId,
-      'municipality': municipality,
       'school_id': schoolId,
-      'school': school,
+      'pending_school_suggestion_id': pendingSchoolSuggestionId,
       'speaks_languages': speaksLanguages ? 1 : 0,
       'languages_list': languagesList.join(','),
       'avatar_config_json': avatarConfig.toJson(),
@@ -106,7 +110,9 @@ class UserProfile {
       municipalityId: map['municipality_id']?.toString(),
       municipality: map['municipality']?.toString() ?? 'No especificado',
       schoolId: map['school_id']?.toString(),
-      school: map['school']?.toString() ?? 'No especificada',
+      pendingSchoolSuggestionId: (map['pending_school_suggestion_id'] as num?)?.toInt(),
+      school: map['school']?.toString() ?? map['pending_school_name']?.toString() ?? 'Pendiente de aprobación',
+      pendingSchoolName: map['pending_school_name']?.toString(),
       speaksLanguages: map['speaks_languages'] == 1,
       languageIds: languageIds,
       languagesList: rawLanguages.isEmpty ? const [] : rawLanguages.split(','),

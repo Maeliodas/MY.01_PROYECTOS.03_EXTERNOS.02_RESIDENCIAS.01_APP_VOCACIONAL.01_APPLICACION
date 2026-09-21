@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_constants.dart';
 
 import '../../../../core/widgets/app_notice_dialog.dart';
 
@@ -8,12 +9,12 @@ Widget _privacyContent(BuildContext context) {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const Text(
-        'App Vocacional ITTUX  · Aviso de privacidad del prototipo',
+        '${AppConstants.appName} · Aviso de privacidad del prototipo',
         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
       ),
       const SizedBox(height: 10),
       Text(
-        'App Vocacional ITTUX  utiliza únicamente la información necesaria para registrar tu perfil, aplicar el test vocacional, conservar tus resultados y sincronizarlos con el servidor institucional cuando está disponible.',
+        '${AppConstants.appName} utiliza únicamente la información necesaria para registrar tu perfil, aplicar el test vocacional, conservar tus resultados y sincronizarlos con el servidor institucional cuando está disponible.',
         style: TextStyle(color: muted),
       ),
       const SizedBox(height: 16),
@@ -27,7 +28,7 @@ Widget _privacyContent(BuildContext context) {
       ),
       const _Section(
         'Almacenamiento y sincronización',
-        'La app mantiene una copia local para funcionar sin conexión. Cuando el servidor institucional está configurado y disponible, las evaluaciones y catálogos se sincronizan mediante la API de App Vocacional ITTUX .',
+        'La app mantiene una copia local para funcionar sin conexión. Cuando el servidor institucional está configurado y disponible, las evaluaciones y catálogos se sincronizan mediante la API de ${AppConstants.appName}.',
       ),
       const _Section(
         'Seguridad',
@@ -39,7 +40,7 @@ Widget _privacyContent(BuildContext context) {
       ),
       const SizedBox(height: 4),
       Text(
-        'Este texto adapta el contenido al funcionamiento de App Vocacional ITTUX  y no sustituye el Aviso de Privacidad Integral vigente del Tecnológico Nacional de México.',
+        'Este texto adapta el contenido al funcionamiento de ${AppConstants.appName} y no sustituye el Aviso de Privacidad Integral vigente del Tecnológico Nacional de México.',
         style: TextStyle(fontSize: 12, color: muted),
       ),
     ],
