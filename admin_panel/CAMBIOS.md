@@ -4,7 +4,19 @@
 > no se crean archivos nuevos por subversión. El `README.md` del panel solo
 > resume los cambios principales de la versión actual.
 
-## 1.2.0-2 (actual)
+## 1.2.0-3 (actual)
+
+Versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **3**.
+Identidad visual: Noto Sans garantizada y logo institucional en el panel.
+
+- **Noto Sans autohospedada** (`public/fonts/`, `@font-face` en `styles.css`):
+  recorte latín de los TTF del proyecto (~43 KB c/u, cobertura ñ/acentos
+  verificada); ya no depende de la fuente instalada en cada equipo.
+- **Logo real** (`public/img/app-logo.png`): sidebar y login usan el logo en vez
+  de la “A” genérica.
+- Caché del service worker a `v2` para que las PWA instaladas tomen el cambio.
+
+## 1.2.0-2
 
 Versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **2**.
 Animaciones del panel y reporte PDF bajo Manual de Identidad TecNM; sin cambios
