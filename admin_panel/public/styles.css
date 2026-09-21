@@ -74,3 +74,15 @@
 .suggestion-group-title h3{margin:0;font-size:16px;color:var(--ink)}
 .suggestion-group-title small{color:var(--muted)}
 .suggestion-group .suggestion-row{padding-left:0;padding-right:0}
+
+/* ── Animaciones de tarjetas (entrada + hover) ─────────────────────────── */
+@keyframes card-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card,.kpis article{animation:card-in .35s ease both}
+.dashboard-grid>.card:nth-child(2){animation-delay:.06s}
+.kpis article:nth-child(2){animation-delay:.05s}
+.kpis article:nth-child(3){animation-delay:.1s}
+.kpis article:nth-child(4){animation-delay:.15s}
+.kpis article,.dashboard-grid .card,.suggestion-row,.department-question-item{transition:transform .18s ease,box-shadow .18s ease}
+.kpis article:hover,.dashboard-grid .card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(18,58,42,.12)}
+.suggestion-row:hover,.department-question-item:hover{transform:translateY(-1px)}
+@media (prefers-reduced-motion:reduce){.card,.kpis article,.suggestion-row,.department-question-item{animation:none!important;transition:none!important}}

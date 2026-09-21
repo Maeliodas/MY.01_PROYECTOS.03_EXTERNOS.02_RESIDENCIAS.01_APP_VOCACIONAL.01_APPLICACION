@@ -26,7 +26,7 @@ function notifyAdmins(event, payload = {}) {
 
 
 const port = Number(process.env.PORT ?? 8080);
-const panelVersion = '1.2.0-0';
+const panelVersion = '1.2.0-2';
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
 const adminPassword = process.env.ADMIN_PASSWORD ?? '';
@@ -832,6 +832,10 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         Creator: 'App Vocacional ITTUX Admin Panel',
       },
     });
+    // Noto Sans (Manual de Identidad TecNM para cuerpos de texto).
+    // Títulos destacados en Helvetica-Bold (Patria no distribuida como TTF).
+    doc.registerFont('Noto', path.join(__dirname, '../fonts/NotoSans-Regular.ttf'));
+    doc.registerFont('Noto-Italic', path.join(__dirname, '../fonts/NotoSans-Italic.ttf'));
     const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -860,9 +864,9 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       doc.rect(0, 0, pageW, 64).fill(GREEN);
       doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(13)
         .text('INSTITUTO TECNOLÓGICO DE TUXTEPEC', marginL, 14, { width: contentW, align: 'left' });
-      doc.font('Helvetica').fontSize(9)
+      doc.font('Noto').fontSize(9)
         .text('App Vocacional ITTUX  ·  Panel de orientación vocacional', marginL, 32, { width: contentW });
-      doc.font('Helvetica').fontSize(8)
+      doc.font('Noto').fontSize(8)
         .text('Documento oficial de resultados', marginL, 46, { width: contentW });
       // línea decorativa
       doc.rect(0, 64, pageW, 3).fill('#d3d5bd');
@@ -879,7 +883,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
           .moveTo(marginL, pageH - 48)
           .lineTo(pageW - marginR, pageH - 48)
           .stroke();
-        doc.fillColor(MUTED).font('Helvetica').fontSize(8);
+        doc.fillColor(MUTED).font('Noto').fontSize(8);
         doc.text(
           'Confidencial — uso institucional · Generado automáticamente por el panel administrativo',
           marginL,
@@ -917,7 +921,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
 
     function formalParagraph(text) {
       ensureSpace(40);
-      doc.fillColor(INK).font('Helvetica').fontSize(10).text(text, marginL, doc.y, {
+      doc.fillColor(INK).font('Noto').fontSize(10).text(text, marginL, doc.y, {
         width: contentW,
         align: 'justify',
         lineGap: 2,
@@ -933,7 +937,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       doc.moveDown(0.4);
 
       if (!series.length) {
-        doc.fillColor(MUTED).font('Helvetica-Oblique').fontSize(9)
+        doc.fillColor(MUTED).font('Noto-Italic').fontSize(9)
           .text('Sin datos para los filtros seleccionados.', marginL, doc.y);
         doc.moveDown(0.8);
         return;
@@ -952,7 +956,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         const w = Math.max(2, (val / maxVal) * barMaxW);
         const label = String(row.label).slice(0, 42);
 
-        doc.fillColor(INK).font('Helvetica').fontSize(8)
+        doc.fillColor(INK).font('Noto').fontSize(8)
           .text(label, marginL, y + 2, { width: labelW, ellipsis: true });
 
         // fondo de barra
@@ -984,7 +988,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       items.forEach((item, i) => {
         const x = marginL + i * (boxW + 6);
         doc.roundedRect(x, y, boxW, 48, 4).fill('#f4f7f5');
-        doc.fillColor(MUTED).font('Helvetica').fontSize(7)
+        doc.fillColor(MUTED).font('Noto').fontSize(7)
           .text(item.label.toUpperCase(), x + 8, y + 8, { width: boxW - 16 });
         doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(14)
           .text(item.value, x + 8, y + 22, { width: boxW - 16 });
@@ -999,7 +1003,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     doc.fillColor(INK).font('Helvetica-Bold').fontSize(16)
       .text('Reporte de orientación vocacional', marginL, doc.y, { width: contentW });
     doc.moveDown(0.3);
-    doc.fillColor(MUTED).font('Helvetica').fontSize(9)
+    doc.fillColor(MUTED).font('Noto').fontSize(9)
       .text(`Fecha de emisión: ${generatedAt}`, marginL, doc.y, { width: contentW });
     doc.moveDown(0.8);
 
@@ -1077,7 +1081,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
 
     const evalRows = (data.evaluations ?? []).slice(0, 40);
     if (!evalRows.length) {
-      doc.fillColor(MUTED).font('Helvetica-Oblique').fontSize(9)
+      doc.fillColor(MUTED).font('Noto-Italic').fontSize(9)
         .text('No hay evaluaciones para los filtros seleccionados.', marginL, doc.y);
     } else {
       // encabezado de tabla
@@ -1100,25 +1104,34 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       }
       doc.y = headerY + 18;
 
-      doc.font('Helvetica').fontSize(7).fillColor(INK);
+      doc.font('Noto').fontSize(7).fillColor(INK);
       for (const row of evalRows) {
-        ensureSpace(22);
         const fecha = row.completed_at
           ? new Date(row.completed_at).toLocaleDateString('es-MX')
           : '—';
-        const lugar = `${row.municipality_name ?? '—'}, ${row.state_name ?? '—'}`.slice(0, 40);
-        const escuela = String(row.school_name ?? '—').slice(0, 36);
+        const lugar = `${row.municipality_name ?? '—'}, ${row.state_name ?? '—'}`;
+        const escuela = String(row.school_name ?? '—');
         const holland = String(row.holland_code ?? '—');
-        const carrera = String(row.top_career_name ?? '—').slice(0, 42);
+        const carrera = String(row.top_career_name ?? '—');
         const afinidad = `${Number(row.top_career_affinity ?? 0).toFixed(1)}%`;
         const values = [fecha, lugar, escuela, holland, carrera, afinidad];
+        // Alto medido por celda: el texto envuelve en vez de encimarse.
+        const heights = values.map((v, i) =>
+          doc.heightOfString(String(v), { width: cols[i].w - 4 }),
+        );
+        const rowH = Math.min(Math.max(...heights, 10) + 6, 56);
+        ensureSpace(rowH + 6);
         const rowY = doc.y;
         x = marginL + 3;
         values.forEach((v, i) => {
-          doc.fillColor(INK).text(v, x, rowY, { width: cols[i].w - 4, ellipsis: true });
+          doc.fillColor(INK).text(v, x, rowY + 2, {
+            width: cols[i].w - 4,
+            height: rowH - 4,
+            ellipsis: true,
+          });
           x += cols[i].w;
         });
-        doc.y = rowY + 12;
+        doc.y = rowY + rowH;
         doc.strokeColor(LINE).lineWidth(0.3)
           .moveTo(marginL, doc.y)
           .lineTo(marginL + contentW, doc.y)

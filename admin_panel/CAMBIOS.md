@@ -4,7 +4,24 @@
 > no se crean archivos nuevos por subversión. El `README.md` del panel solo
 > resume los cambios principales de la versión actual.
 
-## 1.2.0-0 (actual)
+## 1.2.0-2 (actual)
+
+Versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **2**.
+Animaciones del panel y reporte PDF bajo Manual de Identidad TecNM; sin cambios
+de esquema MySQL.
+
+- **Tarjetas animadas** (`public/styles.css`): entrada `fade-up` con escalonado en
+  cards/KPIs + hover con elevación; respeta `prefers-reduced-motion`; sin
+  animación de entrada en listas en vivo para no parpadear con Socket.IO.
+- **Tabla del PDF sin traslapes** (`src/server.js`): filas con alto medido
+  (`heightOfString`), texto con envoltura y `ellipsis` acotada; salto de página
+  por alto real; retirados los recortes `.slice()`.
+- **Tipografías oficiales** (`fonts/`, `src/server.js`): Noto Sans embebida y
+  registrada para cuerpos de texto; títulos destacados en Helvetica-Bold
+  (Patria no se distribuye como TTF).
+- Corrección de registro de fuentes en el generador PDF.
+
+## 1.2.0-0
 
 Versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **0**.
 Renumeración base del panel bajo el esquema unificado (antes `1.1.0`/`V9`, obsoletos).
