@@ -46,6 +46,26 @@ class DashboardApi {
     }
   }
 
+  /// Versión ligera del catálogo (pocos bytes). Null si no hay red o el
+  /// panel aún no expone el endpoint (paneles viejos).
+  Future<int?> fetchCatalogVersion() async {
+    try {
+      final response = await _client
+          .get(
+            Uri.parse('${AppConstants.apiBaseUrl}/catalog-version'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode < 200 || response.statusCode >= 300) return null;
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map) return null;
+      final version = decoded['version'];
+      return version is num ? version.toInt() : int.tryParse('$version');
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> sendCatalogSuggestion({
     required String kind,
     required String name,

@@ -50,4 +50,8 @@ app.*.map.json
 # Credenciales locales del panel
 admin_panel/.env
 
+# Dependencias (se instalan con npm install, no se versionan)
+node_modules/
+admin_panel/node_modules/
+
 *zip

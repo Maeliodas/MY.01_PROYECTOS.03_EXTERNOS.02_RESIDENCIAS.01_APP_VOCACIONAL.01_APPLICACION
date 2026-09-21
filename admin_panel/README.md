@@ -1,24 +1,39 @@
-# Panel administrativo App Vocacional ITTUX V9
+<div align="center">
 
-El panel funciona como interfaz CRUD de la base MySQL/MariaDB `app_vocacional_ittux`.
+  # Panel web 1.2.0
 
-## Funciones
+  **Gestión institucional de orientación vocacional** — catálogos versionados, resultados en vivo y reportes oficiales del Instituto Tecnológico de Tuxtepec.
 
-- Dashboard de evaluaciones con filtros.
-- CRUD de estados.
-- CRUD de municipios dependientes del estado.
-- CRUD de escuelas dependientes del municipio.
-- CRUD de lenguas originarias e idiomas.
-- CRUD de carreras, descripción, Holland, pesos RIASEC y preguntas relacionadas.
-- CRUD de preguntas del test.
-- Revisión de sugerencias enviadas desde la app.
-- Cada cambio de catálogo incrementa `catalog_meta.version`.
+  [![release](https://img.shields.io/badge/release-1.2.0-00923F?style=for-the-badge)](.)
+  [![node](https://img.shields.io/badge/Node.js-Express_4-339933?style=for-the-badge&logo=node.js&logoColor=white)](src/server.js)
+  [![mysql](https://img.shields.io/badge/MySQL_MariaDB-utf8mb4-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](sql/schema.sql)
+  [![realtime](https://img.shields.io/badge/Tiempo_real-Socket.IO-010101?style=for-the-badge&logo=socket.io&logoColor=white)](src/server.js)
+  [![pwa](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge)](public/manifest.json)
 
-La app obtiene un snapshot del catálogo mediante el backend propio y lo almacena en SQLite para continuar funcionando offline. No se consultan APIs externas en tiempo de ejecución.
+  <p>
+    <a href="#-capacidades">Capacidades</a> •
+    <a href="#-instalación">Instalación</a> •
+    <a href="#-api">API</a> •
+    <a href="#-app-web-instalable-pwa">PWA</a> •
+    <a href="#-despliegue-y-acceso-del-personal">Despliegue</a> •
+    <a href="#-versionado">Versionado</a>
+  </p>
+</div>
 
-## Instalación limpia
+---
 
-Desde la raíz del proyecto:
+## ✨ Capacidades
+
+| Módulo | Lo que hace |
+|---|---|
+| 📊 Dashboard en vivo | Evaluaciones, KPIs, gráficas y procedencia por escuela/municipio, con filtros y actualización por Socket.IO + polling de respaldo |
+| 🗂️ Catálogos versionados | Estados, municipios, escuelas, lenguas, idiomas, preguntas, carreras, pesos RIASEC y abiertas por departamento; cada cambio sube `catalog_meta.version` |
+| ✅ Sugerencias | Revisión de lenguas, idiomas y escuelas propuestas desde la app, agrupadas por tipo |
+| 🧾 Reportes PDF | Documento oficial con encabezado institucional, KPIs, gráficas y detalle anonimizado |
+| 📲 Ingesta móvil | Endpoints con API key para evaluaciones, sugerencias y snapshot de catálogos |
+| 🔒 Acceso | Login administrativo, sesiones firmadas, freno anti fuerza bruta y cabeceras de seguridad |
+
+## 🚀 Instalación
 
 ```powershell
 cmd /c "mysql -u root -p -P 3309 < admin_panel\sql\schema.sql"
@@ -28,4 +43,38 @@ npm install
 npm start
 ```
 
-Edita `.env` antes de arrancar el servidor.
+Edita `.env` antes de arrancar (`DB_*`, `API_INGEST_KEY`, `ADMIN_USER`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`). Panel en `http://localhost:8080` · Salud en `GET /health`.
+
+## 🔌 API
+
+| Método | Ruta | Descripción | Auth |
+|---|---|---|---|
+| `GET` | `/health` | Estado del servicio + BD | — |
+| `GET` | `/api/catalog-version` | Versión ligera del catálogo (chequeo en vivo de la app) | API key |
+| `GET` | `/api/catalogs` | Snapshot versionado de catálogos | API key |
+| `POST` | `/api/catalog-suggestions` | Sugerir lengua, idioma o escuela | API key |
+| `POST` | `/api/evaluations` | Registrar evaluación del test | API key |
+| `GET` | `/api/dashboard/summary` | Estadísticas filtradas (panel) | Sesión admin |
+| `GET` | `/api/admin/report.pdf` | Reporte oficial filtrado (panel) | Sesión admin |
+
+## 📲 App web instalable (PWA)
+
+Instalable como aplicación (navegador: “Instalar” o “Añadir a pantalla de inicio”): `manifest.json`, iconos y service worker incluidos. Los estáticos se cachean; `/api/*`, Socket.IO y las páginas **siempre van a la red** para no mostrar datos viejos.
+
+## 🛡️ Despliegue y acceso del personal
+
+- Publica detrás de Nginx/Caddy con HTTPS (Let's Encrypt) hacia el puerto `PORT`. HSTS se activa tras proxy.
+- El personal solo recibe **URL + usuario + contraseña**: el código (`src/`, `views/`, `sql/`, `.env`) nunca sale del servidor; por HTTP solo se expone `public/`.
+- Permisos sugeridos: proyecto `750`, `.env` `640` del usuario de despliegue, personal **sin cuentas SSH**.
+
+## 🔢 Versionado
+
+Esquema `1.2.0-2` → versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **2**. Independiente de la app (`1.3.2-10`) y de la versión de **datos** (`catalog_meta`, visible como `#N` en el panel).
+
+Detalle en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revisión actual). Reglas: +semigrande por módulo nuevo, +menores por lote de funciones, +revisión por fixes.
+
+---
+
+<div align="center">
+  <sub>Instituto Tecnológico de Tuxtepec · Panel web 1.2.0 · Uso institucional restringido</sub>
+</div>

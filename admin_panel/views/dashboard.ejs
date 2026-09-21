@@ -6,6 +6,9 @@
   <meta name="color-scheme" content="light">
   <title>App Vocacional ITTUX · Administración</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00923F">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -17,7 +20,7 @@
         <button class="nav-btn" data-view="catalogs">Catálogos</button>
         <button class="nav-btn" data-view="suggestions">Sugerencias <b id="pendingSuggestionsCount"><%= (catalogs.suggestions ?? []).filter(x=>x.status==='pending').length %></b></button>
       </nav>
-      <div class="sidebar-foot"><form method="post" action="/logout"><button class="logout-btn" type="submit">Cerrar sesión</button></form><small>Versión de catálogos</small><strong id="catalogVersion">#<%= catalogs.meta?.version ?? 1 %></strong><span>Los cambios aprobados se sincronizan con la app.</span></div>
+      <div class="sidebar-foot"><form method="post" action="/logout"><button class="logout-btn" type="submit">Cerrar sesión</button></form><small>Panel v<%= panelVersion %></small><small>Versión de catálogos</small><strong id="catalogVersion">#<%= catalogs.meta?.version ?? 1 %></strong><span>Los cambios aprobados se sincronizan con la app.</span></div>
     </aside>
 
     <main class="main">
@@ -125,7 +128,7 @@
         </div>
       </section>
 
-      <footer><strong>App Vocacional ITTUX</strong><span>Administración de resultados y catálogos</span></footer>
+      <footer><strong>App Vocacional ITTUX · Panel v<%= panelVersion %></strong><span>Administración de resultados y catálogos</span></footer>
     </main>
   </div>
 
@@ -150,5 +153,6 @@
   <script id="dashboard-data" type="application/json"><%- JSON.stringify({careers:data.careers,schools:data.schools,provenance:data.provenance,profiles:data.profiles,affinity:data.affinity,languages:data.languages,idioms:data.idioms,municipalities:catalogs.municipalities,schoolCatalog:catalogs.schools}) %></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/admin.js"></script>
+  <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){})}</script>
 </body>
 </html>

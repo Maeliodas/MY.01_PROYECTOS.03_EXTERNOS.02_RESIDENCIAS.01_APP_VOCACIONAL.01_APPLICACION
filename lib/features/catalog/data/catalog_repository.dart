@@ -9,6 +9,9 @@ import '../domain/models/catalog_models.dart';
 /// Estados, municipios, escuelas y lenguas se distribuyen con la aplicación
 /// mediante una base SQLite incluida con la app. No se usan JSON ni APIs externas.
 class CatalogRepository {
+  /// Llave donde se guarda la versión del catálogo del servidor ya aplicada.
+  static const serverVersionKey = 'server_catalog_version';
+
   Future<List<StateCatalog>> getStates() async {
     final db = await AppDatabase.instance.database;
     final rows = await db.query(Tables.states, where: 'active = 1', orderBy: 'name COLLATE NOCASE');
@@ -105,6 +108,22 @@ class CatalogRepository {
 
   Future<void> applyServerSnapshot(Map<String, dynamic> snapshot) async {
     final db = await AppDatabase.instance.database;
+    // Si la versión no cambió, no hay nada que aplicar: se evita reescribir
+    // cientos de filas (y una transacción larga) en cada arranque.
+    final incomingVersion = snapshot['version']?.toString() ?? '';
+    if (incomingVersion.isNotEmpty) {
+      final local = await db.query(
+        Tables.metadata,
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: ['server_catalog_version'],
+        limit: 1,
+      );
+      if (local.isNotEmpty &&
+          local.first['value']?.toString() == incomingVersion) {
+        return;
+      }
+    }
     await db.transaction((txn) async {
       Future<void> upsertList(
         String table,
@@ -115,16 +134,32 @@ class CatalogRepository {
         for (final item in raw) {
           if (item is! Map) continue;
           final values = Map<String, Object?>.from(item);
-          final where = keyColumns.map((column) => '$column = ?').join(' AND ');
-          final whereArgs = keyColumns.map((column) => values[column]).toList();
-          final updated = await txn.update(
-            table,
-            values,
-            where: where,
-            whereArgs: whereArgs,
-          );
-          if (updated == 0) {
-            await txn.insert(table, values, conflictAlgorithm: ConflictAlgorithm.ignore);
+          for (final key in keyColumns) {
+            if (values[key] == null) {
+              throw StateError(
+                'Catálogo $table con clave nula (${keyColumns.join(',')})',
+              );
+            }
+          }
+          final cols = values.keys.toList();
+          final args = cols.map((c) => values[c]).toList();
+          final placeholders = List.filled(cols.length, '?').join(',');
+          // UPSERT en una sola sentencia (sin REPLACE para no disparar
+          // cascadas de FK sobre resultados históricos).
+          final updatable =
+              cols.where((c) => !keyColumns.contains(c)).toList();
+          final sql = updatable.isEmpty
+              ? 'INSERT OR IGNORE INTO $table (${cols.join(',')}) VALUES ($placeholders)'
+              : 'INSERT INTO $table (${cols.join(',')}) VALUES ($placeholders) '
+                  'ON CONFLICT(${keyColumns.join(',')}) DO UPDATE SET '
+                  '${updatable.map((c) => '$c=excluded.$c').join(',')}';
+          try {
+            await txn.rawInsert(sql, args);
+          } catch (e) {
+            throw StateError(
+              'Catálogo $table '
+              '(${keyColumns.map((k) => values[k]).join('/')}): $e',
+            );
           }
         }
       }
@@ -151,7 +186,7 @@ class CatalogRepository {
       if (version != null && version.isNotEmpty) {
         await txn.insert(
           Tables.metadata,
-          {'key': 'server_catalog_version', 'value': version},
+          {'key': CatalogRepository.serverVersionKey, 'value': version},
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
       }

@@ -74,7 +74,10 @@ class SettingsPage extends ConsumerWidget {
                 );
                 bool ok = false;
                 try {
-                  ok = await ref.read(catalogSyncServiceProvider).sync();
+                  ok = await ref
+                      .read(catalogSyncServiceProvider)
+                      .sync()
+                      .timeout(const Duration(seconds: 60));
                 } catch (_) {
                   ok = false;
                 } finally {
