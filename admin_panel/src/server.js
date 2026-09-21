@@ -859,7 +859,9 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     });
 
     function drawHeader() {
-      doc.save();
+      // Sin save/restore: en modo buffer con switchToPage esos operadores
+      // caían en streams de página equivocados (páginas fantasma). Colores
+      // explícitos en cada dibujo en su lugar.
       // franja superior
       doc.rect(0, 0, pageW, 64).fill(GREEN);
       doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(13)
@@ -870,7 +872,6 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         .text('Documento oficial de resultados', marginL, 46, { width: contentW });
       // línea decorativa
       doc.rect(0, 64, pageW, 3).fill('#d3d5bd');
-      doc.restore();
       doc.y = 90;
     }
 
@@ -878,7 +879,6 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       const range = doc.bufferedPageRange();
       for (let i = 0; i < range.count; i++) {
         doc.switchToPage(range.start + i);
-        doc.save();
         doc.strokeColor(LINE).lineWidth(0.6)
           .moveTo(marginL, pageH - 48)
           .lineTo(pageW - marginR, pageH - 48)
@@ -896,7 +896,6 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
           pageH - 40,
           { width: contentW, align: 'right' },
         );
-        doc.restore();
       }
     }
 
@@ -920,8 +919,16 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     }
 
     function formalParagraph(text) {
-      ensureSpace(40);
-      doc.fillColor(INK).font('Noto').fontSize(10).text(text, marginL, doc.y, {
+      // Medir antes de dibujar evita saltos automáticos a mitad de párrafo
+      // (páginas sin encabezado).
+      doc.fillColor(INK).font('Noto').fontSize(10);
+      const h = doc.heightOfString(text, {
+        width: contentW,
+        align: 'justify',
+        lineGap: 2,
+      });
+      ensureSpace(h + 14);
+      doc.text(text, marginL, doc.y, {
         width: contentW,
         align: 'justify',
         lineGap: 2,
