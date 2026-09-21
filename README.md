@@ -1,11 +1,11 @@
 <div align="center">
   <img src="assets/branding/app_logo_light.png" alt="App Vocacional ITTUX" width="160"/>
 
-  # App Vocacional ITTUX
+  # App Vocacional ITTUX 1.3.2
 
   **Descubre tu camino** — Orientación vocacional con modelo RIASEC / Holland, operación offline-first y panel institucional en tiempo real.
 
-  [![release](https://img.shields.io/badge/release-1.3.2--10-00923F?style=for-the-badge)](.)
+  [![release](https://img.shields.io/badge/release-1.3.2-00923F?style=for-the-badge)](.)
   [![flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](.)
   [![dart](https://img.shields.io/badge/Dart-%5E3.2-0175C2?style=for-the-badge&logo=dart&logoColor=white)](.)
   [![node](https://img.shields.io/badge/Node.js-Express_4-339933?style=for-the-badge&logo=node.js&logoColor=white)](admin_panel/)
@@ -90,7 +90,7 @@ app_vocacional/
 │   ├── sql/schema.sql    # Esquema MySQL maestro
 │   ├── public/ views/    # UI del panel
 ├── database_model/       # Modelos SQLite de referencia
-└── *.md                  # Bitácoras por versión
+└── CAMBIOS.md              # Bitácora viva (arriba = revisión actual)
 ```
 
 ## 🚀 Instalación
@@ -136,7 +136,7 @@ Panel en `http://localhost:8080` · Salud en `GET /health`. Detalle completo en 
 
 Esquema `1.3.2-10` → versión **1**, sub modificación semigrande **3**, subcambios menores **2**, revisión **10**.
 
-Detalle de esta versión en [`CAMBIOS_1.3.2-10.md`](CAMBIOS_1.3.2-10.md). Bitácoras anteriores: [`CAMBIOS_VERSION_9.md`](CAMBIOS_VERSION_9.md) · [`CAMBIOS_VERSION_10.md`](CAMBIOS_VERSION_10.md) · [`CAMBIOS_VERSION_11.md`](CAMBIOS_VERSION_11.md) · [`CAMBIOS_VERSION_12.md`](CAMBIOS_VERSION_12.md) · [`CAMBIOS_VERSION_13.md`](CAMBIOS_VERSION_13.md) · [`CAMBIOS_VERSION_17.md`](CAMBIOS_VERSION_17.md) · [`CAMBIOS_VERSION_18.md`](CAMBIOS_VERSION_18.md)
+Detalle de esta versión en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revisión actual).
 
 ## 🗺️ Hoja de ruta
 
@@ -150,5 +150,5 @@ Detalle de esta versión en [`CAMBIOS_1.3.2-10.md`](CAMBIOS_1.3.2-10.md). Bitác
 <div align="center">
   <img src="assets/institution/tecnm_ittux_wordmark.png" width="210"/>
   <br/>
-  <sub>Instituto Tecnológico de Tuxtepec · App Vocacional ITTUX 1.3.2-10 · Uso institucional</sub>
+  <sub>Instituto Tecnológico de Tuxtepec · App Vocacional ITTUX 1.3.2 · Uso institucional</sub>
 </div>

@@ -1,4 +1,10 @@
-# Cambios 1.3.2-10
+# Bitácora de cambios · App
+
+> Convención: una sola bitácora viva. Cada revisión **añade su sección arriba**;
+> no se crean archivos nuevos por subversión. El `README.md` principal solo
+> resume los cambios principales de la versión actual.
+
+## 1.3.2-10 (actual)
 
 Versión **1**, sub modificación semigrande **3**, subcambios menores **2**, revisión **10**.
 Solo lógica: misma UI, colores, rutas y esquema de BD (SQLite v16 / MySQL sin ALTERs).
