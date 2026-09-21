@@ -5,7 +5,7 @@
 
   **Descubre tu camino** — Orientación vocacional con modelo RIASEC / Holland, operación offline-first y panel institucional en tiempo real.
 
-  [![release](https://img.shields.io/badge/release-1.3.1--5-00923F?style=for-the-badge)](.)
+  [![release](https://img.shields.io/badge/release-1.3.2--10-00923F?style=for-the-badge)](.)
   [![flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](.)
   [![dart](https://img.shields.io/badge/Dart-%5E3.2-0175C2?style=for-the-badge&logo=dart&logoColor=white)](.)
   [![node](https://img.shields.io/badge/Node.js-Express_4-339933?style=for-the-badge&logo=node.js&logoColor=white)](admin_panel/)
@@ -30,12 +30,12 @@
 |---|---|
 | 📝 Test RIASEC | 30 reactivos offline, puntajes 0–50 por dimensión y código Holland de 3 letras |
 | 🎯 Ranking de carreras | Afinidad por perfil vectorial + congruencia hexagonal Holland, top 3 con enlaces TecNM |
-| 💬 Pregunta abierta | Obligatoria, ligada al departamento del top 1; verifica respuesta consciente sin alterar puntaje |
-| 🏫 Catálogos vivos | Estados, municipios, escuelas, lenguas, idiomas, preguntas y carreras sincronizables desde el panel |
+| 💬 Pregunta abierta | Obligatoria (mín. 10 caracteres), ligada al departamento del top 1; no modifica puntaje y no se puede saltar por URL |
+| 🏫 Catálogos vivos | Versionados con atajo por versión y UPSERT rápido: sync acotado en arranque, en vivo al reanudar/cada 5 min, manual en Ajustes |
 | 🗣️ Lenguas e idiomas | Clasificación por tipo relacional + sugerencias ciudadanas con aprobación administrativa |
-| 📴 Offline-first | SQLite local precargado, cola de envío con reintentos y verificación contra el backend (`/health`) |
-| 🖥️ Panel web | CRUD de catálogos, dashboard en vivo (Socket.IO), filtros, revisión de sugerencias y reportes PDF |
-| 🔒 Datos | UTF-8/utf8mb4 integral, bajas lógicas (`active=0`) que no rompen históricos |
+| 📴 Offline-first | SQLite local precargado, verificación contra el backend (`/health`), colas de envío con tope de reintentos |
+| 🖥️ Panel web | CRUD de catálogos, dashboard en vivo (Socket.IO), filtros, revisión de sugerencias, reportes PDF y endpoint ligero de versión |
+| 🔒 Datos | UTF-8/utf8mb4 integral, bajas lógicas (`active=0`) que no rompen históricos, IDs de resultado UUID |
 
 <div align="center">
   <img src="assets/avatars/avatar_01.png" width="64"/>
@@ -59,13 +59,14 @@ flowchart LR
     R -->|4. Cola sync| N[Panel Node/Express]
     N --> M[(MySQL / MariaDB)]
     M --> D[Dashboard + PDF]
-    N -->|5. Snapshot| A
+    N -->|5. Versión ligera<br/>+ snapshot| A
 ```
 
-1. El test se responde **sin internet** contra el SQLite precargado.
-2. Al terminar reactivos se calcula el ranking y se muestra la pregunta abierta del departamento ganador.
-3. El resultado (Holland, RIASEC, top 1, abierta, género, edad, escuela, lenguas) se encola y envía al panel.
-4. El panel publica catálogos versionados que la app descarga en segundo plano.
+1. El splash sincroniza catálogos (acotado) **antes** de navegar: los datos nuevos se ven desde la 1ª apertura.
+2. El test se responde **sin internet** contra el SQLite local, con progreso reanudable.
+3. Al terminar reactivos se calcula el ranking y se exige la pregunta abierta del departamento ganador.
+4. El resultado (Holland, RIASEC, top 1, abierta, género, edad, escuela, lenguas) se envía o encola con reintentos acotados.
+5. Con red, la app revisa la versión del panel al reanudar y cada 5 min; sin red, lo pendiente entra en el siguiente arranque.
 
 ## 🛠️ Stack
 
@@ -126,21 +127,22 @@ Panel en `http://localhost:8080` · Salud en `GET /health`. Detalle completo en 
 | Método | Ruta | Descripción | Auth |
 |---|---|---|---|
 | `GET` | `/health` | Estado del servicio + BD | — |
+| `GET` | `/api/catalog-version` | Versión ligera del catálogo (chequeo en vivo) | API key |
 | `GET` | `/api/catalogs` | Snapshot versionado de catálogos | API key |
 | `POST` | `/api/catalog-suggestions` | Sugerir lengua, idioma o escuela | API key |
 | `POST` | `/api/evaluations` | Registrar evaluación del test | API key |
 
 ## 🔢 Versionado
 
-Esquema `1.3.1-5` → versión **1**, sub modificación semigrande **3**, subcambios menores **1**, revisión **5**.
+Esquema `1.3.2-10` → versión **1**, sub modificación semigrande **3**, subcambios menores **2**, revisión **10**.
 
-Bitácoras: [`CAMBIOS_VERSION_9.md`](CAMBIOS_VERSION_9.md) · [`CAMBIOS_VERSION_10.md`](CAMBIOS_VERSION_10.md) · [`CAMBIOS_VERSION_11.md`](CAMBIOS_VERSION_11.md) · [`CAMBIOS_VERSION_12.md`](CAMBIOS_VERSION_12.md) · [`CAMBIOS_VERSION_13.md`](CAMBIOS_VERSION_13.md) · [`CAMBIOS_VERSION_17.md`](CAMBIOS_VERSION_17.md) · [`CAMBIOS_VERSION_18.md`](CAMBIOS_VERSION_18.md)
+Detalle de esta versión en [`CAMBIOS_1.3.2-10.md`](CAMBIOS_1.3.2-10.md). Bitácoras anteriores: [`CAMBIOS_VERSION_9.md`](CAMBIOS_VERSION_9.md) · [`CAMBIOS_VERSION_10.md`](CAMBIOS_VERSION_10.md) · [`CAMBIOS_VERSION_11.md`](CAMBIOS_VERSION_11.md) · [`CAMBIOS_VERSION_12.md`](CAMBIOS_VERSION_12.md) · [`CAMBIOS_VERSION_13.md`](CAMBIOS_VERSION_13.md) · [`CAMBIOS_VERSION_17.md`](CAMBIOS_VERSION_17.md) · [`CAMBIOS_VERSION_18.md`](CAMBIOS_VERSION_18.md)
 
 ## 🗺️ Hoja de ruta
 
-- [ ] Contrato OpenAPI del panel (`openapi.yaml`)
+- [x] Chequeo ligero de versión de catálogo + sync en vivo
 - [ ] Generación del seed SQLite desde MySQL (`npm run export:seed`)
-- [ ] Endpoints de versión de app y catálogo (actualización guiada)
+- [ ] Actualización del APK por Drive (endpoint `app-status` + instalador)
 - [ ] Higiene del repo (sacar `node_modules` del tracking)
 
 ---
@@ -148,5 +150,5 @@ Bitácoras: [`CAMBIOS_VERSION_9.md`](CAMBIOS_VERSION_9.md) · [`CAMBIOS_VERSION_
 <div align="center">
   <img src="assets/institution/tecnm_ittux_wordmark.png" width="210"/>
   <br/>
-  <sub>Instituto Tecnológico de Tuxtepec · App Vocacional ITTUX 1.3.1-5 · Uso institucional</sub>
+  <sub>Instituto Tecnológico de Tuxtepec · App Vocacional ITTUX 1.3.2-10 · Uso institucional</sub>
 </div>

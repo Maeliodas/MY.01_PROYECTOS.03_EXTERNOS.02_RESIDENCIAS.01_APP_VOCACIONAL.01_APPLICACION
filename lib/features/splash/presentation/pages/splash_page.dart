@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
@@ -16,6 +17,9 @@ class SplashPage extends ConsumerStatefulWidget {
 }
 
 class _SplashPageState extends ConsumerState<SplashPage> {
+  bool loadFailed = false;
+  String status = 'Cargando…';
+
   @override
   void initState() {
     super.initState();
@@ -23,30 +27,66 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   }
 
   Future<void> _go() async {
-    // El splash permanece visible al menos 3 segundos, mientras SQLite se
-    // consulta en paralelo. Si la carga local tarda más, no se agrega una
-    // espera artificial adicional.
-    final results = await Future.wait<Object?>([
-      ref.read(profileRepositoryProvider).getProfile(),
-      Future<void>.delayed(AppConstants.splashDuration),
-    ]);
-    final profile = results.first;
-    if (!mounted) return;
+    if (mounted) setState(() => loadFailed = false);
+    try {
+      // El splash permanece visible al menos 3 segundos, mientras en paralelo
+      // se lee el perfil local y se intenta sincronizar catálogos (acotado).
+      // Sincronizar ANTES de navegar garantiza que la primera pantalla ya vea
+      // los datos nuevos del panel sin necesitar una segunda apertura.
+      final results = await Future.wait<Object?>([
+        ref.read(profileRepositoryProvider).getProfile(),
+        Future<void>.delayed(AppConstants.splashDuration),
+        _syncCatalogsBounded(),
+      ]).timeout(
+        const Duration(seconds: 25),
+        onTimeout: () => throw TimeoutException(
+          'La base local tardó demasiado en responder',
+        ),
+      );
+      final profile = results.first;
+      final synced = results[2] == true;
+      if (!mounted) return;
 
-    context.go(profile == null ? '/onboarding' : '/path-home');
+      _refreshCatalogProviders();
+      context.go(profile == null ? '/onboarding' : '/path-home');
 
-    // La sincronización de catálogos se ejecuta en segundo plano. Un fallo de
-    // red no debe impedir que el usuario entre a la aplicación.
-    unawaited(_syncCatalogsInBackground());
+      // Si el intento acotado no alcanzó (red lenta), un reintento en fondo.
+      // Un fallo de red no debe impedir que el usuario entre a la aplicación.
+      if (!synced) unawaited(_syncCatalogsInBackground());
+    } catch (error) {
+      debugPrint('Splash: no se pudo cargar ($error)');
+      if (mounted) setState(() => loadFailed = true);
+    }
+  }
+
+  /// Intento de sincronización acotado: nunca lanza, devuelve si aplicó.
+  Future<bool> _syncCatalogsBounded() async {
+    try {
+      if (mounted) setState(() => status = 'Actualizando catálogos…');
+      return await ref
+          .read(catalogSyncServiceProvider)
+          .sync()
+          .timeout(const Duration(seconds: 8));
+    } catch (_) {
+      return false;
+    } finally {
+      if (mounted) setState(() => status = 'Cargando…');
+    }
+  }
+
+  void _refreshCatalogProviders() {
+    ref.invalidate(statesProvider);
+    ref.invalidate(schoolsProvider);
+    ref.invalidate(allLanguagesProvider);
+    ref.invalidate(careersCatalogProvider);
+    ref.invalidate(departmentQuestionsProvider);
   }
 
   Future<void> _syncCatalogsInBackground() async {
     try {
-      await ref.read(catalogSyncServiceProvider).sync();
-      if (!mounted) return;
-      ref.invalidate(statesProvider);
-      ref.invalidate(allLanguagesProvider);
-      ref.invalidate(careersCatalogProvider);
+      final ok = await ref.read(catalogSyncServiceProvider).sync();
+      if (!mounted || !ok) return;
+      _refreshCatalogProviders();
     } catch (error, stackTrace) {
       debugPrint('No se pudieron sincronizar los catálogos: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -164,15 +204,47 @@ class _SplashPageState extends ConsumerState<SplashPage> {
                 right: 0,
                 child: Column(
                   children: [
-                    const SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.8,
-                        color: AppColors.primary,
+                    if (loadFailed) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          'No se pudo cargar la información local. Revisa el almacenamiento e inténtalo de nuevo.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 60),
+                        child: PrimaryButton(
+                          text: 'Reintentar',
+                          icon: Icons.refresh_rounded,
+                          onPressed: _go,
+                        ),
+                      ),
+                    ] else
+                      const SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.8,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     const SizedBox(height: 22),
+                    if (!loadFailed)
+                      Text(
+                        status,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: .55),
+                        ),
+                      ),
+                    if (!loadFailed) const SizedBox(height: 8),
                     Opacity(
                       opacity: dark ? .88 : 1.0,
                       child: Image.asset(

@@ -25,6 +25,35 @@ class CatalogSyncService {
     return true;
   }
 
+  /// Versión del catálogo ya aplicada localmente (0 si nunca se sincronizó).
+  Future<int> getLocalCatalogVersion() async {
+    try {
+      final db = await AppDatabase.instance.database;
+      final rows = await db.query(
+        Tables.metadata,
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: [CatalogRepository.serverVersionKey],
+        limit: 1,
+      );
+      if (rows.isEmpty) return 0;
+      return int.tryParse(rows.first['value']?.toString() ?? '') ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Revisa si hay novedades en el panel y solo entonces descarga y aplica.
+  /// Devuelve true únicamente cuando se aplicó una versión nueva. Sin red
+  /// devuelve false y todo queda para el siguiente arranque con red.
+  Future<bool> checkAndSync() async {
+    if (!await NetworkInfo.hasBackendConnection()) return false;
+    final remote = await _api.fetchCatalogVersion();
+    if (remote == null) return sync();
+    if (remote <= await getLocalCatalogVersion()) return false;
+    return sync();
+  }
+
   /// Envía una propuesta de lengua/idioma. Si el servidor no está disponible,
   /// queda en una cola relacional local (sin JSON) para enviarse después.
   Future<bool> suggest({required String kind, required String name}) async {

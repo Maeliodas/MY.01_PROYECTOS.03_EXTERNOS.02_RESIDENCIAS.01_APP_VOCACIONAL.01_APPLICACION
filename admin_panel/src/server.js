@@ -160,6 +160,18 @@ app.get('/api/catalogs', requireApiKey, async (_req, res) => {
   }
 });
 
+// Versión ligera para que la app detecte novedades sin descargar todo el
+// snapshot. La app lo consulta en vivo y al arrancar; sin red, difiere.
+app.get('/api/catalog-version', requireApiKey, async (_req, res) => {
+  try {
+    const [[meta]] = await pool.query('SELECT version, updated_at FROM catalog_meta WHERE id=1');
+    res.json({ version: meta?.version ?? 1, updated_at: meta?.updated_at ?? null });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No fue posible obtener la versión del catálogo' });
+  }
+});
+
 app.post('/api/catalog-suggestions', requireApiKey, async (req, res) => {
   const kind = req.body?.kind;
   const name = normalizeDisplayName(req.body?.name);
