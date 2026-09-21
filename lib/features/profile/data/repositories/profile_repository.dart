@@ -9,6 +9,34 @@ class ProfileRepository {
 
   Future<void> saveProfile(UserProfile profile) async {
     final db = await _dbProvider.database;
+    // Resuelve el tipo real desde el catálogo para no depender del prefijo
+    // del id (los ids generados por el panel usan prefijo `lan_` tanto para
+    // lenguas como para idiomas).
+    final catalogIds = <String>{};
+    for (var index = 0; index < profile.languagesList.length; index++) {
+      final rawId = index < profile.languageIds.length ? profile.languageIds[index] : '';
+      if (!rawId.contains('_custom_') && rawId.isNotEmpty) catalogIds.add(rawId);
+    }
+    final kindById = <String, String>{};
+    if (catalogIds.isNotEmpty) {
+      try {
+        final rows = await db.query(
+          Tables.languages,
+          columns: ['id', 'type'],
+          where: 'id IN (${List.filled(catalogIds.length, '?').join(',')})',
+          whereArgs: catalogIds.toList(),
+        );
+        for (final row in rows) {
+          final id = row['id']?.toString() ?? '';
+          final type = row['type']?.toString() ?? '';
+          if (id.isNotEmpty && (type == 'idioma' || type == 'lengua')) {
+            kindById[id] = type;
+          }
+        }
+      } catch (_) {
+        // Tablas antiguas sin columna `type`: se usa el prefijo como respaldo.
+      }
+    }
     await db.transaction((txn) async {
       await txn.insert(Tables.profile, profile.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
       await txn.delete(Tables.profileLanguages, where: 'profile_id = ?', whereArgs: [profile.id]);
@@ -16,7 +44,9 @@ class ProfileRepository {
         final rawId = index < profile.languageIds.length ? profile.languageIds[index] : '';
         final name = profile.languagesList[index];
         final isCustom = rawId.contains('_custom_') || rawId.isEmpty;
-        final kind = rawId.startsWith('idioma_') ? 'idioma' : 'lengua';
+        final kind = isCustom
+            ? (rawId.startsWith('idioma_') ? 'idioma' : 'lengua')
+            : (kindById[rawId] ?? (rawId.startsWith('idioma_') ? 'idioma' : 'lengua'));
         await txn.insert(Tables.profileLanguages, {
           'profile_id': profile.id,
           'language_id': isCustom ? null : rawId,

@@ -44,7 +44,42 @@ class SettingsPage extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
-                final ok = await ref.read(catalogSyncServiceProvider).sync();
+                // Pantalla de espera: la descarga por ngrok puede tardar varios
+                // segundos y sin indicador parece que la app se trabó.
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (dialogContext) => AlertDialog(
+                    content: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.8),
+                        ),
+                        const SizedBox(width: 16),
+                        Flexible(
+                          child: Text(
+                            'Actualizando catálogos…',
+                            style: TextStyle(
+                              color: Theme.of(dialogContext).colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+                bool ok = false;
+                try {
+                  ok = await ref.read(catalogSyncServiceProvider).sync();
+                } catch (_) {
+                  ok = false;
+                } finally {
+                  if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+                }
                 if (ok) {
                   ref.invalidate(statesProvider);
                   ref.invalidate(schoolsProvider);

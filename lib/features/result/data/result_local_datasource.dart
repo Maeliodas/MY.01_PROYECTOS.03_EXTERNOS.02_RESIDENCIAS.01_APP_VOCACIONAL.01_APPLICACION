@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/tables.dart';
@@ -24,7 +25,7 @@ class ResultLocalDatasource {
     required List<Map<String, dynamic>> fullRanking,
   }) async {
     final db = await _dbProvider.database;
-    final resultId = DateTime.now().microsecondsSinceEpoch.toString();
+    final resultId = const Uuid().v4();
     await db.insert(
       Tables.results,
       {

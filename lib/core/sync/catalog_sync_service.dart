@@ -17,7 +17,7 @@ class CatalogSyncService {
   /// Descarga el catálogo maestro del servidor institucional y lo guarda
   /// localmente. Si no hay conexión, se conserva el catálogo SQLite actual.
   Future<bool> sync() async {
-    if (!await NetworkInfo.hasConnection()) return false;
+    if (!await NetworkInfo.hasBackendConnection()) return false;
     await _flushSuggestionQueue();
     final snapshot = await _api.fetchCatalogSnapshot();
     if (snapshot == null) return false;
@@ -32,7 +32,7 @@ class CatalogSyncService {
     final lower = raw.toLowerCase();
     final clean = lower.isEmpty ? '' : lower[0].toUpperCase() + lower.substring(1);
     if (clean.isEmpty) return false;
-    if (await NetworkInfo.hasConnection()) {
+    if (await NetworkInfo.hasBackendConnection()) {
       final sent = await _api.sendCatalogSuggestion(kind: kind, name: clean);
       if (sent) return true;
     }
@@ -71,7 +71,7 @@ class CatalogSyncService {
       whereArgs: ['escuela', clean, municipalityId],
       limit: 1,
     );
-    if (await NetworkInfo.hasConnection()) {
+    if (await NetworkInfo.hasBackendConnection()) {
       await _api.sendCatalogSuggestion(kind: 'escuela', name: clean, municipalityId: municipalityId);
     }
     return rows.isEmpty ? null : (rows.first['id'] as num).toInt();

@@ -77,4 +77,14 @@ class SyncQueue {
       whereArgs: [id],
     );
   }
+
+  Future<void> markFailed(String id) async {
+    final db = await _dbProvider.database;
+    await db.update(
+      Tables.syncQueue,
+      {'status': 'failed'},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }
