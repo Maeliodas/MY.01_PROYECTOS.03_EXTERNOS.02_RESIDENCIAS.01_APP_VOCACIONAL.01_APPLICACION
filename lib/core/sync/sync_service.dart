@@ -49,6 +49,11 @@ class SyncService {
         'municipality': profile.municipality,
         'school_id': profile.schoolId,
         'school': profile.school,
+        if (profile.schoolId == null && profile.pendingSchoolName != null)
+          'pending_school': {
+            'name': profile.pendingSchoolName,
+            'municipality_id': profile.municipalityId,
+          },
         'language_ids': profile.languageIds,
         'languages': lenguas,
         'idioms': idiomas,

@@ -27,12 +27,15 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
   final customLanguageNames = <String, String>{};
   final _customLanguageController = TextEditingController();
   final _customIdiomController = TextEditingController();
+  final _customSchoolController = TextEditingController();
+  bool _schoolNotListed = false;
   bool _sendingSuggestion = false;
 
   @override
   void dispose() {
     _customLanguageController.dispose();
     _customIdiomController.dispose();
+    _customSchoolController.dispose();
     super.dispose();
   }
 
@@ -134,6 +137,28 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
               loading: () => const _LoadingField(label: 'Cargando escuelas…'),
               error: (_, __) => const _ErrorField(label: 'No se pudieron cargar las escuelas'),
             ),
+            const SizedBox(height: 10),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('No encuentro mi escuela'),
+              subtitle: const Text('Puedes proponerla para que un administrador la revise.'),
+              value: _schoolNotListed,
+              onChanged: municipalityId == null ? null : (value) => setState(() {
+                _schoolNotListed = value ?? false;
+                if (_schoolNotListed) schoolId = null;
+              }),
+            ),
+            if (_schoolNotListed)
+              TextField(
+                controller: _customSchoolController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de la escuela',
+                  prefixIcon: Icon(Icons.add_business_outlined),
+                  helperText: 'La sugerencia quedará asociada al municipio seleccionado.',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
             const SizedBox(height: 18),
             Container(
               decoration: BoxDecoration(
@@ -217,7 +242,7 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
             PrimaryButton(
               text: 'Guardar y comenzar test',
               icon: Icons.arrow_forward_rounded,
-              onPressed: stateId == null || municipalityId == null || schoolId == null
+              onPressed: stateId == null || municipalityId == null || (!_schoolNotListed && schoolId == null) || (_schoolNotListed && _customSchoolController.text.trim().length < 2)
                   ? null
                   : () => _saveProfile(extra),
             ),
@@ -308,10 +333,20 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
     final states = await ref.read(statesProvider.future);
     final municipalities = await ref.read(municipalitiesProvider(stateId!).future);
     final schools = await ref.read(schoolsByMunicipalityProvider(municipalityId).future);
-
     final state = states.firstWhere((item) => item.id == stateId);
     final municipality = municipalities.firstWhere((item) => item.id == municipalityId);
-    final school = schools.firstWhere((item) => item.id == schoolId);
+    final selectedSchool = schoolId == null ? null : schools.firstWhere((item) => item.id == schoolId);
+
+    int? pendingSchoolSuggestionId;
+    String? pendingSchoolName;
+    if (_schoolNotListed) {
+      pendingSchoolName = _sentenceCase(_customSchoolController.text);
+      pendingSchoolSuggestionId = await ref.read(catalogSyncServiceProvider).suggestSchool(
+        name: pendingSchoolName,
+        municipalityId: municipalityId!,
+      );
+      if (pendingSchoolSuggestionId == null) return;
+    }
 
     final ids = selectedLanguageIds.toList();
     final catalog = await ref.read(allLanguagesProvider.future);
@@ -326,12 +361,14 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
       name: extra['name']?.toString() ?? 'Aspirante',
       age: (extra['age'] as num?)?.toInt() ?? 18,
       gender: extra['gender']?.toString() ?? 'Otro',
-      stateId: state.id,
+      stateId: stateId,
       state: state.name,
-      municipalityId: municipality.id,
+      municipalityId: municipalityId,
       municipality: municipality.name,
-      schoolId: school.id,
-      school: school.name,
+      schoolId: _schoolNotListed ? null : schoolId,
+      pendingSchoolSuggestionId: pendingSchoolSuggestionId,
+      school: pendingSchoolName ?? selectedSchool?.name ?? 'No especificada',
+      pendingSchoolName: pendingSchoolName,
       speaksLanguages: speaksLanguages,
       languageIds: ids,
       languagesList: names,

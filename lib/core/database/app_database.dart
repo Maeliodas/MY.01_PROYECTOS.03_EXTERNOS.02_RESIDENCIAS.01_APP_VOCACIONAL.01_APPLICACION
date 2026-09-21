@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static final instance = AppDatabase._();
-  static const databaseVersion = 15;
+  static const databaseVersion = 16;
 
   Database? _db;
 
@@ -119,25 +119,31 @@ class AppDatabase {
 
   Future<void> _createOperationalTables(Database db) async {
     await db.execute('''
+      CREATE TABLE ${Tables.catalogSuggestionQueue}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        municipality_id TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
+        UNIQUE(kind, name, municipality_id)
+      )
+    ''');
+    await db.execute('''
       CREATE TABLE ${Tables.profile}(
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         age INTEGER NOT NULL,
         gender TEXT NOT NULL,
-        state_id TEXT,
-        state TEXT NOT NULL DEFAULT 'No especificado',
-        municipality_id TEXT,
-        municipality TEXT NOT NULL DEFAULT 'No especificado',
         school_id TEXT,
-        school TEXT NOT NULL DEFAULT 'No especificada',
+        pending_school_suggestion_id INTEGER,
         speaks_languages INTEGER NOT NULL DEFAULT 0,
         languages_list TEXT NOT NULL DEFAULT '',
         avatar_config_json TEXT NOT NULL DEFAULT '{}',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY(state_id) REFERENCES ${Tables.states}(id),
-        FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
-        FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id)
+        FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id),
+        FOREIGN KEY(pending_school_suggestion_id) REFERENCES ${Tables.catalogSuggestionQueue}(id)
       )
     ''');
     await db.execute('''
@@ -202,15 +208,6 @@ class AppDatabase {
         status TEXT NOT NULL DEFAULT 'pending',
         created_at TEXT NOT NULL,
         FOREIGN KEY(session_id) REFERENCES ${Tables.sessions}(id) ON DELETE CASCADE
-      )
-    ''');
-    await db.execute('''
-      CREATE TABLE ${Tables.catalogSuggestionQueue}(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        kind TEXT NOT NULL,
-        name TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        UNIQUE(kind, name)
       )
     ''');
   }
@@ -493,6 +490,86 @@ class AppDatabase {
         await txn.execute('DROP TABLE user_languages_v14');
         await txn.execute('DROP TABLE user_profile_v14');
         await txn.execute('DROP TABLE schools_v14');
+      });
+    }
+
+    if (oldVersion < 16) {
+      await db.transaction((txn) async {
+        // La cola ahora también soporta sugerencias de escuelas por municipio.
+        await txn.execute('ALTER TABLE ${Tables.catalogSuggestionQueue} RENAME TO catalog_suggestion_queue_v15');
+        await txn.execute('''
+          CREATE TABLE ${Tables.catalogSuggestionQueue}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL,
+            name TEXT NOT NULL,
+            municipality_id TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(municipality_id) REFERENCES ${Tables.municipalities}(id),
+            UNIQUE(kind, name, municipality_id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.catalogSuggestionQueue}(id,kind,name,created_at)
+          SELECT id,kind,name,created_at FROM catalog_suggestion_queue_v15
+        ''');
+
+        await txn.execute('ALTER TABLE ${Tables.profileLanguages} RENAME TO user_languages_v15');
+        await txn.execute('ALTER TABLE ${Tables.profile} RENAME TO user_profile_v15');
+        await txn.execute('''
+          CREATE TABLE ${Tables.profile}(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            school_id TEXT,
+            pending_school_suggestion_id INTEGER,
+            speaks_languages INTEGER NOT NULL DEFAULT 0,
+            languages_list TEXT NOT NULL DEFAULT '',
+            avatar_config_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(school_id) REFERENCES ${Tables.schools}(id),
+            FOREIGN KEY(pending_school_suggestion_id) REFERENCES ${Tables.catalogSuggestionQueue}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT OR IGNORE INTO ${Tables.catalogSuggestionQueue}(kind,name,municipality_id,created_at)
+          SELECT 'escuela', school, municipality_id, updated_at
+          FROM user_profile_v15
+          WHERE municipality_id IS NOT NULL
+            AND (school_id IS NULL OR school_id IN (SELECT id FROM ${Tables.schools} WHERE municipality_id IS NULL))
+            AND TRIM(school) <> '' AND LOWER(TRIM(school)) NOT IN ('otra escuela','no especificada')
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profile}(
+            id,name,age,gender,school_id,pending_school_suggestion_id,speaks_languages,languages_list,
+            avatar_config_json,created_at,updated_at
+          )
+          SELECT p.id,p.name,p.age,p.gender,
+            CASE WHEN p.school_id IN (SELECT id FROM ${Tables.schools} WHERE municipality_id IS NOT NULL) THEN p.school_id ELSE NULL END,
+            (SELECT q.id FROM ${Tables.catalogSuggestionQueue} q
+              WHERE q.kind='escuela' AND q.name=p.school AND q.municipality_id=p.municipality_id LIMIT 1),
+            p.speaks_languages,p.languages_list,p.avatar_config_json,p.created_at,p.updated_at
+          FROM user_profile_v15 p
+        ''');
+        await txn.execute('''
+          CREATE TABLE ${Tables.profileLanguages}(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id TEXT NOT NULL DEFAULT '1',
+            language_id TEXT,
+            type TEXT NOT NULL,
+            custom_name TEXT,
+            FOREIGN KEY(profile_id) REFERENCES ${Tables.profile}(id) ON DELETE CASCADE,
+            FOREIGN KEY(language_id) REFERENCES ${Tables.languages}(id)
+          )
+        ''');
+        await txn.execute('''
+          INSERT INTO ${Tables.profileLanguages}(id,profile_id,language_id,type,custom_name)
+          SELECT id,profile_id,language_id,type,custom_name FROM user_languages_v15
+        ''');
+        await txn.execute('DROP TABLE user_languages_v15');
+        await txn.execute('DROP TABLE user_profile_v15');
+        await txn.execute('DROP TABLE catalog_suggestion_queue_v15');
       });
     }
 

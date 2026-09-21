@@ -95,14 +95,21 @@ class TestProgressTreePage extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'PROGRESO ACTUAL',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF18A9D3),
-                        letterSpacing: 1,
-                      ),
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'PROGRESO ACTUAL',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF18A9D3),
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.rocket_launch_rounded, color: Color(0xFF18A9D3), size: 30),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(

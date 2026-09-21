@@ -674,16 +674,22 @@ function rebindCatalogUi() {
       if (!list) return;
       const rows = payload.suggestions || [];
       updatePendingBadge(rows.filter(r => r.status === 'pending').length);
-      if (!rows.length) {
-        list.innerHTML = '<p class="empty">No hay sugerencias todavía.</p>';
-        return;
-      }
-      list.innerHTML = rows.map(row => {
-        const fecha = row.created_at ? new Date(row.created_at).toLocaleString('es-MX') : '';
-        const actions = row.status === 'pending'
-          ? `<button class="small-btn approve" data-suggestion="${row.id}" data-action="approve">Aprobar</button><button class="small-btn danger" data-suggestion="${row.id}" data-action="reject">Rechazar</button>`
-          : '';
-        return `<div class="suggestion-row"><div><span class="pill">${escapeHtml(row.kind || '')}</span><strong>${escapeHtml(row.name || '')}</strong><small>${escapeHtml(fecha)}</small></div><div><span class="status-label ${escapeHtml(row.status || '')}">${escapeHtml(row.status || '')}</span>${actions}</div></div>`;
+      const groups = [
+        { kind: 'escuela', title: 'Escuelas', icon: '🏫' },
+        { kind: 'lengua', title: 'Lenguas', icon: '🗣️' },
+        { kind: 'idioma', title: 'Idiomas', icon: '🌐' },
+      ];
+      list.innerHTML = groups.map(group => {
+        const groupRows = rows.filter(row => row.kind === group.kind);
+        const pending = groupRows.filter(row => row.status === 'pending').length;
+        const content = groupRows.length ? groupRows.map(row => {
+          const fecha = row.created_at ? new Date(row.created_at).toLocaleString('es-MX') : '';
+          const actions = row.status === 'pending'
+            ? `<button class="small-btn approve" data-suggestion="${row.id}" data-action="approve">Aprobar</button><button class="small-btn danger" data-suggestion="${row.id}" data-action="reject">Rechazar</button>`
+            : '';
+          return `<div class="suggestion-row"><div><span class="pill">${escapeHtml(row.kind || '')}</span><strong>${escapeHtml(row.name || '')}</strong>${row.kind === 'escuela' && row.municipality_name ? `<small>${escapeHtml(row.municipality_name)}${row.state_name ? ', ' + escapeHtml(row.state_name) : ''}</small>` : ''}<small>${escapeHtml(fecha)}</small></div><div><span class="status-label ${escapeHtml(row.status || '')}">${escapeHtml(row.status || '')}</span>${actions}</div></div>`;
+        }).join('') : `<p class="empty">No hay sugerencias de ${group.title.toLowerCase()}.</p>`;
+        return `<div class="card suggestion-group"><div class="suggestion-group-title"><span>${group.icon}</span><div><h3>${group.title}</h3><small>${pending} pendiente(s)</small></div></div>${content}</div>`;
       }).join('');
       bindSuggestionButtons(list);
     } catch (err) {

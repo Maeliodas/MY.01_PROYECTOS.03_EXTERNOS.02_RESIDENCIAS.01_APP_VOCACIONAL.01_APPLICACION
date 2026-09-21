@@ -168,9 +168,32 @@ class TestLocalDatasource {
     final db = await _dbProvider.database;
     await db.transaction((txn) async {
       if (id != null && id.isNotEmpty) {
-        await txn.delete(Tables.answers, where: 'session_id = ?', whereArgs: [id]);
-        await txn.delete(Tables.careerOpenAnswers, where: 'session_id = ?', whereArgs: [id]);
-        await txn.delete(Tables.sessions, where: 'id = ?', whereArgs: [id]);
+        // El historial depende de test_sessions porque test_results.session_id
+        // usa ON DELETE CASCADE. Nunca eliminamos una sesión ya completada o
+        // que tenga un resultado guardado; solo descartamos progreso incompleto.
+        final completedRows = await txn.query(
+          Tables.sessions,
+          columns: ['completed_at'],
+          where: 'id = ?',
+          whereArgs: [id],
+          limit: 1,
+        );
+        final resultRows = await txn.query(
+          Tables.results,
+          columns: ['id'],
+          where: 'session_id = ?',
+          whereArgs: [id],
+          limit: 1,
+        );
+        final isCompleted = completedRows.isNotEmpty &&
+            completedRows.first['completed_at'] != null;
+        final hasSavedResult = resultRows.isNotEmpty;
+
+        if (!isCompleted && !hasSavedResult) {
+          await txn.delete(Tables.answers, where: 'session_id = ?', whereArgs: [id]);
+          await txn.delete(Tables.careerOpenAnswers, where: 'session_id = ?', whereArgs: [id]);
+          await txn.delete(Tables.sessions, where: 'id = ?', whereArgs: [id]);
+        }
       }
       await txn.delete(
         Tables.metadata,

@@ -92,7 +92,7 @@ class _FigmaTabBar extends StatelessWidget {
                 selected: currentIndex == 0,
                 icon: Icons.map_outlined,
                 selectedIcon: Icons.map_rounded,
-                label: 'PATH',
+                label: 'MAPA',
                 onTap: () => onTap(0),
               ),
             ),

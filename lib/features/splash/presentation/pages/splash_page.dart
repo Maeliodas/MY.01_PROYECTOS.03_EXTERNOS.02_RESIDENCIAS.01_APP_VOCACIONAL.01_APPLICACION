@@ -23,10 +23,14 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   }
 
   Future<void> _go() async {
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    // El arranque depende de SQLite local, no de la red ni del backend.
-    final profile = await ref.read(profileRepositoryProvider).getProfile();
+    // El splash permanece visible al menos 3 segundos, mientras SQLite se
+    // consulta en paralelo. Si la carga local tarda más, no se agrega una
+    // espera artificial adicional.
+    final results = await Future.wait<Object?>([
+      ref.read(profileRepositoryProvider).getProfile(),
+      Future<void>.delayed(AppConstants.splashDuration),
+    ]);
+    final profile = results.first;
     if (!mounted) return;
 
     context.go(profile == null ? '/onboarding' : '/path-home');

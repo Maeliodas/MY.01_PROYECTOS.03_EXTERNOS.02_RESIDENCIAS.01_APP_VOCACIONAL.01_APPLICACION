@@ -23,6 +23,6 @@ abstract class AppConstants {
   static const String keyThemeMode = 'theme_mode';
   static const String keyReduceAnimations = 'reduce_animations';
 
-  static const Duration splashDuration = Duration(seconds: 2);
+  static const Duration splashDuration = Duration(seconds: 3);
   static const Duration defaultAnimationDuration = Duration(milliseconds: 300);
 }

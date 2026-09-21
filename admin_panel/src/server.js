@@ -163,19 +163,20 @@ app.get('/api/catalogs', requireApiKey, async (_req, res) => {
 app.post('/api/catalog-suggestions', requireApiKey, async (req, res) => {
   const kind = req.body?.kind;
   const name = normalizeDisplayName(req.body?.name);
-  if (!['lengua', 'idioma'].includes(kind) || name.length < 2 || name.length > 120) {
+  const municipalityId = req.body?.municipality_id ? String(req.body.municipality_id) : null;
+  if (!['lengua', 'idioma', 'escuela'].includes(kind) || name.length < 2 || name.length > 200 || (kind === 'escuela' && !municipalityId)) {
     return res.status(400).json({ error: 'Sugerencia inválida' });
   }
   try {
-    const [existing] = await pool.execute(
-      'SELECT id FROM languages WHERE kind=? AND LOWER(name)=LOWER(?) LIMIT 1',
-      [kind, name],
-    );
+    const existingSql = kind === 'escuela'
+      ? 'SELECT id FROM schools WHERE municipality_id=? AND LOWER(name)=LOWER(?) LIMIT 1'
+      : 'SELECT id FROM languages WHERE kind=? AND LOWER(name)=LOWER(?) LIMIT 1';
+    const [existing] = await pool.execute(existingSql, [kind === 'escuela' ? municipalityId : kind, name]);
     if (existing.length) return res.status(200).json({ ok: true, already_exists: true });
     await pool.execute(
-      `INSERT INTO catalog_suggestions(kind,name,status) VALUES(?,?,'pending')
+      `INSERT INTO catalog_suggestions(kind,name,municipality_id,status) VALUES(?,?,?,'pending')
        ON DUPLICATE KEY UPDATE created_at=created_at`,
-      [kind, name],
+      [kind, name, kind === 'escuela' ? municipalityId : null],
     );
     notifyAdmins('suggestion-created', { kind, name });
     res.status(201).json({ ok: true });
@@ -201,15 +202,23 @@ app.post('/api/evaluations', requireApiKey, async (req, res) => {
       await connection.rollback();
       return res.status(200).json({ ok: true, duplicated: true });
     }
+    let schoolSuggestionId = null;
+    if (!student.school_id && student.pending_school?.name && student.pending_school?.municipality_id) {
+      await connection.execute(
+        `INSERT INTO catalog_suggestions(kind,name,municipality_id,status) VALUES('escuela',?,?,'pending')
+         ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)`,
+        [normalizeDisplayName(student.pending_school.name), student.pending_school.municipality_id],
+      );
+      const [suggestionRows] = await connection.execute(
+        `SELECT id FROM catalog_suggestions WHERE kind='escuela' AND LOWER(name)=LOWER(?) AND municipality_id=? AND status='pending' LIMIT 1`,
+        [normalizeDisplayName(student.pending_school.name), student.pending_school.municipality_id],
+      );
+      schoolSuggestionId = suggestionRows[0]?.id ?? null;
+    }
     const [studentInsert] = await connection.execute(
-      `INSERT INTO students
-      (local_profile_id,name,age,gender,state_id,state_name,municipality_id,municipality_name,school_id,school_name)
-      VALUES (?,?,?,?,?,?,?,?,?,?)`,
-      [
-        student.local_profile_id ?? null, student.name, Number(student.age), student.gender ?? null,
-        student.state_id ?? null, student.state ?? null, student.municipality_id ?? null,
-        student.municipality ?? null, student.school_id ?? null, student.school ?? null,
-      ],
+      `INSERT INTO students (local_profile_id,name,age,gender,school_id,school_suggestion_id)
+       VALUES (?,?,?,?,?,?)`,
+      [student.local_profile_id ?? null, student.name, Number(student.age), student.gender ?? null, student.school_id ?? null, schoolSuggestionId],
     );
     for (const name of Array.isArray(student.languages) ? student.languages : []) {
       await connection.execute('INSERT INTO student_languages (student_id, kind, name) VALUES (?, ?, ?)', [studentInsert.insertId, 'lengua', String(name)]);
@@ -272,8 +281,8 @@ function buildEvaluationFilter(query) {
   const clauses = [];
   const params = [];
   const push = (sql, value) => { if (value) { clauses.push(sql); params.push(value); } };
-  push('s.state_id = ?', query.state);
-  push('s.municipality_id = ?', query.municipality);
+  push('COALESCE(st.id, pst.id) = ?', query.state);
+  push('COALESCE(m.id, pm.id) = ?', query.municipality);
   push('s.school_id = ?', query.school);
   push('e.holland_code = ?', query.profile);
   push('e.top_career_id = ?', query.career);
@@ -284,16 +293,23 @@ function buildEvaluationFilter(query) {
 
 async function dashboardData(query = {}) {
   const { where, params } = buildEvaluationFilter(query);
-  const base = 'FROM evaluations e JOIN students s ON s.id=e.student_id';
+  const base = `FROM evaluations e
+    JOIN students s ON s.id=e.student_id
+    LEFT JOIN schools sc ON sc.id=s.school_id
+    LEFT JOIN municipalities m ON m.id=sc.municipality_id
+    LEFT JOIN states st ON st.id=m.state_id
+    LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela'
+    LEFT JOIN municipalities pm ON pm.id=cs.municipality_id
+    LEFT JOIN states pst ON pst.id=pm.state_id`;
   const [[totals]] = await pool.query(
-    `SELECT COUNT(*) total_evaluations, COUNT(DISTINCT s.school_name) schools,
+    `SELECT COUNT(*) total_evaluations, COUNT(DISTINCT COALESCE(sc.name,cs.name)) schools,
             ROUND(AVG(e.top_career_affinity),1) average_affinity,
             COUNT(DISTINCT e.holland_code) profiles ${base} ${where}`,
     params,
   );
   const [careers] = await pool.query(`SELECT e.top_career_name label, COUNT(*) value ${base} ${where} GROUP BY e.top_career_name ORDER BY value DESC LIMIT 10`, params);
-  const [schools] = await pool.query(`SELECT COALESCE(s.school_name,'No especificada') label, COUNT(*) value ${base} ${where} GROUP BY s.school_name ORDER BY value DESC LIMIT 10`, params);
-  const [provenance] = await pool.query(`SELECT CONCAT(COALESCE(s.municipality_name,'No especificado'), ', ', COALESCE(s.state_name,'No especificado')) label, COUNT(*) value ${base} ${where} GROUP BY s.municipality_name,s.state_name ORDER BY value DESC LIMIT 10`, params);
+  const [schools] = await pool.query(`SELECT COALESCE(sc.name,cs.name,'No especificada') label, COUNT(*) value ${base} ${where} GROUP BY COALESCE(sc.name,cs.name,'No especificada') ORDER BY value DESC LIMIT 10`, params);
+  const [provenance] = await pool.query(`SELECT CONCAT(COALESCE(m.name,pm.name,'No especificado'), ', ', COALESCE(st.name,pst.name,'No especificado')) label, COUNT(*) value ${base} ${where} GROUP BY CONCAT(COALESCE(m.name,pm.name,'No especificado'), ', ', COALESCE(st.name,pst.name,'No especificado')) ORDER BY value DESC LIMIT 10`, params);
   const [profiles] = await pool.query(`SELECT e.holland_code label, COUNT(*) value ${base} ${where} GROUP BY e.holland_code ORDER BY value DESC LIMIT 10`, params);
   const [affinity] = await pool.query(
     `SELECT CASE WHEN e.top_career_affinity < 50 THEN 'Menos de 50%' WHEN e.top_career_affinity < 65 THEN '50–64%' WHEN e.top_career_affinity < 80 THEN '65–79%' WHEN e.top_career_affinity < 90 THEN '80–89%' ELSE '90–100%' END label,
@@ -307,12 +323,16 @@ async function dashboardData(query = {}) {
   const [languages] = await pool.query(
     `SELECT sl.name label, COUNT(*) value FROM student_languages sl
      JOIN students s ON s.id=sl.student_id JOIN evaluations e ON e.student_id=s.id
+     LEFT JOIN schools sc ON sc.id=s.school_id LEFT JOIN municipalities m ON m.id=sc.municipality_id LEFT JOIN states st ON st.id=m.state_id
+     LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela' LEFT JOIN municipalities pm ON pm.id=cs.municipality_id LEFT JOIN states pst ON pst.id=pm.state_id
      WHERE sl.kind='lengua' ${languageFilter} GROUP BY sl.name ORDER BY value DESC,sl.name LIMIT 10`,
     params,
   );
   const [idioms] = await pool.query(
     `SELECT sl.name label, COUNT(*) value FROM student_languages sl
      JOIN students s ON s.id=sl.student_id JOIN evaluations e ON e.student_id=s.id
+     LEFT JOIN schools sc ON sc.id=s.school_id LEFT JOIN municipalities m ON m.id=sc.municipality_id LEFT JOIN states st ON st.id=m.state_id
+     LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela' LEFT JOIN municipalities pm ON pm.id=cs.municipality_id LEFT JOIN states pst ON pst.id=pm.state_id
      WHERE sl.kind='idioma' ${languageFilter} GROUP BY sl.name ORDER BY value DESC,sl.name LIMIT 10`,
     params,
   );
@@ -320,7 +340,7 @@ async function dashboardData(query = {}) {
   // Esto evita que una evaluación válida desaparezca del panel por diferencias
   // de SQL mode o por no tener lenguas/idiomas asociados.
   const [recentEvaluations] = await pool.query(
-    `SELECT e.id,s.state_name,s.municipality_name,s.school_name,e.holland_code,
+    `SELECT e.id,COALESCE(st.name,pst.name) state_name,COALESCE(m.name,pm.name) municipality_name,COALESCE(sc.name,cs.name) school_name,e.holland_code,
             e.top_career_name,e.top_career_affinity,e.completed_at,
             (SELECT GROUP_CONCAT(DISTINCT sl.name ORDER BY sl.name SEPARATOR ', ')
                FROM student_languages sl WHERE sl.student_id=s.id AND sl.kind='lengua') lenguas,
@@ -361,7 +381,7 @@ async function catalogAdminData() {
     pool.query('SELECT * FROM careers ORDER BY active DESC,name'),
     pool.query('SELECT * FROM department_open_questions ORDER BY department'),
     pool.query('SELECT * FROM questions ORDER BY active DESC,position,id'),
-    pool.query("SELECT * FROM catalog_suggestions ORDER BY FIELD(status,'pending','approved','rejected'),created_at DESC LIMIT 200"),
+    pool.query("SELECT cs.*,m.name municipality_name,st.name state_name FROM catalog_suggestions cs LEFT JOIN municipalities m ON m.id=cs.municipality_id LEFT JOIN states st ON st.id=m.state_id ORDER BY FIELD(cs.status,'pending','approved','rejected'),cs.created_at DESC LIMIT 200"),
     pool.query('SELECT career_id,dimension,weight FROM career_riasec_weights'),
     pool.query('SELECT career_id,question_id FROM career_questions ORDER BY question_id'),
   ]);
@@ -626,10 +646,18 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
     const item = rows[0];
     if (action === 'approve') {
       const id = `${item.kind}_${slug(item.name)}_${String(item.id).padStart(3,'0')}`.slice(0,80);
-      await connection.execute(
-        'INSERT INTO languages(id,name,kind,active) VALUES(?,?,?,1) ON DUPLICATE KEY UPDATE active=1',
-        [id, item.name, item.kind],
-      );
+      if (item.kind === 'escuela') {
+        await connection.execute(
+          'INSERT INTO schools(id,name,municipality_id,active) VALUES(?,?,?,1) ON DUPLICATE KEY UPDATE active=1',
+          [id, item.name, item.municipality_id],
+        );
+        await connection.execute('UPDATE students SET school_id=?, school_suggestion_id=NULL WHERE school_suggestion_id=?', [id, item.id]);
+      } else {
+        await connection.execute(
+          'INSERT INTO languages(id,name,kind,active) VALUES(?,?,?,1) ON DUPLICATE KEY UPDATE active=1',
+          [id, item.name, item.kind],
+        );
+      }
       await connection.execute("UPDATE catalog_suggestions SET status='approved',reviewed_at=CURRENT_TIMESTAMP WHERE id=?", [item.id]);
       await bumpCatalogVersion(connection);
     } else {
@@ -644,7 +672,7 @@ app.post('/api/admin/suggestions/:id/:action', requireAdmin, async (req, res) =>
       catalogChanged: action === 'approve',
     });
     if (action === 'approve') {
-      notifyAdmins('catalog-updated', { type: 'languages', action: 'create', name: item.name });
+      notifyAdmins('catalog-updated', { type: item.kind === 'escuela' ? 'schools' : 'languages', action: 'create', name: item.name });
     }
     res.json({ ok: true });
   } catch (error) {
@@ -662,10 +690,10 @@ app.get('/api/admin/live-state', requireAdmin, async (req, res) => {
       pool.query('SELECT version, updated_at FROM catalog_meta WHERE id=1'),
       pool.query("SELECT COUNT(*) AS c FROM catalog_suggestions WHERE status='pending'"),
       pool.query(`SELECT COUNT(*) total_evaluations,
-                         COUNT(DISTINCT s.school_name) schools,
+                         COUNT(DISTINCT COALESCE(sc.name,cs.name)) schools,
                          COUNT(DISTINCT e.holland_code) profiles,
                          ROUND(AVG(e.top_career_affinity),1) average_affinity
-                    FROM evaluations e JOIN students s ON s.id=e.student_id`),
+                    FROM evaluations e JOIN students s ON s.id=e.student_id LEFT JOIN schools sc ON sc.id=s.school_id LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id`),
     ]);
     const meta = metaResult[0][0] ?? {};
     const pending = pendingResult[0][0] ?? {};
@@ -690,7 +718,7 @@ app.get('/api/admin/live-state', requireAdmin, async (req, res) => {
 app.get('/api/admin/suggestions', requireAdmin, async (_req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT id, kind, name, status, created_at, reviewed_at FROM catalog_suggestions ORDER BY FIELD(status,'pending','approved','rejected'), created_at DESC LIMIT 200",
+      "SELECT cs.id, cs.kind, cs.name, cs.municipality_id, m.name municipality_name, st.name state_name, cs.status, cs.created_at, cs.reviewed_at FROM catalog_suggestions cs LEFT JOIN municipalities m ON m.id=cs.municipality_id LEFT JOIN states st ON st.id=m.state_id ORDER BY FIELD(status,'pending','approved','rejected'), created_at DESC LIMIT 200",
     );
     res.json({ suggestions: rows });
   } catch (error) {
@@ -742,7 +770,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         Title: 'Reporte de orientación vocacional — App Vocacional ITTUX',
         Author: 'Instituto Tecnológico de Tuxtepec',
         Subject: 'Estadísticas de evaluaciones RIASEC filtradas',
-        Creator: 'AEVUM ITER Admin Panel',
+        Creator: 'App Vocacional ITTUX Admin Panel',
       },
     });
     const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;

@@ -29,7 +29,30 @@ class ProfileRepository {
 
   Future<UserProfile?> getProfile() async {
     final db = await _dbProvider.database;
-    final results = await db.query(Tables.profile, limit: 1);
+    final results = await db.rawQuery('''
+      SELECT p.*,
+             sc.name AS school,
+             m.id AS municipality_id, m.name AS municipality,
+             st.id AS state_id, st.name AS state,
+             q.name AS pending_school_name, q.municipality_id AS pending_municipality_id,
+             pm.name AS pending_municipality, ps.id AS pending_state_id, ps.name AS pending_state
+      FROM ${Tables.profile} p
+      LEFT JOIN ${Tables.schools} sc ON sc.id = p.school_id
+      LEFT JOIN ${Tables.municipalities} m ON m.id = sc.municipality_id
+      LEFT JOIN ${Tables.states} st ON st.id = m.state_id
+      LEFT JOIN ${Tables.catalogSuggestionQueue} q ON q.id = p.pending_school_suggestion_id AND q.kind = 'escuela'
+      LEFT JOIN ${Tables.municipalities} pm ON pm.id = q.municipality_id
+      LEFT JOIN ${Tables.states} ps ON ps.id = pm.state_id
+      LIMIT 1
+    ''');
+    if (results.isNotEmpty && results.first['school_id'] == null) {
+      final row = Map<String, dynamic>.from(results.first);
+      row['municipality_id'] = row['pending_municipality_id'];
+      row['municipality'] = row['pending_municipality'];
+      row['state_id'] = row['pending_state_id'];
+      row['state'] = row['pending_state'];
+      results[0] = row;
+    }
     if (results.isEmpty) return null;
     final id = results.first['id']?.toString() ?? '1';
     final languageRows = await db.query(

@@ -106,12 +106,22 @@
       </section>
 
       <section id="view-suggestions" class="view">
-        <div class="section-title"><div><p class="eyebrow">SUGERENCIAS DESDE LA APP</p><h2>Lenguas e idiomas pendientes</h2><p>Al aprobar una sugerencia se incorpora al catálogo maestro y aumenta su versión.</p></div></div>
-        <div class="card suggestions-list" id="suggestionsList">
-          <% for (const row of catalogs.suggestions ?? []) { %>
-            <div class="suggestion-row"><div><span class="pill"><%= row.kind %></span><strong><%= row.name %></strong><small><%= new Date(row.created_at).toLocaleString('es-MX') %></small></div><div><span class="status-label <%= row.status %>"><%= row.status %></span><% if(row.status==='pending'){ %><button class="small-btn approve" data-suggestion="<%= row.id %>" data-action="approve">Aprobar</button><button class="small-btn danger" data-suggestion="<%= row.id %>" data-action="reject">Rechazar</button><% } %></div></div>
+        <div class="section-title"><div><p class="eyebrow">SUGERENCIAS DESDE LA APP</p><h2>Escuelas, lenguas e idiomas pendientes</h2><p>Las sugerencias se muestran por categoría para facilitar su revisión. Al aprobarlas se incorporan al catálogo maestro y aumenta su versión.</p></div></div>
+        <div class="suggestion-groups" id="suggestionsList">
+          <% const suggestionGroups = [
+            {kind:'escuela', title:'Escuelas', icon:'🏫'},
+            {kind:'lengua', title:'Lenguas', icon:'🗣️'},
+            {kind:'idioma', title:'Idiomas', icon:'🌐'}
+          ]; %>
+          <% for (const group of suggestionGroups) { const rows = (catalogs.suggestions ?? []).filter(x => x.kind === group.kind); %>
+            <div class="card suggestion-group">
+              <div class="suggestion-group-title"><span><%= group.icon %></span><div><h3><%= group.title %></h3><small><%= rows.filter(x=>x.status==='pending').length %> pendiente(s)</small></div></div>
+              <% for (const row of rows) { %>
+                <div class="suggestion-row"><div><span class="pill"><%= row.kind %></span><strong><%= row.name %></strong><% if(row.kind==='escuela' && row.municipality_name){ %><small><%= row.municipality_name %><%= row.state_name ? ', ' + row.state_name : '' %></small><% } %><small><%= new Date(row.created_at).toLocaleString('es-MX') %></small></div><div><span class="status-label <%= row.status %>"><%= row.status %></span><% if(row.status==='pending'){ %><button class="small-btn approve" data-suggestion="<%= row.id %>" data-action="approve">Aprobar</button><button class="small-btn danger" data-suggestion="<%= row.id %>" data-action="reject">Rechazar</button><% } %></div></div>
+              <% } %>
+              <% if(!rows.length){ %><p class="empty">No hay sugerencias de <%= group.title.toLowerCase() %>.</p><% } %>
+            </div>
           <% } %>
-          <% if(!(catalogs.suggestions ?? []).length){ %><p class="empty">No hay sugerencias todavía.</p><% } %>
         </div>
       </section>
 

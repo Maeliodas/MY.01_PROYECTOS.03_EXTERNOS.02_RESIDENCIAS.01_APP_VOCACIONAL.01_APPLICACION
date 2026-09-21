@@ -66,3 +66,11 @@
 .aevum-modal-actions .btn-confirm:hover{background:var(--green2)}
 .aevum-modal-actions .btn-confirm.danger{background:var(--danger)}
 .aevum-modal-actions .btn-confirm.danger:hover{background:#8a3535}
+/* V20: sugerencias separadas por tipo */
+.suggestion-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.suggestion-group{padding:18px}
+.suggestion-group-title{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.suggestion-group-title>span{font-size:25px}
+.suggestion-group-title h3{margin:0;font-size:16px;color:var(--ink)}
+.suggestion-group-title small{color:var(--muted)}
+.suggestion-group .suggestion-row{padding-left:0;padding-right:0}
