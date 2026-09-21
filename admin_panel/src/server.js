@@ -932,7 +932,9 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     /** Gráfico de barras horizontales dibujado con primitivas PDFKit */
     function drawBarChart(title, rows, { maxBars = 8, barHeight = 14, gap = 8 } = {}) {
       const series = (rows || []).slice(0, maxBars).filter(r => r && r.label != null);
-      ensureSpace(60 + series.length * (barHeight + gap));
+      // Estimación exacta (título + filas + cierre): sobrestimar aquí creaba
+      // saltos prematuros y dejaba páginas semivacías.
+      ensureSpace(24 + series.length * (barHeight + gap));
       doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(title, marginL, doc.y, { width: contentW });
       doc.moveDown(0.4);
 
@@ -954,10 +956,10 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         y = doc.y;
         const val = Number(row.value) || 0;
         const w = Math.max(2, (val / maxVal) * barMaxW);
-        const label = String(row.label).slice(0, 42);
+        const label = String(row.label).slice(0, 34);
 
         doc.fillColor(INK).font('Noto').fontSize(8)
-          .text(label, marginL, y + 2, { width: labelW, ellipsis: true });
+          .text(label, marginL, y + 2, { width: labelW, height: barHeight + 2, ellipsis: true });
 
         // fondo de barra
         doc.roundedRect(marginL + labelW + 6, y, barMaxW, barHeight, 3).fill(BAR_BG);
@@ -1140,7 +1142,6 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       }
     }
 
-    doc.moveDown(1);
     ensureSpace(50);
     sectionTitle('9. Nota metodológica');
     formalParagraph(
