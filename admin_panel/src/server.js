@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import PDFDocument from 'pdfkit';
+import { PassThrough } from 'stream';
 import { pool } from './db.js';
 
 const app = express();
@@ -26,7 +27,7 @@ function notifyAdmins(event, payload = {}) {
 
 
 const port = Number(process.env.PORT ?? 8080);
-const panelVersion = '1.2.0-3';
+const panelVersion = '1.2.2-6';
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
 const adminPassword = process.env.ADMIN_PASSWORD ?? '';
@@ -410,6 +411,12 @@ async function dashboardData(query = {}) {
        LEFT JOIN department_open_questions dq ON dq.department=c.department
        JOIN evaluations e ON e.id=oa.evaluation_id
        JOIN students s ON s.id=e.student_id
+       LEFT JOIN schools sc ON sc.id=s.school_id
+       LEFT JOIN municipalities m ON m.id=sc.municipality_id
+       LEFT JOIN states st ON st.id=m.state_id
+       LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela'
+       LEFT JOIN municipalities pm ON pm.id=cs.municipality_id
+       LEFT JOIN states pst ON pst.id=pm.state_id
        ${where}
        ORDER BY e.completed_at DESC, oa.id`,
     params,
@@ -840,9 +847,19 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     doc.registerFont('Noto-Italic', path.join(__dirname, '../fonts/NotoSans-Italic.ttf'));
     doc.registerFont('Noto-BoldItalic', path.join(__dirname, '../fonts/NotoSans-BoldItalic.ttf'));
     const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    doc.pipe(res);
+    // El PDF se arma completo en memoria y sólo se envía si terminó sin
+    // errores: si algo falla a mitad del dibujo se responde 500 (JSON)
+    // en vez de entregar un archivo truncado/corrupto al navegador.
+    const pdfChunks = [];
+    const pdfStream = new PassThrough();
+    pdfStream.on('data', (chunk) => pdfChunks.push(chunk));
+    const pdfReady = new Promise((resolve, reject) => {
+      pdfStream.on('end', resolve);
+      pdfStream.on('error', reject);
+      doc.on('error', reject);
+    });
+    pdfReady.catch(() => {});   // evita unhandledRejection si se aborta antes
+    doc.pipe(pdfStream);
 
     const ASSET = (name) => path.join(__dirname, '../assets', name);
     // Paleta oficial (Manual de Identidad Gráfica TecNM 2026, §2.3 Colores):
@@ -1260,18 +1277,17 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       }
     }
 
-    ensureSpace(50);
-    sectionTitle('9. Nota metodológica');
-    formalParagraph(
-      'Las evaluaciones se basan en un instrumento de treinta reactivos alineados al modelo RIASEC. El código Holland se obtiene a partir de las tres dimensiones con mayor puntuación. El ranking de carreras combina el perfil del estudiante con los pesos RIASEC definidos en el catálogo institucional. Este reporte no sustituye la asesoría personalizada de orientadores educativos.',
-    );
-    formalParagraph(
-      `Documento generado el ${generatedAt}. Cualquier reproducción o difusión fuera del ámbito institucional del Instituto Tecnológico de Tuxtepec debe autorizarse expresamente.`,
-    );
+    // El punto «9. Nota metodológica» se retiró del reporte a petición del
+    // usuario: el documento termina en la tabla del punto 8 (la fecha de
+    // emisión se conserva en la portada).
 
     // Pie de página en todas las páginas (después de buffer completo)
     drawFooter();
     doc.end();
+    await pdfReady;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.concat(pdfChunks));
   } catch (error) {
     console.error(error);
     if (!res.headersSent) res.status(500).json({ error: 'No fue posible generar el PDF' });

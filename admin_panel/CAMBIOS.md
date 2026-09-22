@@ -3,8 +3,27 @@
 > Convención: una sola bitácora viva. Cada revisión **añade su sección arriba**;
 > no se crean archivos nuevos por subversión. El `README.md` del panel solo
 > resume los cambios principales de la versión actual.
+> Esquema `X.Y.Z-R`: cada modificación pequeña de un archivo suma **+1 a la
+> revisión (R)**; el rediseño de un módulo suma a **subcambios menores (Z)**
+> y a la revisión.
 
-## 1.2.0-4 (actual)
+## 1.2.2-6 (actual)
+
+Versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **6**.
+Se retira del reporte PDF el **punto «9. Nota metodológica»** (a petición del
+usuario): el documento termina ahora en la tabla del punto 8; la numeración y
+los pies «Página N de M» se recalculan solos. La fecha de emisión se conserva
+en la portada (§1).
+
+- **`dashboardData()`**: la consulta de respuestas abiertas suma los mismos
+  `LEFT JOIN` de escuela/municipio/estado que el resto; antes, filtrar por
+  `?state=` o `?municipality=` fallaba con `ER_BAD_FIELD_ERROR` y el PDF
+  respondía 500.
+- **Entrega del PDF**: el archivo se arma completo en memoria y sólo se envía
+  si terminó sin errores; un fallo a mitad del dibujo responde 500 (JSON) en
+  vez de entregar un PDF truncado/corrupto.
+
+## 1.2.0-4
 
 Versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **4**.
 Reporte PDF reestructurado como documento formal bajo el punto **4.2 «Hoja

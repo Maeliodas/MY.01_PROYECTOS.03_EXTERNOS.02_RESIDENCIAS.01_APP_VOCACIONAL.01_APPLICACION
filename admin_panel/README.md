@@ -1,10 +1,10 @@
 <div align="center">
 
-  # Panel web 1.2.0
+  # Panel web 1.2.2
 
   **Gestión institucional de orientación vocacional** — catálogos versionados, resultados en vivo y reportes oficiales del Instituto Tecnológico de Tuxtepec.
 
-  [![release](https://img.shields.io/badge/release-1.2.0-00923F?style=for-the-badge)](.)
+  [![release](https://img.shields.io/badge/release-1.2.2-00923F?style=for-the-badge)](.)
   [![node](https://img.shields.io/badge/Node.js-Express_4-339933?style=for-the-badge&logo=node.js&logoColor=white)](src/server.js)
   [![mysql](https://img.shields.io/badge/MySQL_MariaDB-utf8mb4-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](sql/schema.sql)
   [![realtime](https://img.shields.io/badge/Tiempo_real-Socket.IO-010101?style=for-the-badge&logo=socket.io&logoColor=white)](src/server.js)
@@ -69,12 +69,12 @@ Instalable como aplicación (navegador: “Instalar” o “Añadir a pantalla d
 
 ## 🔢 Versionado
 
-Esquema `1.2.0-3` → versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **3**. Independiente de la app (`1.3.2-10`) y de la versión de **datos** (`catalog_meta`, visible como `#N` en el panel).
+Esquema `1.2.2-6` → versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **6**. Independiente de la app (`1.3.2-10`) y de la versión de **datos** (`catalog_meta`, visible como `#N` en el panel).
 
-Detalle en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revisión actual). Reglas: +semigrande por módulo nuevo, +menores por lote de funciones, +revisión por fixes.
+Detalle en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revisión actual). Reglas: +revisión por cada modificación pequeña de un archivo; el rediseño de un módulo suma a subcambios menores y a la revisión.
 
 ---
 
 <div align="center">
-  <sub>Instituto Tecnológico de Tuxtepec · Panel web 1.2.0 · Uso institucional restringido</sub>
+  <sub>Instituto Tecnológico de Tuxtepec · Panel web 1.2.2 · Uso institucional restringido</sub>
 </div>
