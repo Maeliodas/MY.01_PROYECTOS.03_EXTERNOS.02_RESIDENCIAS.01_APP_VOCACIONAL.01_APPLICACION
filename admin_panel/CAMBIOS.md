@@ -4,7 +4,46 @@
 > no se crean archivos nuevos por subversión. El `README.md` del panel solo
 > resume los cambios principales de la versión actual.
 
-## 1.2.0-3 (actual)
+## 1.2.0-4 (actual)
+
+Versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **4**.
+Reporte PDF reestructurado como documento formal bajo el punto **4.2 «Hoja
+membretada»** del Manual de Identidad Gráfica TecNM 2026. Tamaño **A4**
+(decisión del usuario; el manual es carta). Las 9 secciones se conservan
+directas, sin portada ni índice.
+
+- **Colores oficiales** (`src/server.js`): `BLUE = #1B396A` (Pantone 294 C,
+  RGB 27/57/106, medido sobre el manual) y `GUINDA = #A61D49` (filete del pie).
+  Se retiraron `#0033a0` y `#00923f`, que no pertenecen a la paleta; las series
+  de datos pasan al azul institucional. Filete vertical dorado `#AE8420`.
+- **Encabezado §4.2** (`drawHeader()`): logotipos SEP/TecNM/escudo a la
+  izquierda y bloque del plantel a la derecha con filete vertical dorado;
+  **sin filete de cierre** (la referencia no lo trae) y nombre del plantel en
+  **negro**. El cuerpo arranca en `y = 200` (`margins.top = 200`).
+- **Pie §4.2** (`drawFooter()`): filete **guinda de 3.6 pts**, wordmark del
+  plantel a la izquierda cruzándolo, domicilio/contacto **alineados a la
+  izquierda** arrancando en el `x` del filete (antes iban centrados) y
+  numeración «Página N de M».
+- **Logos de certificación importados** a `assets/`: `cert_igualdad.png`
+  (190×122, esquinas limpiadas a alfa 0) y `cert_libreplastico.png` (150×92,
+  extraído del PDF del manual); se dibujan sobre el filete, a la derecha.
+- **Bug de páginas fantasma corregido**: PDFKit autoañadía página cuando
+  `doc.text()` caía bajo `maxY() = height − margins.bottom`, así que el pie
+  generaba 15 páginas extra (20 en total) y dejaba la numeración en «1 de 5».
+  `margins.bottom` se anula **sólo** durante `drawFooter()` y se restaura
+  después; sin `save()/restore()`, que con `bufferPages + switchToPage` caía en
+  streams de página equivocados. Resultado: **20 → 6 páginas**, numeración
+  consistente y 0 avisos de sintaxis PDF.
+- **Tipografía**: sólo Noto Sans en todo el documento (sin Helvetica/Times).
+- **Tipos** (`package.json`): `@types/express`, `@types/ejs`, `@types/pdfkit`,
+  `@types/cors` en `devDependencies` → **0 errores TS7016**.
+
+> **Pendiente:** escudo del plantel. El del manual es de Tepic y no sirve para
+> Tuxtepec; no se encontró un PNG oficial accesible (`ittux.edu.mx` inaccesible,
+> rutas `img/escudo.png`/`img/isttux.png` → 404). Falta aportar el archivo u
+> omitirlo.
+
+## 1.2.0-3
 
 Versión **1**, sub modificación semigrande **2**, subcambios menores **0**, revisión **3**.
 Identidad visual: Noto Sans garantizada y logo institucional en el panel.

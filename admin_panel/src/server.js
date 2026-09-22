@@ -824,7 +824,9 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     const doc = new PDFDocument({
       size: 'A4',
       bufferPages: true,
-      margins: { top: 90, bottom: 70, left: 50, right: 50 },
+      // Membretada §4.2 del Manual TecNM: la banda superior aloja el
+      // encabezado institucional y la inferior el pie con filete y domicilio.
+      margins: { top: 200, bottom: 130, left: 50, right: 50 },
       info: {
         Title: 'Reporte de orientación vocacional — App Vocacional ITTUX',
         Author: 'Instituto Tecnológico de Tuxtepec',
@@ -832,75 +834,184 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         Creator: 'App Vocacional ITTUX Admin Panel',
       },
     });
-    // Noto Sans (Manual de Identidad TecNM para cuerpos de texto).
-    // Títulos destacados en Helvetica-Bold (Patria no distribuida como TTF).
+    // Noto Sans: tipografía oficial del Manual de Identidad Gráfica TecNM.
     doc.registerFont('Noto', path.join(__dirname, '../fonts/NotoSans-Regular.ttf'));
+    doc.registerFont('Noto-Bold', path.join(__dirname, '../fonts/NotoSans-Bold.ttf'));
     doc.registerFont('Noto-Italic', path.join(__dirname, '../fonts/NotoSans-Italic.ttf'));
+    doc.registerFont('Noto-BoldItalic', path.join(__dirname, '../fonts/NotoSans-BoldItalic.ttf'));
     const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     doc.pipe(res);
 
-    const GREEN = '#00923f';
-    const INK = '#1a2420';
-    const MUTED = '#5a6b62';
-    const LINE = '#c5d0c8';
-    const BAR = '#00923f';
-    const BAR_BG = '#e8f0eb';
+    const ASSET = (name) => path.join(__dirname, '../assets', name);
+    // Paleta oficial (Manual de Identidad Gráfica TecNM 2026, §2.3 Colores):
+    //  · Pantone 294 C = RGB(27,57,106) = #1B396A (coincide con los PNG de
+    //    ../assets, cuya tinta institucional mide exactamente lo mismo).
+    //  · Cool Gray 10 C = #807E82, Negro 100% = #000000.
+    //  · Guinda SEP = #A61D49, medida sobre el filete del pie de §4.2.
+    const BLUE = '#1B396A';
+    const GUINDA = '#A61D49';
+    const GREEN = '#1B396A';   // serie de datos: se usa la azul institucional
+    const INK = '#1a2432';
+    const MUTED = '#5a6675';
+    const LINE = '#c9d3e0';
+    const BAR = '#1B396A';
+    const BAR_BG = '#e6eaf3';
     const pageW = doc.page.width;
     const pageH = doc.page.height;
     const marginL = 50;
     const marginR = 50;
     const contentW = pageW - marginL - marginR;
+    // Límite de contenido = maxY() de PDFKit; se usa en los saltos manuales.
+    // Debe coincidir con margins.bottom si no, el pie invadiría el cuerpo.
+    const bottomLimit = pageH - 130;
 
     const generatedAt = new Date().toLocaleString('es-MX', {
       dateStyle: 'long',
       timeStyle: 'short',
     });
+    const issuedDate = new Date().toLocaleDateString('es-MX', {
+      day: '2-digit', month: 'long', year: 'numeric',
+    });
+    const reportFolio = `RV-${new Date().toISOString().slice(0, 10)}`;
 
+    // Proporciones (ancho/alto) de los PNG en ../assets, para colocarlos sin
+    // deformarlos aunque solo se indique una dimensión.
+    const ASPECT = {
+      sep: 4.8326,       // sep_educacion.png
+      tecnm: 2.2627,     // tecnm_horizontal.png
+      escudo: 1.1029,    // escudo_nacional_gris.png
+      wordmark: 4.0623,  // tecnm_ittux_wordmark.png
+      certIg: 1.5574,    // cert_igualdad.png
+      certLp: 1.6304,    // cert_libreplastico.png
+    };
+
+    /**
+     * Encabezado institucional — Manual de Identidad Gráfica TecNM 2026,
+     * §4.2 «Hoja membretada IT Federal y Centro» (medido sobre el manual):
+     *   · Izquierda: logotipo Educación (SEP) 50..219 x 55..88 ⟩ filete
+     *     vertical dorado en x 233, y 58..85 ⟩ logotipo TecNM 248..314.
+     *   · Derecha: escudo en gris 40..108, nombre del plantel en negrita
+     *     (negro, no azul) y, debajo, unidad responsable, lugar/fecha y
+     *     folio, todo alineado a la derecha.
+     *   · §4.2 NO lleva filete de cierre bajo el encabezado: el cuerpo
+     *     arranca directamente en y 207.
+     */
     function drawHeader() {
-      // Sin save/restore: en modo buffer con switchToPage esos operadores
-      // caían en streams de página equivocados (páginas fantasma). Colores
-      // explícitos en cada dibujo en su lugar.
-      // franja superior
-      doc.rect(0, 0, pageW, 64).fill(GREEN);
-      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(13)
-        .text('INSTITUTO TECNOLÓGICO DE TUXTEPEC', marginL, 14, { width: contentW, align: 'left' });
-      doc.font('Noto').fontSize(9)
-        .text('App Vocacional ITTUX  ·  Panel de orientación vocacional', marginL, 32, { width: contentW });
-      doc.font('Noto').fontSize(8)
-        .text('Documento oficial de resultados', marginL, 46, { width: contentW });
-      // línea decorativa
-      doc.rect(0, 64, pageW, 3).fill('#d3d5bd');
-      doc.y = 90;
+      const RX = pageW - marginR;
+      // ── bloque izquierdo: logotipos ──────────────────────────────────
+      const sepH = 33;
+      const sepW = Math.round(sepH * ASPECT.sep * 100) / 100;
+      doc.image(ASSET('sep_educacion.png'), marginL, 55, { width: sepW, height: sepH });
+      // filete vertical separador — dorado (medido: RGB 174,132,32)
+      const sepVX = marginL + sepW + 14;
+      doc.strokeColor('#AE8420').lineWidth(0.9)
+        .moveTo(sepVX, 58)
+        .lineTo(sepVX, 85)
+        .stroke();
+      const tecH = 28;
+      const tecW = Math.round(tecH * ASPECT.tecnm * 100) / 100;
+      doc.image(ASSET('tecnm_horizontal.png'), sepVX + 14, 58, { width: tecW, height: tecH });
+
+      // ── bloque derecho: escudo + plantel + datos del documento ───────
+      const escH = 68;
+      const escW = Math.round(escH * ASPECT.escudo * 100) / 100;
+      doc.image(ASSET('escudo_nacional_gris.png'), RX - escW, 40, { width: escW, height: escH });
+
+      const rightW = 340;
+      const rightX = RX - rightW;
+      // §4.2 imprime el nombre del plantel en negro; el azul Pantone 294 C
+      // queda reservado para titulares y series de datos del cuerpo.
+      doc.fillColor(INK).font('Noto-Bold').fontSize(10)
+        .text('Instituto Tecnológico de Tuxtepec', rightX, 123, { width: rightW, align: 'right' });
+      doc.fillColor(INK).font('Noto').fontSize(8)
+        .text('Subdirección Académica', rightX, 134, { width: rightW, align: 'right' });
+      doc.fillColor(INK).font('Noto').fontSize(9.5)
+        .text(`Tuxtepec, Oaxaca, ${issuedDate}`, rightX, 160, { width: rightW, align: 'right' });
+      doc.fillColor(INK).font('Noto').fontSize(9.5)
+        .text(`Reporte No. ${reportFolio}`, rightX, 175, { width: rightW, align: 'right' });
+
+      doc.x = marginL;
+      doc.y = 200;
+      doc.fillColor(INK);
     }
 
+    /**
+     * Pie institucional — §4.2 «Hoja membretada», geometría medida sobre el
+     * manual (carta, en pts):
+     *   · logotipo del plantel a la izquierda, x 46..192, tocando el filete;
+     *   · filete guinda #A61D49 de x 190 a 574, grosor 3.6, y 720;
+     *   · domicilio y contacto ALINEADOS A LA IZQUIERDA bajo el filete,
+     *     arrancando en el mismo x en que éste empieza (no centrados);
+     *   · logos de certificación sobre el filete, alineados a la derecha.
+     *
+     * BUG DE PÁGINAS FANTASMA: PDFKit evalúa
+     *   `if (document.y > page.maxY() || y + lineHeight > maxY) nextSection()`
+     * con `maxY() = height − margins.bottom`. Cualquier `doc.text()` con y
+     * dentro de la banda del pie superaba maxY y creaba una página nueva por
+     * cada llamada (5 págs × 3 textos = 15 fantasma → 20 totales, y
+     * «Página 1 de 5» porque bufferedPageRange() se lee antes del bucle).
+     * Se anula el margen inferior sólo durante el dibujo del pie y se
+     * restaura después. Sin save()/restore(): con bufferPages + switchToPage
+     * esos operadores caían en streams de página equivocados.
+     */
     function drawFooter() {
       const range = doc.bufferedPageRange();
+      const RX = pageW - marginR;
+      const wmH = 34;
+      const wmW = Math.round(wmH * ASPECT.wordmark * 100) / 100;
+      // El filete empieza a la derecha del logotipo, como en §4.2.
+      const ruleX = marginL + wmW + 14;
+      const blockW = RX - ruleX;
+      const savedBottom = doc.page.margins.bottom;
+      doc.page.margins.bottom = 0;   // maxY pasa a ser pageH: sin auto-addPage
+
+      // Logos de certificación: en §4.2 van SOBRE el filete, alineados al
+      // margen derecho (medido: x 418..574, y 671..718, es decir 2 pts por
+      // encima del filete de y 720).
+      const certH = 30;
+      const certIgW = Math.round(certH * ASPECT.certIg * 100) / 100;
+      const certLpW = Math.round(certH * ASPECT.certLp * 100) / 100;
+      const certGap = 12;
+      const certBlockW = certIgW + certGap + certLpW;
+      const certX = RX - certBlockW;
+      const certY = pageH - 76 - certH;
+
       for (let i = 0; i < range.count; i++) {
         doc.switchToPage(range.start + i);
-        doc.strokeColor(LINE).lineWidth(0.6)
-          .moveTo(marginL, pageH - 48)
-          .lineTo(pageW - marginR, pageH - 48)
+        // logotipo del plantel, a la izquierda del filete (lo cruza, como
+        // el aniversario de §4.2)
+        doc.image(ASSET('tecnm_ittux_wordmark.png'), marginL, pageH - 80, { width: wmW, height: wmH });
+        // filete guinda §4.2
+        doc.strokeColor(GUINDA).lineWidth(3.6)
+          .moveTo(ruleX, pageH - 72)
+          .lineTo(RX, pageH - 72)
           .stroke();
-        doc.fillColor(MUTED).font('Noto').fontSize(8);
+        // logos de certificación sobre el filete, alineados a la derecha
+        doc.image(ASSET('cert_igualdad.png'), certX, certY, { width: certIgW, height: certH });
+        doc.image(ASSET('cert_libreplastico.png'), certX + certIgW + certGap, certY, { width: certLpW, height: certH });
+        doc.fillColor(MUTED).font('Noto').fontSize(6.5);
         doc.text(
-          'Confidencial — uso institucional · Generado automáticamente por el panel administrativo',
-          marginL,
-          pageH - 40,
-          { width: contentW * 0.72, align: 'left' },
+          'Calzada Dr. Víctor Bravo Ahuja No. 561, Col. Predio el Paraíso, C.P. 68350, San Juan Bautista Tuxtepec, Oaxaca.',
+          ruleX, pageH - 67, { width: blockW, align: 'left' },
+        );
+        doc.text(
+          'Tel. 287 875 6191, 287 52170 y 287 875 1880  ·  cyd_tuxtepec@tecnm.mx  ·  tecnm.mx  ·  tuxtepec.tecnm.mx',
+          ruleX, pageH - 57, { width: blockW, align: 'left' },
         );
         doc.text(
           `Página ${i + 1} de ${range.count}`,
-          marginL,
-          pageH - 40,
-          { width: contentW, align: 'right' },
+          ruleX, pageH - 45, { width: blockW, align: 'right' },
         );
+        doc.x = marginL;
+        doc.fillColor(INK);
       }
+      doc.page.margins.bottom = savedBottom;
     }
 
     function ensureSpace(needed = 80) {
-      if (doc.y + needed > pageH - 70) {
+      if (doc.y + needed > bottomLimit) {
         doc.addPage();
         drawHeader();
       }
@@ -908,7 +1019,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
 
     function sectionTitle(title) {
       ensureSpace(36);
-      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(12).text(title, marginL, doc.y, { width: contentW });
+      doc.fillColor(BLUE).font('Noto-Bold').fontSize(12).text(title, marginL, doc.y, { width: contentW });
       doc.moveDown(0.25);
       doc.strokeColor(LINE).lineWidth(0.8)
         .moveTo(marginL, doc.y)
@@ -942,7 +1053,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       // Estimación exacta (título + filas + cierre): sobrestimar aquí creaba
       // saltos prematuros y dejaba páginas semivacías.
       ensureSpace(24 + series.length * (barHeight + gap));
-      doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(title, marginL, doc.y, { width: contentW });
+      doc.fillColor(INK).font('Noto-Bold').fontSize(10).text(title, marginL, doc.y, { width: contentW });
       doc.moveDown(0.4);
 
       if (!series.length) {
@@ -973,7 +1084,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         // valor
         doc.roundedRect(marginL + labelW + 6, y, w, barHeight, 3).fill(BAR);
 
-        doc.fillColor(INK).font('Helvetica-Bold').fontSize(8)
+        doc.fillColor(INK).font('Noto-Bold').fontSize(8)
           .text(String(val), marginL + labelW + 6 + barMaxW + 6, y + 2, { width: valueW });
 
         doc.y = y + barHeight + gap;
@@ -996,10 +1107,10 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       const y = doc.y;
       items.forEach((item, i) => {
         const x = marginL + i * (boxW + 6);
-        doc.roundedRect(x, y, boxW, 48, 4).fill('#f4f7f5');
+        doc.roundedRect(x, y, boxW, 48, 4).fill('#f2f5fa');
         doc.fillColor(MUTED).font('Noto').fontSize(7)
           .text(item.label.toUpperCase(), x + 8, y + 8, { width: boxW - 16 });
-        doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(14)
+        doc.fillColor(GREEN).font('Noto-Bold').fontSize(14)
           .text(item.value, x + 8, y + 22, { width: boxW - 16 });
       });
       doc.y = y + 56;
@@ -1009,7 +1120,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     // ── Página 1: portada / introducción ────────────────────────────────────
     drawHeader();
 
-    doc.fillColor(INK).font('Helvetica-Bold').fontSize(16)
+    doc.fillColor(BLUE).font('Noto-Bold').fontSize(16)
       .text('Reporte de orientación vocacional', marginL, doc.y, { width: contentW });
     doc.moveDown(0.3);
     doc.fillColor(MUTED).font('Noto').fontSize(9)
@@ -1104,9 +1215,9 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         { key: 'afinidad', w: 48, title: 'Afinidad' },
       ];
       const headerY = doc.y;
-      doc.rect(marginL, headerY, contentW, 16).fill('#e8f0eb');
+      doc.rect(marginL, headerY, contentW, 16).fill('#e8edf7');
       let x = marginL + 3;
-      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(7);
+      doc.fillColor(BLUE).font('Noto-Bold').fontSize(7);
       for (const c of cols) {
         doc.text(c.title, x, headerY + 4, { width: c.w - 4 });
         x += c.w;
