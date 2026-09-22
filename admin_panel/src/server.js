@@ -27,7 +27,7 @@ function notifyAdmins(event, payload = {}) {
 
 
 const port = Number(process.env.PORT ?? 8080);
-const panelVersion = '1.2.2-6';
+const panelVersion = '1.2.2-7';
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
 const adminPassword = process.env.ADMIN_PASSWORD ?? '';
@@ -1046,6 +1046,14 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       doc.fillColor(INK);
     }
 
+    // Cada punto del reporte abre su propia página (con encabezado §4.2):
+    // ninguna sección continúa en la página donde terminó la anterior.
+    function newSection(title) {
+      doc.addPage();
+      drawHeader();
+      sectionTitle(title);
+    }
+
     function formalParagraph(text) {
       // Medir antes de dibujar evita saltos automáticos a mitad de párrafo
       // (páginas sin encabezado).
@@ -1167,31 +1175,31 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       'La información se presenta con fines de análisis institucional y toma de decisiones en materia de orientación educativa. Los datos personales de los estudiantes no se exponen de forma nominativa en este reporte; las cifras corresponden a agregados estadísticos y a registros anonimizados o seudonimizados según la configuración del panel.',
     );
 
-    sectionTitle('2. Indicadores generales');
+    newSection('2. Indicadores generales');
     formalParagraph(
       'A continuación se resumen los indicadores principales derivados del conjunto de evaluaciones que cumplen los filtros indicados. La afinidad media expresa el promedio del porcentaje de coincidencia entre el perfil RIASEC del estudiante y la carrera recomendada en primer lugar.',
     );
     kpiRow(data.totals ?? {});
 
-    sectionTitle('3. Distribución de carreras recomendadas');
+    newSection('3. Distribución de carreras recomendadas');
     formalParagraph(
       'La gráfica muestra las carreras con mayor frecuencia como recomendación principal. Cada barra representa el número de evaluaciones en las que dicha carrera ocupó el primer lugar del ranking individual.',
     );
     drawBarChart('Carreras más recomendadas', data.careers, { maxBars: 10 });
 
-    sectionTitle('4. Perfiles RIASEC (códigos Holland)');
+    newSection('4. Perfiles RIASEC (códigos Holland)');
     formalParagraph(
       'Los códigos Holland agrupan las tres dimensiones RIASEC predominantes de cada evaluación (Realista, Investigador, Artístico, Social, Emprendedor, Convencional). La distribución permite identificar los perfiles vocacionales más frecuentes en la población filtrada.',
     );
     drawBarChart('Frecuencia de códigos Holland', data.profiles, { maxBars: 10 });
 
-    sectionTitle('5. Afinidad con la carrera principal');
+    newSection('5. Afinidad con la carrera principal');
     formalParagraph(
       'Se agrupan las evaluaciones según el intervalo de afinidad porcentual respecto a la carrera recomendada en primer lugar. Intervalos altos sugieren una coincidencia sólida entre intereses del estudiante y la oferta formativa sugerida.',
     );
     drawBarChart('Distribución por rango de afinidad', data.affinity, { maxBars: 6 });
 
-    sectionTitle('6. Planteles y procedencia');
+    newSection('6. Planteles y procedencia');
     formalParagraph(
       'Se detalla la participación por escuela de procedencia y por municipio/estado, útil para contrastar cobertura territorial y carga de orientación por plantel.',
     );
@@ -1199,7 +1207,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     drawBarChart('Evaluaciones por municipio / estado', data.provenance, { maxBars: 8 });
 
     if ((data.languages ?? []).length || (data.idioms ?? []).length) {
-      sectionTitle('7. Lenguas originarias e idiomas');
+      newSection('7. Lenguas originarias e idiomas');
       formalParagraph(
         'Cuando los estudiantes declararon lenguas originarias o idiomas adicionales, se resume su frecuencia en el conjunto filtrado. Estos datos contextualizan la diversidad lingüística de la población atendida.',
       );
@@ -1211,7 +1219,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       }
     }
 
-    sectionTitle('8. Registro detallado de evaluaciones recientes');
+    newSection('8. Registro detallado de evaluaciones recientes');
     formalParagraph(
       'Se listan hasta cuarenta evaluaciones más recientes que cumplen los filtros. Cada fila indica procedencia, plantel, código Holland, carrera principal recomendada, afinidad y fecha de conclusión. Las respuestas abiertas complementarias, de existir, se indican de forma resumida.',
     );
@@ -1221,8 +1229,10 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       doc.fillColor(MUTED).font('Noto-Italic').fontSize(9)
         .text('No hay evaluaciones para los filtros seleccionados.', marginL, doc.y);
     } else {
-      // encabezado de tabla
-      ensureSpace(30);
+      // encabezado de tabla (celdas con aire: HPAD horizontal, VPAD vertical)
+      const HPAD = 7;
+      const VPAD = 6;
+      ensureSpace(60);
       const cols = [
         { key: 'fecha', w: 62, title: 'Fecha' },
         { key: 'lugar', w: 110, title: 'Municipio / Edo.' },
@@ -1232,14 +1242,14 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         { key: 'afinidad', w: 48, title: 'Afinidad' },
       ];
       const headerY = doc.y;
-      doc.rect(marginL, headerY, contentW, 16).fill('#e8edf7');
-      let x = marginL + 3;
+      doc.rect(marginL, headerY, contentW, 26).fill('#e8edf7');
+      let x = marginL + HPAD;
       doc.fillColor(BLUE).font('Noto-Bold').fontSize(7);
       for (const c of cols) {
-        doc.text(c.title, x, headerY + 4, { width: c.w - 4 });
+        doc.text(c.title, x, headerY + VPAD, { width: c.w - HPAD - 3 });
         x += c.w;
       }
-      doc.y = headerY + 18;
+      doc.y = headerY + 28;
 
       doc.font('Noto').fontSize(7).fillColor(INK);
       for (const row of evalRows) {
@@ -1254,16 +1264,16 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         const values = [fecha, lugar, escuela, holland, carrera, afinidad];
         // Alto medido por celda: el texto envuelve en vez de encimarse.
         const heights = values.map((v, i) =>
-          doc.heightOfString(String(v), { width: cols[i].w - 4 }),
+          doc.heightOfString(String(v), { width: cols[i].w - HPAD * 2 }),
         );
-        const rowH = Math.min(Math.max(...heights, 10) + 6, 56);
+        const rowH = Math.min(Math.max(...heights, 10) + VPAD * 2 + 2, 64);
         ensureSpace(rowH + 6);
         const rowY = doc.y;
-        x = marginL + 3;
+        x = marginL + HPAD;
         values.forEach((v, i) => {
-          doc.fillColor(INK).text(v, x, rowY + 2, {
-            width: cols[i].w - 4,
-            height: rowH - 4,
+          doc.fillColor(INK).text(v, x, rowY + VPAD, {
+            width: cols[i].w - HPAD * 2,
+            height: rowH - VPAD * 2,
             ellipsis: true,
           });
           x += cols[i].w;

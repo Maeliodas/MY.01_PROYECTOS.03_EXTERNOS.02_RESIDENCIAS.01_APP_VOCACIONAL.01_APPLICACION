@@ -7,7 +7,15 @@
 > revisión (R)**; el rediseño de un módulo suma a **subcambios menores (Z)**
 > y a la revisión.
 
-## 1.2.2-6 (actual)
+## 1.2.2-7 (actual)
+
+Versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **7**.
+Cada punto del reporte es ahora su propia sección en página nueva: las secciones
+2–8 abren página con encabezado §4.2 en vez de continuar donde terminó la
+anterior. La tabla del punto 8 gana aire en las celdas (margen horizontal de
+7 pts y vertical de 6 pts en encabezado y filas).
+
+## 1.2.2-6
 
 Versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **6**.
 Se retira del reporte PDF el **punto «9. Nota metodológica»** (a petición del
