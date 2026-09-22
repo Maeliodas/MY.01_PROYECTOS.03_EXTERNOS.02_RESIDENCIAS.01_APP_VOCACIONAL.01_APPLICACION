@@ -7,7 +7,14 @@
 > revisión (R)**; el rediseño de un módulo suma a **subcambios menores (Z)**
 > y a la revisión.
 
-## 1.2.2-7 (actual)
+## 1.2.2-8 (actual)
+
+Versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **8**.
+La tabla del punto 8 lleva rejilla completa tipo Excel: contorno y divisiones
+verticales en encabezado y filas (antes solo había líneas horizontales); las
+filas quedan pegadas para que la cuadrícula sea continua.
+
+## 1.2.2-7
 
 Versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **7**.
 Cada punto del reporte es ahora su propia sección en página nueva: las secciones

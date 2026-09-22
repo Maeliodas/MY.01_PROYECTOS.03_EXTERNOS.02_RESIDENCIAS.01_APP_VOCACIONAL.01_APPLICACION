@@ -27,7 +27,7 @@ function notifyAdmins(event, payload = {}) {
 
 
 const port = Number(process.env.PORT ?? 8080);
-const panelVersion = '1.2.2-7';
+const panelVersion = '1.2.2-8';
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
 const adminPassword = process.env.ADMIN_PASSWORD ?? '';
@@ -1242,14 +1242,23 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         { key: 'afinidad', w: 48, title: 'Afinidad' },
       ];
       const headerY = doc.y;
-      doc.rect(marginL, headerY, contentW, 26).fill('#e8edf7');
+      const headerH = 26;
+      doc.rect(marginL, headerY, contentW, headerH).fill('#e8edf7');
       let x = marginL + HPAD;
       doc.fillColor(BLUE).font('Noto-Bold').fontSize(7);
       for (const c of cols) {
         doc.text(c.title, x, headerY + VPAD, { width: c.w - HPAD - 3 });
         x += c.w;
       }
-      doc.y = headerY + 28;
+      // Rejilla tipo Excel: contorno + divisiones verticales del encabezado
+      doc.strokeColor(LINE).lineWidth(0.6);
+      doc.rect(marginL, headerY, contentW, headerH).stroke();
+      let hx = marginL;
+      for (const c of cols) {
+        hx += c.w;
+        doc.moveTo(hx, headerY).lineTo(hx, headerY + headerH).stroke();
+      }
+      doc.y = headerY + headerH;
 
       doc.font('Noto').fontSize(7).fillColor(INK);
       for (const row of evalRows) {
@@ -1278,12 +1287,16 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
           });
           x += cols[i].w;
         });
+        // Rejilla tipo Excel: contorno de la fila + divisiones verticales
+        // (las filas quedan pegadas para que la cuadrícula sea continua).
+        doc.strokeColor(LINE).lineWidth(0.6);
+        doc.rect(marginL, rowY, contentW, rowH).stroke();
+        let vx = marginL;
+        for (const c of cols) {
+          vx += c.w;
+          doc.moveTo(vx, rowY).lineTo(vx, rowY + rowH).stroke();
+        }
         doc.y = rowY + rowH;
-        doc.strokeColor(LINE).lineWidth(0.3)
-          .moveTo(marginL, doc.y)
-          .lineTo(marginL + contentW, doc.y)
-          .stroke();
-        doc.moveDown(0.25);
       }
     }
 
