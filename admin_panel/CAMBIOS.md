@@ -7,7 +7,26 @@
 > revisión (R)**; el rediseño de un módulo suma a **subcambios menores (Z)**
 > y a la revisión.
 
-## 1.2.2-8 (actual)
+## 1.2.2-9 (actual)
+
+Versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **9**.
+Cuatro correcciones de precisión en el reporte PDF:
+
+- **Folio y nombre de archivo en fecha local**: `toISOString()` usa UTC, así que
+  el folio decía `RV-…-09-23` mientras el encabezado mostraba «22 de
+  septiembre». Ahora ambos derivan de `today`/`pad` (declarados antes de
+  usarse, para evitar el error de temporalidad TDZ que rompía la ruta).
+- **Columna vacía al extremo derecho de la tabla**: los anchos fijos de las
+  seis columnas sumaban 480 pts frente a `contentW` 495,28. Ahora se tratan
+  como pesos relativos y se escalan para sumar exactamente el ancho de
+  contenido.
+- **Encabezado de la tabla repetido en cada página**: las páginas de
+  continuación del punto 8 empezaban directo en datos. `drawTableHeader()` se
+  vuelve a dibujar cuando `ensureSpace()` fuerza el salto (detectado comparando
+  `bufferedPageRange().count` antes y después).
+- Con esto el documento queda en **10 páginas** (antes 11).
+
+## 1.2.2-8
 
 Versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **8**.
 La tabla del punto 8 lleva rejilla completa tipo Excel: contorno y divisiones

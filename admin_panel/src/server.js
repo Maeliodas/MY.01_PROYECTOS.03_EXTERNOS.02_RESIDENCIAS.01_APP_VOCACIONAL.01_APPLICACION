@@ -27,7 +27,7 @@ function notifyAdmins(event, payload = {}) {
 
 
 const port = Number(process.env.PORT ?? 8080);
-const panelVersion = '1.2.2-8';
+const panelVersion = '1.2.2-9';
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
 const adminPassword = process.env.ADMIN_PASSWORD ?? '';
@@ -846,7 +846,12 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     doc.registerFont('Noto-Bold', path.join(__dirname, '../fonts/NotoSans-Bold.ttf'));
     doc.registerFont('Noto-Italic', path.join(__dirname, '../fonts/NotoSans-Italic.ttf'));
     doc.registerFont('Noto-BoldItalic', path.join(__dirname, '../fonts/NotoSans-BoldItalic.ttf'));
-    const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;
+    // Fecha local (no UTC): toISOString() desfazaba el folio y el nombre de
+    // archivo respecto del texto del encabezado («22 de septiembre» vs
+    // «RV-…-09-23»). Se declara antes de usarse en `filename`.
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const filename = `reporte-vocacional-ittux-${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}.pdf`;
     // El PDF se arma completo en memoria y sólo se envía si terminó sin
     // errores: si algo falla a mitad del dibujo se responde 500 (JSON)
     // en vez de entregar un archivo truncado/corrupto al navegador.
@@ -891,7 +896,8 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     const issuedDate = new Date().toLocaleDateString('es-MX', {
       day: '2-digit', month: 'long', year: 'numeric',
     });
-    const reportFolio = `RV-${new Date().toISOString().slice(0, 10)}`;
+    // Folio del reporte: derivado de la fecha local `today` (arriba).
+    const reportFolio = `RV-${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
     // Proporciones (ancho/alto) de los PNG en ../assets, para colocarlos sin
     // deformarlos aunque solo se indique una dimensión.
@@ -1229,36 +1235,47 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       doc.fillColor(MUTED).font('Noto-Italic').fontSize(9)
         .text('No hay evaluaciones para los filtros seleccionados.', marginL, doc.y);
     } else {
-      // encabezado de tabla (celdas con aire: HPAD horizontal, VPAD vertical)
+      // Encabezado de tabla (celdas con aire: HPAD horizontal, VPAD vertical).
+      // Los anchos son pesos relativos: se escalan para que sumen EXACTAMENTE
+      // contentW (antes sumaban 480 pts y dejaban una columna vacía a la
+      // derecha del contorno).
       const HPAD = 7;
       const VPAD = 6;
-      ensureSpace(60);
+      const headerH = 26;
       const cols = [
         { key: 'fecha', w: 62, title: 'Fecha' },
         { key: 'lugar', w: 110, title: 'Municipio / Edo.' },
         { key: 'escuela', w: 100, title: 'Escuela' },
         { key: 'holland', w: 40, title: 'Holland' },
-        { key: 'carrera', w: 120, title: 'Carrera principal' },
+        { key: 'carrera', w: 135, title: 'Carrera principal' },
         { key: 'afinidad', w: 48, title: 'Afinidad' },
       ];
-      const headerY = doc.y;
-      const headerH = 26;
-      doc.rect(marginL, headerY, contentW, headerH).fill('#e8edf7');
-      let x = marginL + HPAD;
-      doc.fillColor(BLUE).font('Noto-Bold').fontSize(7);
-      for (const c of cols) {
-        doc.text(c.title, x, headerY + VPAD, { width: c.w - HPAD - 3 });
-        x += c.w;
+      const weightSum = cols.reduce((sum, c) => sum + c.w, 0);
+      for (const c of cols) c.w = (c.w * contentW) / weightSum;
+
+      // Rejilla tipo Excel: contorno + divisiones verticales compartidas por
+      // cabecera y filas (se repite el encabezado en cada página de la tabla).
+      function drawTableHeader() {
+        ensureSpace(headerH + 40);
+        const headerY = doc.y;
+        doc.rect(marginL, headerY, contentW, headerH).fill('#e8edf7');
+        let x = marginL + HPAD;
+        doc.fillColor(BLUE).font('Noto-Bold').fontSize(7);
+        for (const c of cols) {
+          doc.text(c.title, x, headerY + VPAD, { width: c.w - HPAD - 3 });
+          x += c.w;
+        }
+        doc.strokeColor(LINE).lineWidth(0.6);
+        doc.rect(marginL, headerY, contentW, headerH).stroke();
+        let hx = marginL;
+        for (const c of cols) {
+          hx += c.w;
+          doc.moveTo(hx, headerY).lineTo(hx, headerY + headerH).stroke();
+        }
+        doc.y = headerY + headerH;
       }
-      // Rejilla tipo Excel: contorno + divisiones verticales del encabezado
-      doc.strokeColor(LINE).lineWidth(0.6);
-      doc.rect(marginL, headerY, contentW, headerH).stroke();
-      let hx = marginL;
-      for (const c of cols) {
-        hx += c.w;
-        doc.moveTo(hx, headerY).lineTo(hx, headerY + headerH).stroke();
-      }
-      doc.y = headerY + headerH;
+
+      drawTableHeader();
 
       doc.font('Noto').fontSize(7).fillColor(INK);
       for (const row of evalRows) {
@@ -1276,9 +1293,14 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
           doc.heightOfString(String(v), { width: cols[i].w - HPAD * 2 }),
         );
         const rowH = Math.min(Math.max(...heights, 10) + VPAD * 2 + 2, 64);
+        const pagesBefore = doc.bufferedPageRange().count;
         ensureSpace(rowH + 6);
+        // Si la fila forzó salto de página, el encabezado de la tabla debe
+        // repetirse arriba: sin esto las páginas de continuación empezaban
+        // directo en datos sin títulos de columna.
+        if (doc.bufferedPageRange().count !== pagesBefore) drawTableHeader();
         const rowY = doc.y;
-        x = marginL + HPAD;
+        let x = marginL + HPAD;
         values.forEach((v, i) => {
           doc.fillColor(INK).text(v, x, rowY + VPAD, {
             width: cols[i].w - HPAD * 2,

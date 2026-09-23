@@ -69,7 +69,7 @@ Instalable como aplicación (navegador: “Instalar” o “Añadir a pantalla d
 
 ## 🔢 Versionado
 
-Esquema `1.2.2-8` → versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **8**. Independiente de la app (`1.3.2-10`) y de la versión de **datos** (`catalog_meta`, visible como `#N` en el panel).
+Esquema `1.2.2-9` → versión **1**, sub modificación semigrande **2**, subcambios menores **2**, revisión **9**. Independiente de la app (`1.3.2-10`) y de la versión de **datos** (`catalog_meta`, visible como `#N` en el panel).
 
 Detalle en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revisión actual). Reglas: +revisión por cada modificación pequeña de un archivo; el rediseño de un módulo suma a subcambios menores y a la revisión.
 
