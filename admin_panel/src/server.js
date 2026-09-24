@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import PDFDocument from 'pdfkit';
+import { PassThrough } from 'stream';
 import { pool } from './db.js';
 
 const app = express();
@@ -26,7 +27,7 @@ function notifyAdmins(event, payload = {}) {
 
 
 const port = Number(process.env.PORT ?? 8080);
-const panelVersion = '1.2.0-2';
+const panelVersion = '1.2.2-9';
 const apiIngestKey = process.env.API_INGEST_KEY ?? '';
 const adminUser = process.env.ADMIN_USER ?? '';
 const adminPassword = process.env.ADMIN_PASSWORD ?? '';
@@ -410,6 +411,12 @@ async function dashboardData(query = {}) {
        LEFT JOIN department_open_questions dq ON dq.department=c.department
        JOIN evaluations e ON e.id=oa.evaluation_id
        JOIN students s ON s.id=e.student_id
+       LEFT JOIN schools sc ON sc.id=s.school_id
+       LEFT JOIN municipalities m ON m.id=sc.municipality_id
+       LEFT JOIN states st ON st.id=m.state_id
+       LEFT JOIN catalog_suggestions cs ON cs.id=s.school_suggestion_id AND cs.kind='escuela'
+       LEFT JOIN municipalities pm ON pm.id=cs.municipality_id
+       LEFT JOIN states pst ON pst.id=pm.state_id
        ${where}
        ORDER BY e.completed_at DESC, oa.id`,
     params,
@@ -824,7 +831,9 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     const doc = new PDFDocument({
       size: 'A4',
       bufferPages: true,
-      margins: { top: 90, bottom: 70, left: 50, right: 50 },
+      // Membretada §4.2 del Manual TecNM: la banda superior aloja el
+      // encabezado institucional y la inferior el pie con filete y domicilio.
+      margins: { top: 200, bottom: 130, left: 50, right: 50 },
       info: {
         Title: 'Reporte de orientación vocacional — App Vocacional ITTUX',
         Author: 'Instituto Tecnológico de Tuxtepec',
@@ -832,76 +841,200 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         Creator: 'App Vocacional ITTUX Admin Panel',
       },
     });
-    // Noto Sans (Manual de Identidad TecNM para cuerpos de texto).
-    // Títulos destacados en Helvetica-Bold (Patria no distribuida como TTF).
+    // Noto Sans: tipografía oficial del Manual de Identidad Gráfica TecNM.
     doc.registerFont('Noto', path.join(__dirname, '../fonts/NotoSans-Regular.ttf'));
+    doc.registerFont('Noto-Bold', path.join(__dirname, '../fonts/NotoSans-Bold.ttf'));
     doc.registerFont('Noto-Italic', path.join(__dirname, '../fonts/NotoSans-Italic.ttf'));
-    const filename = `reporte-vocacional-ittux-${new Date().toISOString().slice(0, 10)}.pdf`;
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    doc.pipe(res);
+    doc.registerFont('Noto-BoldItalic', path.join(__dirname, '../fonts/NotoSans-BoldItalic.ttf'));
+    // Fecha local (no UTC): toISOString() desfazaba el folio y el nombre de
+    // archivo respecto del texto del encabezado («22 de septiembre» vs
+    // «RV-…-09-23»). Se declara antes de usarse en `filename`.
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const filename = `reporte-vocacional-ittux-${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}.pdf`;
+    // El PDF se arma completo en memoria y sólo se envía si terminó sin
+    // errores: si algo falla a mitad del dibujo se responde 500 (JSON)
+    // en vez de entregar un archivo truncado/corrupto al navegador.
+    const pdfChunks = [];
+    const pdfStream = new PassThrough();
+    pdfStream.on('data', (chunk) => pdfChunks.push(chunk));
+    const pdfReady = new Promise((resolve, reject) => {
+      pdfStream.on('end', resolve);
+      pdfStream.on('error', reject);
+      doc.on('error', reject);
+    });
+    pdfReady.catch(() => {});   // evita unhandledRejection si se aborta antes
+    doc.pipe(pdfStream);
 
-    const GREEN = '#00923f';
-    const INK = '#1a2420';
-    const MUTED = '#5a6b62';
-    const LINE = '#c5d0c8';
-    const BAR = '#00923f';
-    const BAR_BG = '#e8f0eb';
+    const ASSET = (name) => path.join(__dirname, '../assets', name);
+    // Paleta oficial (Manual de Identidad Gráfica TecNM 2026, §2.3 Colores):
+    //  · Pantone 294 C = RGB(27,57,106) = #1B396A (coincide con los PNG de
+    //    ../assets, cuya tinta institucional mide exactamente lo mismo).
+    //  · Cool Gray 10 C = #807E82, Negro 100% = #000000.
+    //  · Guinda SEP = #A61D49, medida sobre el filete del pie de §4.2.
+    const BLUE = '#1B396A';
+    const GUINDA = '#A61D49';
+    const GREEN = '#1B396A';   // serie de datos: se usa la azul institucional
+    const INK = '#1a2432';
+    const MUTED = '#5a6675';
+    const LINE = '#c9d3e0';
+    const BAR = '#1B396A';
+    const BAR_BG = '#e6eaf3';
     const pageW = doc.page.width;
     const pageH = doc.page.height;
     const marginL = 50;
     const marginR = 50;
     const contentW = pageW - marginL - marginR;
+    // Límite de contenido = maxY() de PDFKit; se usa en los saltos manuales.
+    // Debe coincidir con margins.bottom si no, el pie invadiría el cuerpo.
+    const bottomLimit = pageH - 130;
 
     const generatedAt = new Date().toLocaleString('es-MX', {
       dateStyle: 'long',
       timeStyle: 'short',
     });
+    const issuedDate = new Date().toLocaleDateString('es-MX', {
+      day: '2-digit', month: 'long', year: 'numeric',
+    });
+    // Folio del reporte: derivado de la fecha local `today` (arriba).
+    const reportFolio = `RV-${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
+    // Proporciones (ancho/alto) de los PNG en ../assets, para colocarlos sin
+    // deformarlos aunque solo se indique una dimensión.
+    const ASPECT = {
+      sep: 4.8326,       // sep_educacion.png
+      tecnm: 2.2627,     // tecnm_horizontal.png
+      escudo: 1.1029,    // escudo_nacional_gris.png
+      wordmark: 4.0623,  // tecnm_ittux_wordmark.png
+      certIg: 1.5574,    // cert_igualdad.png
+      certLp: 1.6304,    // cert_libreplastico.png
+    };
+
+    /**
+     * Encabezado institucional — Manual de Identidad Gráfica TecNM 2026,
+     * §4.2 «Hoja membretada IT Federal y Centro» (medido sobre el manual):
+     *   · Izquierda: logotipo Educación (SEP) 50..219 x 55..88 ⟩ filete
+     *     vertical dorado en x 233, y 58..85 ⟩ logotipo TecNM 248..314.
+     *   · Derecha: escudo en gris 40..108, nombre del plantel en negrita
+     *     (negro, no azul) y, debajo, unidad responsable, lugar/fecha y
+     *     folio, todo alineado a la derecha.
+     *   · §4.2 NO lleva filete de cierre bajo el encabezado: el cuerpo
+     *     arranca directamente en y 207.
+     */
     function drawHeader() {
-      doc.save();
-      // franja superior
-      doc.rect(0, 0, pageW, 64).fill(GREEN);
-      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(13)
-        .text('INSTITUTO TECNOLÓGICO DE TUXTEPEC', marginL, 14, { width: contentW, align: 'left' });
-      doc.font('Noto').fontSize(9)
-        .text('App Vocacional ITTUX  ·  Panel de orientación vocacional', marginL, 32, { width: contentW });
-      doc.font('Noto').fontSize(8)
-        .text('Documento oficial de resultados', marginL, 46, { width: contentW });
-      // línea decorativa
-      doc.rect(0, 64, pageW, 3).fill('#d3d5bd');
-      doc.restore();
-      doc.y = 90;
+      const RX = pageW - marginR;
+      // ── bloque izquierdo: logotipos ──────────────────────────────────
+      const sepH = 33;
+      const sepW = Math.round(sepH * ASPECT.sep * 100) / 100;
+      doc.image(ASSET('sep_educacion.png'), marginL, 55, { width: sepW, height: sepH });
+      // filete vertical separador — dorado (medido: RGB 174,132,32)
+      const sepVX = marginL + sepW + 14;
+      doc.strokeColor('#AE8420').lineWidth(0.9)
+        .moveTo(sepVX, 58)
+        .lineTo(sepVX, 85)
+        .stroke();
+      const tecH = 28;
+      const tecW = Math.round(tecH * ASPECT.tecnm * 100) / 100;
+      doc.image(ASSET('tecnm_horizontal.png'), sepVX + 14, 58, { width: tecW, height: tecH });
+
+      // ── bloque derecho: escudo + plantel + datos del documento ───────
+      const escH = 68;
+      const escW = Math.round(escH * ASPECT.escudo * 100) / 100;
+      doc.image(ASSET('escudo_nacional_gris.png'), RX - escW, 40, { width: escW, height: escH });
+
+      const rightW = 340;
+      const rightX = RX - rightW;
+      // §4.2 imprime el nombre del plantel en negro; el azul Pantone 294 C
+      // queda reservado para titulares y series de datos del cuerpo.
+      doc.fillColor(INK).font('Noto-Bold').fontSize(10)
+        .text('Instituto Tecnológico de Tuxtepec', rightX, 123, { width: rightW, align: 'right' });
+      doc.fillColor(INK).font('Noto').fontSize(8)
+        .text('Subdirección Académica', rightX, 134, { width: rightW, align: 'right' });
+      doc.fillColor(INK).font('Noto').fontSize(9.5)
+        .text(`Tuxtepec, Oaxaca, ${issuedDate}`, rightX, 160, { width: rightW, align: 'right' });
+      doc.fillColor(INK).font('Noto').fontSize(9.5)
+        .text(`Reporte No. ${reportFolio}`, rightX, 175, { width: rightW, align: 'right' });
+
+      doc.x = marginL;
+      doc.y = 200;
+      doc.fillColor(INK);
     }
 
+    /**
+     * Pie institucional — §4.2 «Hoja membretada», geometría medida sobre el
+     * manual (carta, en pts):
+     *   · logotipo del plantel a la izquierda, x 46..192, tocando el filete;
+     *   · filete guinda #A61D49 de x 190 a 574, grosor 3.6, y 720;
+     *   · domicilio y contacto ALINEADOS A LA IZQUIERDA bajo el filete,
+     *     arrancando en el mismo x en que éste empieza (no centrados);
+     *   · logos de certificación sobre el filete, alineados a la derecha.
+     *
+     * BUG DE PÁGINAS FANTASMA: PDFKit evalúa
+     *   `if (document.y > page.maxY() || y + lineHeight > maxY) nextSection()`
+     * con `maxY() = height − margins.bottom`. Cualquier `doc.text()` con y
+     * dentro de la banda del pie superaba maxY y creaba una página nueva por
+     * cada llamada (5 págs × 3 textos = 15 fantasma → 20 totales, y
+     * «Página 1 de 5» porque bufferedPageRange() se lee antes del bucle).
+     * Se anula el margen inferior sólo durante el dibujo del pie y se
+     * restaura después. Sin save()/restore(): con bufferPages + switchToPage
+     * esos operadores caían en streams de página equivocados.
+     */
     function drawFooter() {
       const range = doc.bufferedPageRange();
+      const RX = pageW - marginR;
+      const wmH = 34;
+      const wmW = Math.round(wmH * ASPECT.wordmark * 100) / 100;
+      // El filete empieza a la derecha del logotipo, como en §4.2.
+      const ruleX = marginL + wmW + 14;
+      const blockW = RX - ruleX;
+      const savedBottom = doc.page.margins.bottom;
+      doc.page.margins.bottom = 0;   // maxY pasa a ser pageH: sin auto-addPage
+
+      // Logos de certificación: en §4.2 van SOBRE el filete, alineados al
+      // margen derecho (medido: x 418..574, y 671..718, es decir 2 pts por
+      // encima del filete de y 720).
+      const certH = 30;
+      const certIgW = Math.round(certH * ASPECT.certIg * 100) / 100;
+      const certLpW = Math.round(certH * ASPECT.certLp * 100) / 100;
+      const certGap = 12;
+      const certBlockW = certIgW + certGap + certLpW;
+      const certX = RX - certBlockW;
+      const certY = pageH - 76 - certH;
+
       for (let i = 0; i < range.count; i++) {
         doc.switchToPage(range.start + i);
-        doc.save();
-        doc.strokeColor(LINE).lineWidth(0.6)
-          .moveTo(marginL, pageH - 48)
-          .lineTo(pageW - marginR, pageH - 48)
+        // logotipo del plantel, a la izquierda del filete (lo cruza, como
+        // el aniversario de §4.2)
+        doc.image(ASSET('tecnm_ittux_wordmark.png'), marginL, pageH - 80, { width: wmW, height: wmH });
+        // filete guinda §4.2
+        doc.strokeColor(GUINDA).lineWidth(3.6)
+          .moveTo(ruleX, pageH - 72)
+          .lineTo(RX, pageH - 72)
           .stroke();
-        doc.fillColor(MUTED).font('Noto').fontSize(8);
+        // logos de certificación sobre el filete, alineados a la derecha
+        doc.image(ASSET('cert_igualdad.png'), certX, certY, { width: certIgW, height: certH });
+        doc.image(ASSET('cert_libreplastico.png'), certX + certIgW + certGap, certY, { width: certLpW, height: certH });
+        doc.fillColor(MUTED).font('Noto').fontSize(6.5);
         doc.text(
-          'Confidencial — uso institucional · Generado automáticamente por el panel administrativo',
-          marginL,
-          pageH - 40,
-          { width: contentW * 0.72, align: 'left' },
+          'Calzada Dr. Víctor Bravo Ahuja No. 561, Col. Predio el Paraíso, C.P. 68350, San Juan Bautista Tuxtepec, Oaxaca.',
+          ruleX, pageH - 67, { width: blockW, align: 'left' },
+        );
+        doc.text(
+          'Tel. 287 875 6191, 287 52170 y 287 875 1880  ·  cyd_tuxtepec@tecnm.mx  ·  tecnm.mx  ·  tuxtepec.tecnm.mx',
+          ruleX, pageH - 57, { width: blockW, align: 'left' },
         );
         doc.text(
           `Página ${i + 1} de ${range.count}`,
-          marginL,
-          pageH - 40,
-          { width: contentW, align: 'right' },
+          ruleX, pageH - 45, { width: blockW, align: 'right' },
         );
-        doc.restore();
+        doc.x = marginL;
+        doc.fillColor(INK);
       }
+      doc.page.margins.bottom = savedBottom;
     }
 
     function ensureSpace(needed = 80) {
-      if (doc.y + needed > pageH - 70) {
+      if (doc.y + needed > bottomLimit) {
         doc.addPage();
         drawHeader();
       }
@@ -909,7 +1042,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
 
     function sectionTitle(title) {
       ensureSpace(36);
-      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(12).text(title, marginL, doc.y, { width: contentW });
+      doc.fillColor(BLUE).font('Noto-Bold').fontSize(12).text(title, marginL, doc.y, { width: contentW });
       doc.moveDown(0.25);
       doc.strokeColor(LINE).lineWidth(0.8)
         .moveTo(marginL, doc.y)
@@ -919,9 +1052,25 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       doc.fillColor(INK);
     }
 
+    // Cada punto del reporte abre su propia página (con encabezado §4.2):
+    // ninguna sección continúa en la página donde terminó la anterior.
+    function newSection(title) {
+      doc.addPage();
+      drawHeader();
+      sectionTitle(title);
+    }
+
     function formalParagraph(text) {
-      ensureSpace(40);
-      doc.fillColor(INK).font('Noto').fontSize(10).text(text, marginL, doc.y, {
+      // Medir antes de dibujar evita saltos automáticos a mitad de párrafo
+      // (páginas sin encabezado).
+      doc.fillColor(INK).font('Noto').fontSize(10);
+      const h = doc.heightOfString(text, {
+        width: contentW,
+        align: 'justify',
+        lineGap: 2,
+      });
+      ensureSpace(h + 14);
+      doc.text(text, marginL, doc.y, {
         width: contentW,
         align: 'justify',
         lineGap: 2,
@@ -932,8 +1081,10 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     /** Gráfico de barras horizontales dibujado con primitivas PDFKit */
     function drawBarChart(title, rows, { maxBars = 8, barHeight = 14, gap = 8 } = {}) {
       const series = (rows || []).slice(0, maxBars).filter(r => r && r.label != null);
-      ensureSpace(60 + series.length * (barHeight + gap));
-      doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(title, marginL, doc.y, { width: contentW });
+      // Estimación exacta (título + filas + cierre): sobrestimar aquí creaba
+      // saltos prematuros y dejaba páginas semivacías.
+      ensureSpace(24 + series.length * (barHeight + gap));
+      doc.fillColor(INK).font('Noto-Bold').fontSize(10).text(title, marginL, doc.y, { width: contentW });
       doc.moveDown(0.4);
 
       if (!series.length) {
@@ -954,17 +1105,17 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         y = doc.y;
         const val = Number(row.value) || 0;
         const w = Math.max(2, (val / maxVal) * barMaxW);
-        const label = String(row.label).slice(0, 42);
+        const label = String(row.label).slice(0, 34);
 
         doc.fillColor(INK).font('Noto').fontSize(8)
-          .text(label, marginL, y + 2, { width: labelW, ellipsis: true });
+          .text(label, marginL, y + 2, { width: labelW, height: barHeight + 2, ellipsis: true });
 
         // fondo de barra
         doc.roundedRect(marginL + labelW + 6, y, barMaxW, barHeight, 3).fill(BAR_BG);
         // valor
         doc.roundedRect(marginL + labelW + 6, y, w, barHeight, 3).fill(BAR);
 
-        doc.fillColor(INK).font('Helvetica-Bold').fontSize(8)
+        doc.fillColor(INK).font('Noto-Bold').fontSize(8)
           .text(String(val), marginL + labelW + 6 + barMaxW + 6, y + 2, { width: valueW });
 
         doc.y = y + barHeight + gap;
@@ -987,10 +1138,10 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       const y = doc.y;
       items.forEach((item, i) => {
         const x = marginL + i * (boxW + 6);
-        doc.roundedRect(x, y, boxW, 48, 4).fill('#f4f7f5');
+        doc.roundedRect(x, y, boxW, 48, 4).fill('#f2f5fa');
         doc.fillColor(MUTED).font('Noto').fontSize(7)
           .text(item.label.toUpperCase(), x + 8, y + 8, { width: boxW - 16 });
-        doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(14)
+        doc.fillColor(GREEN).font('Noto-Bold').fontSize(14)
           .text(item.value, x + 8, y + 22, { width: boxW - 16 });
       });
       doc.y = y + 56;
@@ -1000,7 +1151,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     // ── Página 1: portada / introducción ────────────────────────────────────
     drawHeader();
 
-    doc.fillColor(INK).font('Helvetica-Bold').fontSize(16)
+    doc.fillColor(BLUE).font('Noto-Bold').fontSize(16)
       .text('Reporte de orientación vocacional', marginL, doc.y, { width: contentW });
     doc.moveDown(0.3);
     doc.fillColor(MUTED).font('Noto').fontSize(9)
@@ -1030,31 +1181,31 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       'La información se presenta con fines de análisis institucional y toma de decisiones en materia de orientación educativa. Los datos personales de los estudiantes no se exponen de forma nominativa en este reporte; las cifras corresponden a agregados estadísticos y a registros anonimizados o seudonimizados según la configuración del panel.',
     );
 
-    sectionTitle('2. Indicadores generales');
+    newSection('2. Indicadores generales');
     formalParagraph(
       'A continuación se resumen los indicadores principales derivados del conjunto de evaluaciones que cumplen los filtros indicados. La afinidad media expresa el promedio del porcentaje de coincidencia entre el perfil RIASEC del estudiante y la carrera recomendada en primer lugar.',
     );
     kpiRow(data.totals ?? {});
 
-    sectionTitle('3. Distribución de carreras recomendadas');
+    newSection('3. Distribución de carreras recomendadas');
     formalParagraph(
       'La gráfica muestra las carreras con mayor frecuencia como recomendación principal. Cada barra representa el número de evaluaciones en las que dicha carrera ocupó el primer lugar del ranking individual.',
     );
     drawBarChart('Carreras más recomendadas', data.careers, { maxBars: 10 });
 
-    sectionTitle('4. Perfiles RIASEC (códigos Holland)');
+    newSection('4. Perfiles RIASEC (códigos Holland)');
     formalParagraph(
       'Los códigos Holland agrupan las tres dimensiones RIASEC predominantes de cada evaluación (Realista, Investigador, Artístico, Social, Emprendedor, Convencional). La distribución permite identificar los perfiles vocacionales más frecuentes en la población filtrada.',
     );
     drawBarChart('Frecuencia de códigos Holland', data.profiles, { maxBars: 10 });
 
-    sectionTitle('5. Afinidad con la carrera principal');
+    newSection('5. Afinidad con la carrera principal');
     formalParagraph(
       'Se agrupan las evaluaciones según el intervalo de afinidad porcentual respecto a la carrera recomendada en primer lugar. Intervalos altos sugieren una coincidencia sólida entre intereses del estudiante y la oferta formativa sugerida.',
     );
     drawBarChart('Distribución por rango de afinidad', data.affinity, { maxBars: 6 });
 
-    sectionTitle('6. Planteles y procedencia');
+    newSection('6. Planteles y procedencia');
     formalParagraph(
       'Se detalla la participación por escuela de procedencia y por municipio/estado, útil para contrastar cobertura territorial y carga de orientación por plantel.',
     );
@@ -1062,7 +1213,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
     drawBarChart('Evaluaciones por municipio / estado', data.provenance, { maxBars: 8 });
 
     if ((data.languages ?? []).length || (data.idioms ?? []).length) {
-      sectionTitle('7. Lenguas originarias e idiomas');
+      newSection('7. Lenguas originarias e idiomas');
       formalParagraph(
         'Cuando los estudiantes declararon lenguas originarias o idiomas adicionales, se resume su frecuencia en el conjunto filtrado. Estos datos contextualizan la diversidad lingüística de la población atendida.',
       );
@@ -1074,7 +1225,7 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       }
     }
 
-    sectionTitle('8. Registro detallado de evaluaciones recientes');
+    newSection('8. Registro detallado de evaluaciones recientes');
     formalParagraph(
       'Se listan hasta cuarenta evaluaciones más recientes que cumplen los filtros. Cada fila indica procedencia, plantel, código Holland, carrera principal recomendada, afinidad y fecha de conclusión. Las respuestas abiertas complementarias, de existir, se indican de forma resumida.',
     );
@@ -1084,25 +1235,47 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
       doc.fillColor(MUTED).font('Noto-Italic').fontSize(9)
         .text('No hay evaluaciones para los filtros seleccionados.', marginL, doc.y);
     } else {
-      // encabezado de tabla
-      ensureSpace(30);
+      // Encabezado de tabla (celdas con aire: HPAD horizontal, VPAD vertical).
+      // Los anchos son pesos relativos: se escalan para que sumen EXACTAMENTE
+      // contentW (antes sumaban 480 pts y dejaban una columna vacía a la
+      // derecha del contorno).
+      const HPAD = 7;
+      const VPAD = 6;
+      const headerH = 26;
       const cols = [
         { key: 'fecha', w: 62, title: 'Fecha' },
         { key: 'lugar', w: 110, title: 'Municipio / Edo.' },
         { key: 'escuela', w: 100, title: 'Escuela' },
         { key: 'holland', w: 40, title: 'Holland' },
-        { key: 'carrera', w: 120, title: 'Carrera principal' },
+        { key: 'carrera', w: 135, title: 'Carrera principal' },
         { key: 'afinidad', w: 48, title: 'Afinidad' },
       ];
-      const headerY = doc.y;
-      doc.rect(marginL, headerY, contentW, 16).fill('#e8f0eb');
-      let x = marginL + 3;
-      doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(7);
-      for (const c of cols) {
-        doc.text(c.title, x, headerY + 4, { width: c.w - 4 });
-        x += c.w;
+      const weightSum = cols.reduce((sum, c) => sum + c.w, 0);
+      for (const c of cols) c.w = (c.w * contentW) / weightSum;
+
+      // Rejilla tipo Excel: contorno + divisiones verticales compartidas por
+      // cabecera y filas (se repite el encabezado en cada página de la tabla).
+      function drawTableHeader() {
+        ensureSpace(headerH + 40);
+        const headerY = doc.y;
+        doc.rect(marginL, headerY, contentW, headerH).fill('#e8edf7');
+        let x = marginL + HPAD;
+        doc.fillColor(BLUE).font('Noto-Bold').fontSize(7);
+        for (const c of cols) {
+          doc.text(c.title, x, headerY + VPAD, { width: c.w - HPAD - 3 });
+          x += c.w;
+        }
+        doc.strokeColor(LINE).lineWidth(0.6);
+        doc.rect(marginL, headerY, contentW, headerH).stroke();
+        let hx = marginL;
+        for (const c of cols) {
+          hx += c.w;
+          doc.moveTo(hx, headerY).lineTo(hx, headerY + headerH).stroke();
+        }
+        doc.y = headerY + headerH;
       }
-      doc.y = headerY + 18;
+
+      drawTableHeader();
 
       doc.font('Noto').fontSize(7).fillColor(INK);
       for (const row of evalRows) {
@@ -1117,42 +1290,49 @@ app.get('/api/admin/report.pdf', requireAdmin, async (req, res) => {
         const values = [fecha, lugar, escuela, holland, carrera, afinidad];
         // Alto medido por celda: el texto envuelve en vez de encimarse.
         const heights = values.map((v, i) =>
-          doc.heightOfString(String(v), { width: cols[i].w - 4 }),
+          doc.heightOfString(String(v), { width: cols[i].w - HPAD * 2 }),
         );
-        const rowH = Math.min(Math.max(...heights, 10) + 6, 56);
+        const rowH = Math.min(Math.max(...heights, 10) + VPAD * 2 + 2, 64);
+        const pagesBefore = doc.bufferedPageRange().count;
         ensureSpace(rowH + 6);
+        // Si la fila forzó salto de página, el encabezado de la tabla debe
+        // repetirse arriba: sin esto las páginas de continuación empezaban
+        // directo en datos sin títulos de columna.
+        if (doc.bufferedPageRange().count !== pagesBefore) drawTableHeader();
         const rowY = doc.y;
-        x = marginL + 3;
+        let x = marginL + HPAD;
         values.forEach((v, i) => {
-          doc.fillColor(INK).text(v, x, rowY + 2, {
-            width: cols[i].w - 4,
-            height: rowH - 4,
+          doc.fillColor(INK).text(v, x, rowY + VPAD, {
+            width: cols[i].w - HPAD * 2,
+            height: rowH - VPAD * 2,
             ellipsis: true,
           });
           x += cols[i].w;
         });
+        // Rejilla tipo Excel: contorno de la fila + divisiones verticales
+        // (las filas quedan pegadas para que la cuadrícula sea continua).
+        doc.strokeColor(LINE).lineWidth(0.6);
+        doc.rect(marginL, rowY, contentW, rowH).stroke();
+        let vx = marginL;
+        for (const c of cols) {
+          vx += c.w;
+          doc.moveTo(vx, rowY).lineTo(vx, rowY + rowH).stroke();
+        }
         doc.y = rowY + rowH;
-        doc.strokeColor(LINE).lineWidth(0.3)
-          .moveTo(marginL, doc.y)
-          .lineTo(marginL + contentW, doc.y)
-          .stroke();
-        doc.moveDown(0.25);
       }
     }
 
-    doc.moveDown(1);
-    ensureSpace(50);
-    sectionTitle('9. Nota metodológica');
-    formalParagraph(
-      'Las evaluaciones se basan en un instrumento de treinta reactivos alineados al modelo RIASEC. El código Holland se obtiene a partir de las tres dimensiones con mayor puntuación. El ranking de carreras combina el perfil del estudiante con los pesos RIASEC definidos en el catálogo institucional. Este reporte no sustituye la asesoría personalizada de orientadores educativos.',
-    );
-    formalParagraph(
-      `Documento generado el ${generatedAt}. Cualquier reproducción o difusión fuera del ámbito institucional del Instituto Tecnológico de Tuxtepec debe autorizarse expresamente.`,
-    );
+    // El punto «9. Nota metodológica» se retiró del reporte a petición del
+    // usuario: el documento termina en la tabla del punto 8 (la fecha de
+    // emisión se conserva en la portada).
 
     // Pie de página en todas las páginas (después de buffer completo)
     drawFooter();
     doc.end();
+    await pdfReady;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.concat(pdfChunks));
   } catch (error) {
     console.error(error);
     if (!res.headersSent) res.status(500).json({ error: 'No fue posible generar el PDF' });

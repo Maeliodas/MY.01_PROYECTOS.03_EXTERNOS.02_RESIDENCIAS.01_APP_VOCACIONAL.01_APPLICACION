@@ -47,9 +47,6 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# Credenciales locales del panel
-admin_panel/.env
-
 # Dependencias (se instalan con npm install, no se versionan)
 node_modules/
 admin_panel/node_modules/
