@@ -67,7 +67,7 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: Theme.of(context).brightness == Brightness.dark
-                ? const [Color(0xFF0F160D), Color(0xFF121A10), Color(0xFF102019)]
+                ? const [Color(0xFF0B1526), Color(0xFF0E1A30), Color(0xFF13233D)]
                 : const [Color(0xFFF7FFE9), Color(0xFFF2F9E8), Color(0xFFE9FFF8)],
           ),
         ),
@@ -158,7 +158,7 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.4,
-                      color: Color(0xFF00923F),
+                      color: Color(0xFF1B396A),
                     ),
                   ),
                 ],

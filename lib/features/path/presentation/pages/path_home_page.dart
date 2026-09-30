@@ -173,7 +173,7 @@ class _TabItem extends StatelessWidget {
                 Icon(
                   selected ? selectedIcon : icon,
                   size: selected ? 23 : 21,
-                  color: selected ? const Color(0xFF17340A) : secondary,
+                  color: selected ? const Color(0xFFFFFFFF) : secondary,
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -184,7 +184,7 @@ class _TabItem extends StatelessWidget {
                     fontSize: label == 'RESULTADOS' ? 8.2 : 9.3,
                     fontWeight: FontWeight.w900,
                     letterSpacing: .35,
-                    color: selected ? const Color(0xFF17340A) : secondary,
+                    color: selected ? const Color(0xFFFFFFFF) : secondary,
                   ),
                 ),
               ],

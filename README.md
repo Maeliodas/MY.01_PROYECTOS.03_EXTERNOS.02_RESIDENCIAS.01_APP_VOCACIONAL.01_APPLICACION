@@ -1,11 +1,11 @@
 <div align="center">
   <img src="assets/branding/app_logo_light.png" alt="App Vocacional ITTUX" width="160"/>
 
-  # App Vocacional ITTUX 1.3.2
+  # App Vocacional ITTUX 1.3.3
 
   **Descubre tu camino** — Orientación vocacional con modelo RIASEC / Holland, operación offline-first y panel institucional en tiempo real.
 
-  [![release](https://img.shields.io/badge/release-1.3.2-00923F?style=for-the-badge)](.)
+  [![release](https://img.shields.io/badge/release-1.3.3--11-1B396A?style=for-the-badge)](.)
   [![flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](.)
   [![dart](https://img.shields.io/badge/Dart-%5E3.2-0175C2?style=for-the-badge&logo=dart&logoColor=white)](.)
   [![node](https://img.shields.io/badge/Node.js-Express_4-339933?style=for-the-badge&logo=node.js&logoColor=white)](admin_panel/)
@@ -36,6 +36,7 @@
 | 📴 Offline-first | SQLite local precargado, verificación contra el backend (`/health`), colas de envío con tope de reintentos |
 | 🖥️ Panel web | CRUD de catálogos, dashboard en vivo (Socket.IO), filtros, revisión de sugerencias, reportes PDF y endpoint ligero de versión |
 | 🔒 Datos | UTF-8/utf8mb4 integral, bajas lógicas (`active=0`) que no rompen históricos, IDs de resultado UUID |
+| 🎨 Tema institucional | Azul TecNM Pantone 294 C `#1B396A`, claro/oscuro responsivo, `onPrimary` blanco |
 
 <div align="center">
   <img src="assets/avatars/avatar_01.png" width="64"/>
@@ -134,13 +135,15 @@ Panel en `http://localhost:8080` · Salud en `GET /health`. Detalle completo en 
 
 ## 🔢 Versionado
 
-Esquema `1.3.2-10` → versión **1**, sub modificación semigrande **3**, subcambios menores **2**, revisión **10**.
+Esquema `1.3.3-11` → versión **1**, sub modificación semigrande **3**, subcambios menores **3**, revisión **11**.
+Rediseño de módulo tema: suma a **Z** y a **R** (+1 cada uno sobre `1.3.2-10`).
 
 Detalle de esta versión en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revisión actual).
 
 ## 🗺️ Hoja de ruta
 
 - [x] Chequeo ligero de versión de catálogo + sync en vivo
+- [x] Paleta institucional azul TecNM 294 C `#1B396A` (claro/oscuro responsivo)
 - [ ] Generación del seed SQLite desde MySQL (`npm run export:seed`)
 - [ ] Actualización del APK por Drive (endpoint `app-status` + instalador)
 - [ ] Higiene del repo (sacar `node_modules` del tracking)
@@ -150,5 +153,5 @@ Detalle de esta versión en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revi
 <div align="center">
   <img src="assets/institution/tecnm_ittux_wordmark.png" width="210"/>
   <br/>
-  <sub>Instituto Tecnológico de Tuxtepec · App Vocacional ITTUX 1.3.2 · Uso institucional</sub>
+  <sub>Instituto Tecnológico de Tuxtepec · App Vocacional ITTUX 1.3.3-11 · Uso institucional</sub>
 </div>

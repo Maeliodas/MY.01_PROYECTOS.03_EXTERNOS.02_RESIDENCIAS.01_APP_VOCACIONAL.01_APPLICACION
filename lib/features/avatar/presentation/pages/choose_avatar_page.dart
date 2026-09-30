@@ -60,7 +60,7 @@ class ChooseAvatarPage extends ConsumerWidget {
     final notifier = ref.read(avatarProvider.notifier);
     return Scaffold(
       body: DecoratedBox(
-        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft,end: Alignment.bottomRight,colors: Theme.of(context).brightness == Brightness.dark ? const [Color(0xFF0F160D),Color(0xFF152013),Color(0xFF101B18)] : const [Color(0xFFF4FBF7),Color(0xFFF7FAF8),Color(0xFFEAF7F0)])),
+        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft,end: Alignment.bottomRight,colors: Theme.of(context).brightness == Brightness.dark ? const [Color(0xFF0B1526),Color(0xFF152845),Color(0xFF14243E)] : const [Color(0xFFEEF2F7),Color(0xFFEEF2F7),Color(0xFFEEF2F7)])),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),

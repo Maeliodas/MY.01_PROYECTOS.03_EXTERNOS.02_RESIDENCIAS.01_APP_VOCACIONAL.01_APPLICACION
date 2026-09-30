@@ -137,7 +137,7 @@ class _ThankYouPageState extends ConsumerState<ThankYouPage> {
                   width: 104,
                   height: 104,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEAF8D9),
+                    color: Color(0xFFDCE9F8),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

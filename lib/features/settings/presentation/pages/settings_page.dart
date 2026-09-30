@@ -19,7 +19,7 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(22, 8, 22, 30),
         children: [
-          const Text('PREFERENCIAS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: 1.1)),
+          const Text('PREFERENCIAS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1.1)),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
@@ -27,18 +27,18 @@ class SettingsPage extends ConsumerWidget {
               children: [
                 _Switch(icon: Icons.dark_mode_outlined, iconColor: const Color(0xFF7432CE), title: 'Modo Oscuro', subtitle: 'Reduce la fatiga visual', value: themeMode == ThemeMode.dark, onChanged: (v) => ref.read(themeModeProvider.notifier).toggleTheme(v)),
                 const Divider(height: 1, indent: 70),
-                _Switch(icon: Icons.animation_rounded, iconColor: const Color(0xFF18A9D3), title: 'Disminuir Animaciones', subtitle: 'Reduce los efectos de movimiento', value: reduce, onChanged: (v) => ref.read(reduceAnimationsProvider.notifier).toggleReduce(v)),
+                _Switch(icon: Icons.animation_rounded, iconColor: const Color(0xFF2F6AAE), title: 'Disminuir Animaciones', subtitle: 'Reduce los efectos de movimiento', value: reduce, onChanged: (v) => ref.read(reduceAnimationsProvider.notifier).toggleReduce(v)),
               ],
             ),
           ),
           const SizedBox(height: 26),
-          const Text('DATOS Y CATÁLOGOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: 1.1)),
+          const Text('DATOS Y CATÁLOGOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1.1)),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFF00923F).withValues(alpha: .13), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.sync_rounded, color: Color(0xFF00923F))),
+              leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFF1B396A).withValues(alpha: .13), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.sync_rounded, color: Color(0xFF1B396A))),
               title: const Text('Actualizar catálogos', style: TextStyle(fontWeight: FontWeight.w900)),
               subtitle: const Text('Descarga cambios aprobados del panel y los guarda en SQLite.'),
               trailing: const Icon(Icons.chevron_right_rounded),
@@ -95,13 +95,13 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 26),
-          const Text('PRIVACIDAD Y SOPORTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF00923F), letterSpacing: 1.1)),
+          const Text('PRIVACIDAD Y SOPORTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1.1)),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
             child: Column(
               children: [
-                _Info(icon: Icons.lock_outline_rounded, iconColor: const Color(0xFF18A9D3), title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza ${AppConstants.appName} y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
+                _Info(icon: Icons.lock_outline_rounded, iconColor: const Color(0xFF2F6AAE), title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza ${AppConstants.appName} y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
                 const Divider(height: 1, indent: 70),
                 const _Info(icon: Icons.help_outline_rounded, iconColor: Color(0xFF7432CE), title: 'Ayuda', subtitle: '${AppConstants.appName} · Prototipo funcional'),
               ],

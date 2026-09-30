@@ -4,7 +4,20 @@
 > no se crean archivos nuevos por subversión. El `README.md` principal solo
 > resume los cambios principales de la versión actual.
 
-## 1.3.2-10 (actual)
+## 1.3.3-11 (actual)
+
+Versión **1**, sub modificación semigrande **3**, subcambios menores **3**, revisión **11**.
+Rediseño del módulo tema (suma a Z y R): misma lógica, rutas y esquema de BD (SQLite v16 / MySQL sin ALTERs).
+
+### Tema institucional azul TecNM (Pantone 294 C, §§2.3–2.5)
+- Fuente: Manual de Identidad Gráfica TecNM 2026 — `Pantone 294 C / C100 M85 Y30 K20 / R27 G57 B106 / #1B396A`. Solo azul.
+- `lib/app/theme/app_colors.dart`: primario `#1B396A`, escala `50 #EEF2F7 → 900 #0B1A30`, secundario `#2F6AAE`, acero `#5A8AC0` (reemplaza morado), fondos `light #F1F5FA / dark #0B1526`, `onPrimary #FFFFFF`.
+- `lib/app/theme/app_theme.dart`: responsivo claro/oscuro, `ColorScheme.fromSeed(primary)`, `indicatorColor` primario con etiqueta seleccionada blanca, sliders/switches/inputs en azules.
+- Migración de duros verdes a azules en 16 pantallas (`0xFF00923F→0xFF1B396A`, claros `→#DCE9F8/#CBD8EA`, dark verdosos `→#0B1526/#111E33/#1A2A45`, cian `0xFF18A9D3→0xFF2F6AAE`, morado `0xFF6C2BC8→0xFF5A8AC0`).
+- `pubspec.yaml`: `0.3.0+3 → 1.3.3+11` para alinear con esquema `X.Y.Z-R`.
+- `README.md`: título/badge/versionado/footer a `1.3.3-11`, badge a `1B396A`, fila de tema + roadmap marcado.
+
+## 1.3.2-10
 
 Versión **1**, sub modificación semigrande **3**, subcambios menores **2**, revisión **10**.
 Solo lógica: misma UI, colores, rutas y esquema de BD (SQLite v16 / MySQL sin ALTERs).

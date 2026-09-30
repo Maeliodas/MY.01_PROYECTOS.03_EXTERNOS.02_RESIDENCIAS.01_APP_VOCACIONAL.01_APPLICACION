@@ -179,7 +179,7 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text(_hasAnswer ? 'Respuesta lista para guardar.' : 'Esta respuesta es obligatoria para finalizar el test (mínimo $_minAnswerLength caracteres).', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _hasAnswer ? const Color(0xFF00923F) : Theme.of(context).colorScheme.error)),
+                          Text(_hasAnswer ? 'Respuesta lista para guardar.' : 'Esta respuesta es obligatoria para finalizar el test (mínimo $_minAnswerLength caracteres).', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _hasAnswer ? const Color(0xFF1B396A) : Theme.of(context).colorScheme.error)),
                         ],
                       ),
                     ),

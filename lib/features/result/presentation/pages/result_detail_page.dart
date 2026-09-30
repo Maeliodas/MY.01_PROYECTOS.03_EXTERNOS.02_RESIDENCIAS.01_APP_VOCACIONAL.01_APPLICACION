@@ -183,7 +183,7 @@ class _CareerHeroCard extends StatelessWidget {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('COMPATIBILIDAD MÁXIMA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.05, color: AppColors.primary)),
           const SizedBox(height: 3),
-          Text(career.department, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF66746A))),
+          Text(career.department, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF5B6B82))),
           const SizedBox(height: 5),
           Text(career.name, style: const TextStyle(fontSize: 25, height: 1.08, fontWeight: FontWeight.w900)),
         ])),

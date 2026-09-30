@@ -31,7 +31,7 @@ class CareerRankingPage extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(color: const Color(0xFFF0E3FF), borderRadius: BorderRadius.circular(12)),
-                child: const Text('TOP 3 VOCACIONAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF6C2BC8))),
+                child: const Text('TOP 3 VOCACIONAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF5A8AC0))),
               ),
               const SizedBox(height: 12),
               const Text('Tus 3 mejores\nopciones', style: TextStyle(fontSize: 34, height: 1.0, fontWeight: FontWeight.w900)),
@@ -50,7 +50,7 @@ class CareerRankingPage extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: top ? AppColors.primary : const Color(0xFFE5ECD9), width: top ? 2 : 1),
+                    border: Border.all(color: top ? AppColors.primary : const Color(0xFFDCE3EF), width: top ? 2 : 1),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .045), blurRadius: 14, offset: const Offset(0, 6))],
                   ),
                   child: Column(
@@ -58,7 +58,7 @@ class CareerRankingPage extends ConsumerWidget {
                     children: [
                       Text(
                         i == 0 ? '1.er lugar' : '${i + 1}.º lugar',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: top ? const Color(0xFF00923F) : const Color(0xFF66746A)),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: top ? const Color(0xFF1B396A) : const Color(0xFF5B6B82)),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -66,7 +66,7 @@ class CareerRankingPage extends ConsumerWidget {
                         children: [
                           Expanded(child: Text(career.name, style: TextStyle(fontSize: top ? 20 : 18, height: 1.15, fontWeight: FontWeight.w900))),
                           const SizedBox(width: 12),
-                          Text('${career.affinityPercentage.round()}%', style: TextStyle(fontSize: top ? 24 : 20, fontWeight: FontWeight.w900, color: top ? AppColors.primaryDark : const Color(0xFF18A9D3))),
+                          Text('${career.affinityPercentage.round()}%', style: TextStyle(fontSize: top ? 24 : 20, fontWeight: FontWeight.w900, color: top ? AppColors.primaryDark : const Color(0xFF2F6AAE))),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -76,7 +76,7 @@ class CareerRankingPage extends ConsumerWidget {
                           value: career.affinityPercentage / 100,
                           minHeight: 7,
                           backgroundColor: const Color(0xFFE4EBDD),
-                          valueColor: AlwaysStoppedAnimation(top ? AppColors.primary : const Color(0xFF18A9D3)),
+                          valueColor: AlwaysStoppedAnimation(top ? AppColors.primary : const Color(0xFF2F6AAE)),
                         ),
                       ),
                       const SizedBox(height: 10),

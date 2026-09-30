@@ -8,19 +8,25 @@ class AppTheme {
 
   static ThemeData _theme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
-    final background = dark ? const Color(0xFF0F160D) : AppColors.background;
-    final surface = dark ? const Color(0xFF182116) : const Color(0xFFFFFFFF);
-    final surfaceVariant = dark ? const Color(0xFF202B1D) : const Color(0xFFF1F8E8);
-    final textPrimary = dark ? const Color(0xFFF3F6EF) : AppColors.textPrimary;
-    final textSecondary = dark ? const Color(0xFFB8C2B2) : AppColors.textSecondary;
-    final border = dark ? const Color(0xFF34412F) : AppColors.borderGray;
+    final background = dark ? AppColors.backgroundDark : AppColors.background;
+    final surface = dark ? AppColors.cardBackgroundDark : AppColors.cardBackground;
+    final surfaceVariant = dark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant;
+    final textPrimary = dark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+    final textSecondary = dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final border = dark ? AppColors.borderDark : AppColors.borderGray;
 
     final scheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: brightness,
     ).copyWith(
       primary: AppColors.primary,
-      onPrimary: const Color(0xFF18320B),
+      onPrimary: AppColors.onPrimary,
+      primaryContainer: dark ? AppColors.primaryDarker : AppColors.primaryLight,
+      onPrimaryContainer: dark ? AppColors.blue100 : AppColors.primaryDarker,
+      secondary: AppColors.secondary,
+      onSecondary: Colors.white,
+      secondaryContainer: dark ? AppColors.blue800 : AppColors.secondaryLight,
+      onSecondaryContainer: dark ? AppColors.blue100 : AppColors.primaryDarker,
       surface: surface,
       onSurface: textPrimary,
       surfaceContainerHighest: surfaceVariant,
@@ -35,7 +41,7 @@ class AppTheme {
       colorScheme: scheme,
       cardColor: surface,
       dividerColor: border,
-      disabledColor: dark ? const Color(0xFF677064) : const Color(0xFFA4AA9E),
+      disabledColor: dark ? const Color(0xFF6B7A90) : const Color(0xFF9AA8BE),
       textTheme: ThemeData(brightness: brightness).textTheme.apply(
         bodyColor: textPrimary,
         displayColor: textPrimary,
@@ -109,16 +115,24 @@ class AppTheme {
                 ? FontWeight.w800
                 : FontWeight.w600,
             color: states.contains(WidgetState.selected)
-                ? const Color(0xFF17340A)
+                ? Colors.white
                 : textSecondary,
           ),
         ),
       ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.primary,
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: AppColors.primary,
+        inactiveTrackColor: dark ? AppColors.borderDark : AppColors.blue100,
+        thumbColor: AppColors.primary,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: dark
-            ? const Color(0xFF202B1E)
-            : Colors.white.withValues(alpha: .78),
+            ? const Color(0xFF1A2A45)
+            : Colors.white.withValues(alpha: .85),
         hintStyle: TextStyle(color: textSecondary),
         labelStyle: TextStyle(color: textSecondary),
         border: OutlineInputBorder(
@@ -144,12 +158,12 @@ class AppTheme {
         thumbColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? AppColors.primary
-              : (dark ? const Color(0xFF899083) : const Color(0xFFF8FAF6)),
+              : (dark ? const Color(0xFF8A99B0) : const Color(0xFFF8FAFC)),
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? AppColors.primary.withValues(alpha: .35)
-              : (dark ? const Color(0xFF3A4536) : const Color(0xFFDCE3D6)),
+              : (dark ? const Color(0xFF2A3B55) : const Color(0xFFCBD8EA)),
         ),
       ),
     );

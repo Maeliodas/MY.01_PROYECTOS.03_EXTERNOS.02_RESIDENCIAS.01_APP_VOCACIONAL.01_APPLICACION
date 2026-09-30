@@ -44,7 +44,7 @@ class TestProgressTreePage extends ConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: Theme.of(context).brightness == Brightness.dark
-                ? const [Color(0xFF0F160D), Color(0xFF121A10), Color(0xFF102019)]
+                ? const [Color(0xFF0B1526), Color(0xFF0E1A30), Color(0xFF13233D)]
                 : const [Color(0xFFF7FFE9), Color(0xFFF4F8E9), Color(0xFFE9FFF8)],
           ),
         ),
@@ -64,7 +64,7 @@ class TestProgressTreePage extends ConsumerWidget {
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF00923F),
+                        color: Color(0xFF1B396A),
                       ),
                     ),
                   ),
@@ -73,7 +73,7 @@ class TestProgressTreePage extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF00923F),
+                      color: Color(0xFF1B396A),
                     ),
                   ),
                 ],
@@ -103,12 +103,12 @@ class TestProgressTreePage extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF18A9D3),
+                              color: Color(0xFF2F6AAE),
                               letterSpacing: 1,
                             ),
                           ),
                         ),
-                        Icon(Icons.rocket_launch_rounded, color: Color(0xFF18A9D3), size: 30),
+                        Icon(Icons.rocket_launch_rounded, color: Color(0xFF2F6AAE), size: 30),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -429,7 +429,7 @@ class _ActionButton extends StatelessWidget {
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          foregroundColor: const Color(0xFF18320B),
+          foregroundColor: const Color(0xFFFFFFFF),
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         ),
