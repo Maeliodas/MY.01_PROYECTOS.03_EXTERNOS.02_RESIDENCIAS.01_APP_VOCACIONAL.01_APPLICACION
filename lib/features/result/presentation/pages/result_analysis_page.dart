@@ -60,15 +60,16 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: Theme.of(context).brightness == Brightness.dark
-                ? const [Color(0xFF0B1526), Color(0xFF0E1A30), Color(0xFF13233D)]
-                : const [Color(0xFFF7FFE9), Color(0xFFF2F9E8), Color(0xFFE9FFF8)],
+            colors: dark
+                ? const [AppColors.backgroundDark, AppColors.blue900]
+                : const [AppColors.white, AppColors.blue50],
           ),
         ),
         child: SafeArea(
@@ -91,7 +92,10 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                             color: Theme.of(context).colorScheme.surface,
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: .22),
+                                color: (dark
+                                        ? AppColors.primaryOnDark
+                                        : AppColors.primary)
+                                    .withValues(alpha: .22),
                                 blurRadius: 34,
                                 spreadRadius: 4,
                               ),
@@ -100,14 +104,15 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                         ),
                         RotationTransition(
                           turns: _rotateController,
-                          child: const SizedBox(
+                          child: SizedBox(
                             width: 128,
                             height: 128,
                             child: CircularProgressIndicator(
                               strokeWidth: 8,
-                              backgroundColor: Color(0xFFE3ECD9),
+                              backgroundColor:
+                                  dark ? AppColors.borderDark : AppColors.blue100,
                               valueColor: AlwaysStoppedAnimation(
-                                Color(0xFF6F24CB),
+                                dark ? AppColors.primaryOnDark : AppColors.primary,
                               ),
                             ),
                           ),
@@ -121,7 +126,7 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                           ),
                           child: const Icon(
                             Icons.auto_awesome_rounded,
-                            color: Colors.white,
+                            color: AppColors.onPrimary,
                             size: 42,
                           ),
                         ),
@@ -135,7 +140,7 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                     style: TextStyle(
                       fontSize: 30,
                       height: 1.05,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -147,18 +152,20 @@ class _ResultAnalysisPageState extends State<ResultAnalysisPage>
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68),
+                        color: dark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
                   const SizedBox(height: 28),
-                  const Text(
+                  Text(
                     'RIASEC · ${AppConstants.appName}',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
-                      color: Color(0xFF1B396A),
+                      color: dark ? AppColors.primaryOnDark : AppColors.primary,
                     ),
                   ),
                 ],

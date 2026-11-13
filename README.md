@@ -151,7 +151,9 @@ Detalle de esta versión en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revi
 ---
 
 <div align="center">
-  <img src="assets/institution/tecnm_ittux_wordmark.png" width="210"/>
+  <img src="assets/institution/LOGO-TECNM-una-linea-azul.png" height="26"/>
+  &nbsp;&nbsp;
+  <img src="assets/institution/ITTUX.png" height="50"/>
   <br/>
   <sub>Instituto Tecnológico de Tuxtepec · App Vocacional ITTUX 1.3.3-11 · Uso institucional</sub>
 </div>

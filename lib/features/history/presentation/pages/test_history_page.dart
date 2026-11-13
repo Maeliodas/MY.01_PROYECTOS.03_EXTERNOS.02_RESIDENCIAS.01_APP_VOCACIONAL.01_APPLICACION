@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../result/presentation/providers/result_provider.dart';
@@ -23,8 +25,8 @@ class TestHistoryPage extends ConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: Theme.of(context).brightness == Brightness.dark
-                ? const [Color(0xFF0B1526), Color(0xFF0E1A30), Color(0xFF13233D)]
-                : const [Color(0xFFF7FFE9), Color(0xFFF5F9EC), Color(0xFFECFFF8)],
+                ? const [AppColors.backgroundDark, AppColors.blue900]
+                : const [AppColors.white, AppColors.blue50],
           ),
         ),
         child: SafeArea(
@@ -36,10 +38,14 @@ class TestHistoryPage extends ConsumerWidget {
                   children: [
                     AppBackButton(onPressed: () => Navigator.maybePop(context)),
                     const SizedBox(width: 4),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Historial',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                        style: AppTypography.headline.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimary,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -101,41 +107,38 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final accent = dark ? AppColors.primaryOnDark : AppColors.secondary;
     final createdAt = DateTime.tryParse(item['created_at']?.toString() ?? '');
     final affinity = _toDouble(item['top_career_affinity']).round();
     final careerName = item['top_career_name']?.toString().trim();
     final holland = item['holland_code']?.toString().trim();
 
     return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(28),
+      color: dark ? AppColors.cardBackgroundDark : AppColors.cardBackground,
+      borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
       child: InkWell(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
         onTap: () => _showDetails(context, item),
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: .055),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
+            border: dark ? Border.all(color: AppColors.borderDark) : null,
+            boxShadow: dark ? AppMetrics.shadowCardDark : AppMetrics.shadowCard,
           ),
           child: Row(
             children: [
               Container(
                 width: 54,
                 height: 54,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFDCE9F8),
+                decoration: BoxDecoration(
+                  color: dark ? AppColors.surfaceVariantDark : AppColors.blue50,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.workspace_premium_rounded,
-                  color: Color(0xFF1B396A),
+                  color: dark ? AppColors.primaryOnDark : AppColors.primary,
                   size: 29,
                 ),
               ),
@@ -146,30 +149,23 @@ class _HistoryCard extends StatelessWidget {
                   children: [
                     Text(
                       'Evaluación $index',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: .8,
-                        color: Color(0xFF2F6AAE),
-                      ),
+                      style: AppTypography.badge.copyWith(color: accent),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       careerName == null || careerName.isEmpty
                           ? 'Carrera no disponible'
                           : careerName,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: AppTypography.title.copyWith(
                         height: 1.15,
-                        fontWeight: FontWeight.w900,
+                        color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${createdAt == null ? 'Fecha no disponible' : AppDateUtils.formatFullDate(createdAt)} · Perfil ${holland == null || holland.isEmpty ? '—' : holland}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68),
+                      style: AppTypography.caption.copyWith(
+                        color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -179,14 +175,14 @@ class _HistoryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0E3FF),
-                  borderRadius: BorderRadius.circular(14),
+                  color: dark ? AppColors.primaryOnDarkContainer : AppColors.secondaryLight,
+                  borderRadius: BorderRadius.circular(AppMetrics.radiusChip),
                 ),
                 child: Text(
                   '$affinity%',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF6A23C1),
+                  style: AppTypography.bodyStrong.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: accent,
                   ),
                 ),
               ),
@@ -198,6 +194,9 @@ class _HistoryCard extends StatelessWidget {
   }
 
   void _showDetails(BuildContext context, Map<String, dynamic> item) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = dark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+    final secondaryColor = dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
     final ranking = _decodeRanking(item['full_ranking_json']);
     final scores = <String, double>{
       'R': _toDouble(item['score_r']),
@@ -220,7 +219,7 @@ class _HistoryCard extends StatelessWidget {
         builder: (context, controller) => Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppMetrics.radiusLg)),
           ),
           child: ListView(
             controller: controller,
@@ -231,46 +230,43 @@ class _HistoryCard extends StatelessWidget {
                   width: 46,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD5DDCE),
-                    borderRadius: BorderRadius.circular(8),
+                    color: dark ? AppColors.borderDark : AppColors.gray300,
+                    borderRadius: BorderRadius.circular(AppMetrics.sm),
                   ),
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Detalle de evaluación',
-                style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+                style: AppTypography.headline.copyWith(color: textColor),
               ),
               const SizedBox(height: 5),
               Text(
                 item['top_career_name']?.toString() ?? 'Resultado vocacional',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68),
-                ),
+                style: AppTypography.body.copyWith(fontSize: 16, color: secondaryColor),
               ),
               const SizedBox(height: 22),
-              const Text(
+              Text(
                 'DESGLOSE RIASEC',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
+                style: AppTypography.badge.copyWith(
                   letterSpacing: 1,
-                  color: Color(0xFF1B396A),
+                  color: dark ? AppColors.primaryOnDark : AppColors.primary,
                 ),
               ),
               const SizedBox(height: 12),
               for (final entry in scores.entries)
-                _ScoreBar(code: entry.key, value: entry.value),
+                _ScoreBar(
+                  code: entry.key,
+                  value: entry.value,
+                  dark: dark,
+                ),
               if (ranking.isNotEmpty) ...[
                 const SizedBox(height: 22),
-                const Text(
+                Text(
                   'MEJORES OPCIONES',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                  style: AppTypography.badge.copyWith(
                     letterSpacing: 1,
-                    color: Color(0xFF1B396A),
+                    color: dark ? AppColors.primaryOnDark : AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -280,21 +276,24 @@ class _HistoryCard extends StatelessWidget {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(AppMetrics.radiusMd),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: Text(
                             career.name,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            style: AppTypography.bodyStrong.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                            ),
                           ),
                         ),
                         Text(
                           '${career.affinity.round()}%',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF1B396A),
+                          style: AppTypography.bodyStrong.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: dark ? AppColors.primaryOnDark : AppColors.primary,
                           ),
                         ),
                       ],
@@ -313,8 +312,9 @@ class _HistoryCard extends StatelessWidget {
 class _ScoreBar extends StatelessWidget {
   final String code;
   final double value;
+  final bool dark;
 
-  const _ScoreBar({required this.code, required this.value});
+  const _ScoreBar({required this.code, required this.value, required this.dark});
 
   @override
   Widget build(BuildContext context) {
@@ -325,16 +325,24 @@ class _ScoreBar extends StatelessWidget {
         children: [
           SizedBox(
             width: 24,
-            child: Text(code, style: const TextStyle(fontWeight: FontWeight.w900)),
+            child: Text(
+              code,
+              style: AppTypography.bodyStrong.copyWith(
+                fontWeight: FontWeight.w700,
+                color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              ),
+            ),
           ),
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppMetrics.sm),
               child: LinearProgressIndicator(
                 value: normalized,
                 minHeight: 8,
-                backgroundColor: const Color(0xFFE0E8D8),
-                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                backgroundColor: dark ? AppColors.borderDark : AppColors.blue100,
+                valueColor: AlwaysStoppedAnimation(
+                  dark ? AppColors.primaryOnDark : AppColors.primary,
+                ),
               ),
             ),
           ),
@@ -344,7 +352,10 @@ class _ScoreBar extends StatelessWidget {
             child: Text(
               '${(normalized * 100).round()}%',
               textAlign: TextAlign.end,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              style: AppTypography.caption.copyWith(
+                fontWeight: FontWeight.w700,
+                color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              ),
             ),
           ),
         ],
@@ -360,6 +371,7 @@ class _HistoryError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),
@@ -368,10 +380,13 @@ class _HistoryError extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline_rounded, size: 48),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'No fue posible cargar el historial.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w800),
+              style: AppTypography.bodyStrong.copyWith(
+                fontWeight: FontWeight.w700,
+                color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 14),
             FilledButton(onPressed: onRetry, child: const Text('Reintentar')),

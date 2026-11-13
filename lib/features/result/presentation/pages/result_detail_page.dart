@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
 import '../../../../core/widgets/app_back_button.dart';
 import '../../../../core/widgets/app_notice_dialog.dart';
 import '../../../catalog/domain/models/catalog_models.dart';
@@ -73,6 +74,8 @@ class ResultDetailPage extends ConsumerWidget {
             final found = careers.where((x) => x.id == match.careerId).toList();
             if (found.isEmpty) return const Center(child: Text('No se encontró la información de la carrera.'));
             final career = found.first;
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            final seriesColor = dark ? AppColors.primaryOnDark : AppColors.primary;
             final student = _student(data.riasec);
             final rankedStudent = _rankedDimensions(student);
             final strongest = rankedStudent.first;
@@ -115,7 +118,7 @@ class ResultDetailPage extends ConsumerWidget {
                   icon: Icons.radar_rounded,
                   child: Column(
                     children: [
-                      const Row(children:[_Legend(color: AppColors.primary,label:'Tu perfil'), SizedBox(width:18), _Legend(color: Color(0xFF1B396A),label:'Carrera')]),
+                      Row(children:[_Legend(color: seriesColor,label:'Tu perfil'), const SizedBox(width:18), _Legend(color: seriesColor,label:'Carrera')]),
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 270,
@@ -125,6 +128,8 @@ class ResultDetailPage extends ConsumerWidget {
                             career: {for (final d in ['R','I','A','S','E','C']) d: ((career.weights[d] ?? 0) / 10 * 100)},
                             gridColor: Theme.of(context).colorScheme.outlineVariant,
                             labelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                            studentColor: seriesColor,
+                            careerColor: seriesColor,
                           ),
                           child: const SizedBox.expand(),
                         ),
@@ -136,7 +141,7 @@ class ResultDetailPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _Card(title: 'Comparación RIASEC', icon: Icons.analytics_rounded, child: Column(children: [
-                  const Row(children:[_Legend(color: AppColors.primary,label:'Tu perfil'), SizedBox(width:18), _Legend(color: Color(0xFF1B396A),label:'Carrera')]),
+                  Row(children:[_Legend(color: seriesColor,label:'Tu perfil'), const SizedBox(width:18), _Legend(color: seriesColor,label:'Carrera')]),
                   const SizedBox(height:16),
                   ...['R','I','A','S','E','C'].map((d) => _CompareBar(label: '${_names[d]} ($d)', student: student[d] ?? 0, career: ((career.weights[d] ?? 0) / 10 * 100))),
                 ])),
@@ -168,82 +173,85 @@ class _CareerHeroCard extends StatelessWidget {
   const _CareerHeroCard({required this.career, required this.affinity, required this.profile, required this.skills});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(28),
-      border: Border.all(color: AppColors.primary.withValues(alpha: .22)),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .055), blurRadius: 18, offset: const Offset(0, 8))],
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(width: 58, height: 58, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: .12), borderRadius: BorderRadius.circular(18)), child: Icon(_careerIcon(career.department), color: AppColors.primary, size: 31)),
-        const SizedBox(width: 14),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('COMPATIBILIDAD MÁXIMA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.05, color: AppColors.primary)),
-          const SizedBox(height: 3),
-          Text(career.department, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF5B6B82))),
-          const SizedBox(height: 5),
-          Text(career.name, style: const TextStyle(fontSize: 25, height: 1.08, fontWeight: FontWeight.w900)),
-        ])),
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: dark ? AppColors.cardBackgroundDark : AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
+        border: Border.all(color: dark ? AppColors.borderDark : AppColors.primary.withValues(alpha: .22)),
+        boxShadow: dark ? AppMetrics.shadowCardDark : AppMetrics.shadowCard,
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 58, height: 58, decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.blue50, borderRadius: BorderRadius.circular(AppMetrics.radiusMd)), child: Icon(_careerIcon(career.department), color: dark ? AppColors.primaryOnDark : AppColors.primary, size: 31)),
+          const SizedBox(width: 14),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('COMPATIBILIDAD MÁXIMA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.05, color: dark ? AppColors.primaryOnDark : AppColors.primary)),
+            const SizedBox(height: 3),
+            Text(career.department, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
+            const SizedBox(height: 5),
+            Text(career.name, style: const TextStyle(fontSize: 25, height: 1.08, fontWeight: FontWeight.w700)),
+          ])),
+        ]),
+        const SizedBox(height: 18),
+        Row(children: [
+          Expanded(child: Text('Afinidad vocacional', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary))),
+          Text('${affinity.round()}%', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: dark ? AppColors.primaryOnDark : AppColors.primary)),
+        ]),
+        const SizedBox(height: 8),
+        ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: (affinity / 100).clamp(0, 1), minHeight: 9, backgroundColor: dark ? AppColors.borderDark : AppColors.blue100, valueColor: AlwaysStoppedAnimation(dark ? AppColors.primaryOnDark : AppColors.primary))),
+        const SizedBox(height: 16),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          _InfoChip(icon: Icons.auto_awesome_rounded, label: '${affinity.round()}% de afinidad'),
+          _InfoChip(icon: Icons.psychology_rounded, label: 'Perfil $profile'),
+          ...skills.map((s) => _InfoChip(icon: Icons.check_circle_outline_rounded, label: s)),
+        ]),
+        const SizedBox(height: 15),
+        Text(career.description, style: TextStyle(fontSize: 14.5, height: 1.5, color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
       ]),
-      const SizedBox(height: 18),
-      Row(children: [
-        const Expanded(child: Text('Afinidad vocacional', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF465048)))),
-        Text('${affinity.round()}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.primary)),
-      ]),
-      const SizedBox(height: 8),
-      ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: (affinity / 100).clamp(0, 1), minHeight: 9, backgroundColor: AppColors.primary.withValues(alpha: .12), valueColor: const AlwaysStoppedAnimation(AppColors.primary))),
-      const SizedBox(height: 16),
-      Wrap(spacing: 8, runSpacing: 8, children: [
-        _InfoChip(icon: Icons.auto_awesome_rounded, label: '${affinity.round()}% de afinidad'),
-        _InfoChip(icon: Icons.psychology_rounded, label: 'Perfil $profile'),
-        ...skills.map((s) => _InfoChip(icon: Icons.check_circle_outline_rounded, label: s)),
-      ]),
-      const SizedBox(height: 15),
-      Text(career.description, style: TextStyle(fontSize: 14.5, height: 1.5, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-    ]),
-  );
+    );
+  }
 }
 
 class _InfoChip extends StatelessWidget {
   final IconData icon; final String label;
   const _InfoChip({required this.icon, required this.label});
-  @override Widget build(BuildContext context) => Container(
+  @override Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; return Container(
     padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: .09), borderRadius: BorderRadius.circular(16)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 15, color: AppColors.primary), const SizedBox(width: 5), Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800))]),
-  );
+    decoration: BoxDecoration(color: dark ? AppColors.primaryOnDarkContainer : AppColors.secondaryLight, borderRadius: BorderRadius.circular(AppMetrics.radiusChip)),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 15, color: dark ? AppColors.primaryOnDark : AppColors.primary), const SizedBox(width: 5), Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: dark ? AppColors.primaryOnDark : AppColors.primaryDarker))]),
+  ); }
 }
 
 class _DominantProfileCard extends StatelessWidget {
   final String code; final String name; final double value; final String skillText;
   const _DominantProfileCard({required this.code, required this.name, required this.value, required this.skillText});
-  @override Widget build(BuildContext context) => Container(
+  @override Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; return Container(
     padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(26)),
+    decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant, borderRadius: BorderRadius.circular(AppMetrics.radiusLg)),
     child: Row(children: [
       SizedBox(width: 92, height: 92, child: Stack(alignment: Alignment.center, children: [
-        SizedBox(width: 82, height: 82, child: CircularProgressIndicator(value: (value / 100).clamp(0, 1), strokeWidth: 9, backgroundColor: AppColors.primary.withValues(alpha: .13), valueColor: const AlwaysStoppedAnimation(AppColors.primary), strokeCap: StrokeCap.round)),
-        Column(mainAxisSize: MainAxisSize.min, children: [Text('${value.round()}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), Text(code, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primary))]),
+        SizedBox(width: 82, height: 82, child: CircularProgressIndicator(value: (value / 100).clamp(0, 1), strokeWidth: 9, backgroundColor: dark ? AppColors.borderDark : AppColors.blue100, valueColor: AlwaysStoppedAnimation(dark ? AppColors.primaryOnDark : AppColors.primary), strokeCap: StrokeCap.round)),
+        Column(mainAxisSize: MainAxisSize.min, children: [Text('${value.round()}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)), Text(code, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dark ? AppColors.primaryOnDark : AppColors.primary))]),
       ])),
       const SizedBox(width: 16),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('PERFIL CON MAYOR PORCENTAJE', style: TextStyle(fontSize: 10, letterSpacing: .9, fontWeight: FontWeight.w900, color: AppColors.primary)),
+        Text('PERFIL CON MAYOR PORCENTAJE', style: TextStyle(fontSize: 10, letterSpacing: .9, fontWeight: FontWeight.w700, color: dark ? AppColors.primaryOnDark : AppColors.primary)),
         const SizedBox(height: 5),
-        Text('Perfil $name', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+        Text('Perfil $name', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
         const SizedBox(height: 5),
-        Text('Refleja fortalezas relacionadas con $skillText.', style: TextStyle(fontSize: 13, height: 1.4, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text('Refleja fortalezas relacionadas con $skillText.', style: TextStyle(fontSize: 13, height: 1.4, color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
       ])),
     ]),
-  );
+  ); }
 }
 
 class _Card extends StatelessWidget {
   final String title; final IconData icon; final Widget child;
   const _Card({required this.title, required this.icon, required this.child});
-  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(19), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(24)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Row(children:[Icon(icon,color:AppColors.primary),const SizedBox(width:9),Expanded(child:Text(title,style:const TextStyle(fontSize:18,fontWeight:FontWeight.w900)))]),const SizedBox(height:14),child]));
+  @override Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; return Container(padding: const EdgeInsets.all(19), decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant, borderRadius: BorderRadius.circular(AppMetrics.radiusLg)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Row(children:[Icon(icon,color: dark ? AppColors.primaryOnDark : AppColors.primary),const SizedBox(width:9),Expanded(child:Text(title,style:const TextStyle(fontSize:18,fontWeight:FontWeight.w700)))]),const SizedBox(height:14),child])); }
 }
 
 IconData _careerIcon(String department) {
@@ -260,29 +268,28 @@ IconData _careerIcon(String department) {
 class _SectionTitle extends StatelessWidget {
   final IconData icon; final String title;
   const _SectionTitle({required this.icon, required this.title});
-  @override Widget build(BuildContext context) => Row(children: [
-    Icon(icon, color: AppColors.primary, size: 23), const SizedBox(width: 8),
-    Expanded(child: Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900))),
-  ]);
+  @override Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; return Row(children: [
+    Icon(icon, color: dark ? AppColors.primaryOnDark : AppColors.primary, size: 23), const SizedBox(width: 8),
+    Expanded(child: Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700))),
+  ]); }
 }
 
 class _CompetencyCard extends StatelessWidget {
   final List<String> dimensions; final Map<String,double> student;
   const _CompetencyCard({required this.dimensions, required this.student});
   static const names = {'R':'Realista','I':'Investigador','A':'Artístico','S':'Social','E':'Emprendedor','C':'Convencional'};
-  static const colors = {'R':Color(0xFFEF7C3A),'I':Color(0xFF45A8D8),'A':Color(0xFFE85A9C),'S':Color(0xFF2E8B3C),'E':Color(0xFFE0A11B),'C':Color(0xFFA866E5)};
-  @override Widget build(BuildContext context) => Container(
+  @override Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; final accent = dark ? AppColors.primaryOnDark : AppColors.primary; final track = dark ? AppColors.borderDark : AppColors.blue100; return Container(
     padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26), border: Border.all(color: const Color(0xFFD8DED3))),
+    decoration: BoxDecoration(color: dark ? AppColors.cardBackgroundDark : AppColors.cardBackground, borderRadius: BorderRadius.circular(AppMetrics.radiusLg), border: Border.all(color: dark ? AppColors.borderDark : AppColors.borderGray)),
     child: Column(children: dimensions.map((d) {
-      final value = student[d] ?? 0; final color = colors[d] ?? AppColors.primary;
+      final value = student[d] ?? 0;
       return Padding(padding: const EdgeInsets.only(bottom: 18), child: Column(children: [
-        Row(children: [Expanded(child: Text(names[d] ?? d, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900))), Text('${value.round()}%', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: color))]),
+        Row(children: [Expanded(child: Text(names[d] ?? d, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))), Text('${value.round()}%', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: accent))]),
         const SizedBox(height: 8),
-        ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: (value/100).clamp(0,1), minHeight: 8, backgroundColor: color.withValues(alpha:.12), valueColor: AlwaysStoppedAnimation(color))),
+        ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: (value/100).clamp(0,1), minHeight: 8, backgroundColor: track, valueColor: AlwaysStoppedAnimation(accent))),
       ]));
     }).toList()),
-  );
+  ); }
 }
 
 class _WhyMatchCard extends StatelessWidget {
@@ -310,12 +317,13 @@ class _WhyMatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
         border: Border.all(color: colors.outlineVariant),
       ),
       child: Column(
@@ -323,9 +331,9 @@ class _WhyMatchCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.lightbulb_circle_rounded,
-                color: AppColors.primary,
+                color: dark ? AppColors.primaryOnDark : AppColors.primary,
                 size: 22,
               ),
               const SizedBox(width: 8),
@@ -334,7 +342,7 @@ class _WhyMatchCard extends StatelessWidget {
                   '¿Por qué esto te corresponde?',
                   style: TextStyle(
                     fontSize: 17,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     color: colors.onSurface,
                   ),
                 ),
@@ -373,21 +381,20 @@ class _ReasonChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: dark ? .22 : .09),
-        borderRadius: BorderRadius.circular(18),
+        color: dark ? AppColors.primaryOnDarkContainer : AppColors.secondaryLight,
+        borderRadius: BorderRadius.circular(AppMetrics.radiusChip),
       ),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 11.5,
-          fontWeight: FontWeight.w800,
-          color: dark ? const Color(0xFF8BE5A8) : const Color(0xFF28753A),
+          fontWeight: FontWeight.w700,
+          color: dark ? AppColors.primaryOnDark : AppColors.primaryDarker,
         ),
       ),
     );
@@ -398,8 +405,8 @@ class _Legend extends StatelessWidget { final Color color; final String label; c
 class _CompareBar extends StatelessWidget {
   final String label; final double student; final double career;
   const _CompareBar({required this.label,required this.student,required this.career});
-  @override Widget build(BuildContext context)=>Padding(padding:const EdgeInsets.only(bottom:14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label,style:const TextStyle(fontWeight:FontWeight.w800)),const SizedBox(height:6),_line(student,AppColors.primary),const SizedBox(height:4),_line(career,const Color(0xFF1B396A))]));
-  Widget _line(double value,Color color)=>Row(children:[Expanded(child:ClipRRect(borderRadius:BorderRadius.circular(7),child:LinearProgressIndicator(value:(value/100).clamp(0,1),minHeight:8,backgroundColor:color.withValues(alpha:.12),valueColor:AlwaysStoppedAnimation(color)))),const SizedBox(width:8),SizedBox(width:34,child:Text('${value.round()}%',style:const TextStyle(fontSize:11,fontWeight:FontWeight.w800)))]);
+  @override Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; final accent = dark ? AppColors.primaryOnDark : AppColors.primary; final track = dark ? AppColors.borderDark : AppColors.blue100; return Padding(padding:const EdgeInsets.only(bottom:14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label,style:const TextStyle(fontWeight:FontWeight.w700)),const SizedBox(height:6),_line(student,accent,track),const SizedBox(height:4),_line(career,accent,track)])); }
+  Widget _line(double value,Color color,Color track)=>Row(children:[Expanded(child:ClipRRect(borderRadius:BorderRadius.circular(7),child:LinearProgressIndicator(value:(value/100).clamp(0,1),minHeight:8,backgroundColor:track,valueColor:AlwaysStoppedAnimation(color)))),const SizedBox(width:8),SizedBox(width:34,child:Text('${value.round()}%',style:const TextStyle(fontSize:11,fontWeight:FontWeight.w700)))]);
 }
 
 class _RiasecRadarPainter extends CustomPainter {
@@ -407,7 +414,9 @@ class _RiasecRadarPainter extends CustomPainter {
   final Map<String, double> career;
   final Color gridColor;
   final Color labelColor;
-  const _RiasecRadarPainter({required this.student, required this.career, required this.gridColor, required this.labelColor});
+  final Color studentColor;
+  final Color careerColor;
+  const _RiasecRadarPainter({required this.student, required this.career, required this.gridColor, required this.labelColor, required this.studentColor, required this.careerColor});
   static const dims = ['R', 'I', 'A', 'S', 'E', 'C'];
   Offset _point(Offset center, double radius, int index, [double factor = 1]) {
     final angle = -math.pi / 2 + index * (2 * math.pi / dims.length);
@@ -442,13 +451,13 @@ class _RiasecRadarPainter extends CustomPainter {
       canvas.drawPath(path, Paint()..color = color.withValues(alpha: .15)..style = PaintingStyle.fill);
       canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2.4);
     }
-    drawValues(career, const Color(0xFF1B396A));
-    drawValues(student, AppColors.primary);
+    drawValues(career, careerColor);
+    drawValues(student, studentColor);
     for (var i = 0; i < dims.length; i++) {
       final p = _point(center, radius + 22, i);
-      final tp = TextPainter(text: TextSpan(text: dims[i], style: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w900)), textDirection: TextDirection.ltr)..layout();
+      final tp = TextPainter(text: TextSpan(text: dims[i], style: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w700)), textDirection: TextDirection.ltr)..layout();
       tp.paint(canvas, Offset(p.dx - tp.width / 2, p.dy - tp.height / 2));
     }
   }
-  @override bool shouldRepaint(covariant _RiasecRadarPainter oldDelegate) => oldDelegate.student != student || oldDelegate.career != career || oldDelegate.gridColor != gridColor || oldDelegate.labelColor != labelColor;
+  @override bool shouldRepaint(covariant _RiasecRadarPainter oldDelegate) => oldDelegate.student != student || oldDelegate.career != career || oldDelegate.gridColor != gridColor || oldDelegate.labelColor != labelColor || oldDelegate.studentColor != studentColor || oldDelegate.careerColor != careerColor;
 }

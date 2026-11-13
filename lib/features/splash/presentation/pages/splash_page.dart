@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/institutional_components.dart';
+import '../../../../core/widgets/institutional_logos.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
@@ -34,7 +38,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       // Sincronizar ANTES de navegar garantiza que la primera pantalla ya vea
       // los datos nuevos del panel sin necesitar una segunda apertura.
       final results = await Future.wait<Object?>([
-        ref.read(profileRepositoryProvider).getProfile(),
+        ref.read(profileRepositoryProvider).getProfile() as Future<Object?>,
         Future<void>.delayed(AppConstants.splashDuration),
         _syncCatalogsBounded(),
       ]).timeout(
@@ -104,153 +108,166 @@ class _SplashPageState extends ConsumerState<SplashPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: dark
-                ? const [Color(0xFF071E17), Color(0xFF0A2B20), Color(0xFF071812)]
-                : const [Color(0xFFF7FFE9), Color(0xFFF3F8E7), Color(0xFFE9FFF8)],
+                ? const [AppColors.backgroundDark, AppColors.blue900]
+                : const [AppColors.blue50, AppColors.blue100],
           ),
         ),
         child: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+              const InstitutionalBand(),
+              Expanded(
+                child: Stack(
                   children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 154,
-                          height: 122,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: dark ? const Color(0xFF0D382A) : Colors.white,
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(
-                              color: AppColors.primary,
-                              width: 3.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: dark ? .35 : .12),
-                                blurRadius: 22,
-                                offset: const Offset(0, 10),
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                width: 154,
+                                height: 122,
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: dark
+                                      ? AppColors.primaryOnDarkContainer
+                                      : AppColors.white,
+                                  borderRadius: BorderRadius.circular(
+                                      AppMetrics.radiusLg),
+                                  border: Border.all(
+                                    color: AppColors.primary,
+                                    width: 3.5,
+                                  ),
+                                  boxShadow: dark
+                                      ? AppMetrics.shadowCardDark
+                                      : AppMetrics.shadowFloat,
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                      AppMetrics.radiusLg),
+                                  child: Image.asset(
+                                    dark
+                                        ? 'assets/branding/app_logo_dark.png'
+                                        : 'assets/branding/app_logo_light.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: -12,
+                                top: -14,
+                                child: Container(
+                                  width: 46,
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    color: dark
+                                        ? AppColors.secondary
+                                        : AppColors.secondaryLight,
+                                    shape: BoxShape.circle,
+                                    boxShadow: dark
+                                        ? AppMetrics.shadowCardDark
+                                        : AppMetrics.shadowCard,
+                                  ),
+                                  child: Icon(
+                                    Icons.school_rounded,
+                                    color: dark
+                                        ? AppColors.onPrimary
+                                        : AppColors.primary,
+                                    size: 24,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(22),
-                            child: Image.asset(
-                              dark
-                                  ? 'assets/branding/app_logo_dark.png'
-                                  : 'assets/branding/app_logo_light.png',
-                              fit: BoxFit.cover,
+                          const SizedBox(height: 28),
+                          Text(
+                            AppConstants.appName,
+                            textAlign: TextAlign.center,
+                            style: AppTypography.display.copyWith(
+                              fontSize: 34,
+                              height: 1.05,
+                              color: dark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimary,
                             ),
                           ),
-                        ),
-                        Positioned(
-                          right: -12,
-                          top: -14,
-                          child: Container(
-                            width: 46,
-                            height: 46,
-                            decoration: BoxDecoration(
-                              color: dark ? const Color(0xFF4A2875) : const Color(0xFFD7B8FF),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: .15),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.school_rounded,
-                              color: dark ? const Color(0xFFE2C4FF) : const Color(0xFF6E26C8),
-                              size: 24,
+                          const SizedBox(height: 8),
+                          Text(
+                            'DESCUBRE TU CAMINO',
+                            style: AppTypography.badge.copyWith(
+                              fontSize: 13,
+                              letterSpacing: 2.1,
+                              color: dark
+                                  ? AppColors.primaryOnDark
+                                  : AppColors.primary,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      AppConstants.appName,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        height: 1.05,
-                        letterSpacing: -.6,
-                        color: dark ? Colors.white : const Color(0xFF1B396A),
+                          const SizedBox(height: 30),
+                          const InstitutionalHero(),
+                          const SizedBox(height: 18),
+                          Text(
+                            'SISTEMA DE ORIENTACIÓN VOCACIONAL',
+                            style: AppTypography.micro.copyWith(
+                              fontSize: 9.5,
+                              letterSpacing: 2.4,
+                              color: dark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'DESCUBRE TU CAMINO',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2.1,
-                        color: dark ? const Color(0xFFB3C5DD) : AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                bottom: 32,
-                left: 0,
-                right: 0,
-                child: Column(
-                  children: [
-                    if (loadFailed) ...[
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 40),
-                        child: Text(
-                          'No se pudo cargar la información local. Revisa el almacenamiento e inténtalo de nuevo.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 60),
-                        child: PrimaryButton(
-                          text: 'Reintentar',
-                          icon: Icons.refresh_rounded,
-                          onPressed: _go,
-                        ),
-                      ),
-                    ] else
-                      const SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.8,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    const SizedBox(height: 22),
-                    if (!loadFailed)
-                      Text(
-                        status,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: .55),
-                        ),
-                      ),
-                    if (!loadFailed) const SizedBox(height: 8),
-                    Opacity(
-                      opacity: dark ? .88 : 1.0,
-                      child: Image.asset(
-                        'assets/institution/tecnm_ittux_wordmark.png',
-                        width: 210,
-                        fit: BoxFit.contain,
+                    Positioned(
+                      bottom: 32,
+                      left: 0,
+                      right: 0,
+                      child: Column(
+                        children: [
+                          if (loadFailed) ...[
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 40),
+                              child: Text(
+                                'No se pudo cargar la información local. Revisa el almacenamiento e inténtalo de nuevo.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 60),
+                              child: PrimaryButton(
+                                text: 'Reintentar',
+                                icon: Icons.refresh_rounded,
+                                onPressed: _go,
+                              ),
+                            ),
+                          ] else
+                            const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.8,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          const SizedBox(height: 22),
+                          if (!loadFailed)
+                            Text(
+                              status,
+                              style: AppTypography.caption.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: dark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          if (!loadFailed) const SizedBox(height: 8),
+                        ],
                       ),
                     ),
                   ],

@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../core/widgets/institutional_components.dart';
+import '../../../../core/widgets/institutional_logos.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../providers/settings_provider.dart';
 import 'privacy_page.dart';
@@ -14,33 +18,34 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final reduce = ref.watch(reduceAnimationsProvider);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(title: const Text('Configuración')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(22, 8, 22, 30),
         children: [
-          const Text('PREFERENCIAS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1.1)),
+          const SectionLabel('Preferencias'),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
+          InstitutionalCard(
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
-                _Switch(icon: Icons.dark_mode_outlined, iconColor: const Color(0xFF7432CE), title: 'Modo Oscuro', subtitle: 'Reduce la fatiga visual', value: themeMode == ThemeMode.dark, onChanged: (v) => ref.read(themeModeProvider.notifier).toggleTheme(v)),
+                _Switch(icon: Icons.dark_mode_outlined, iconColor: AppColors.secondary, title: 'Modo Oscuro', subtitle: 'Reduce la fatiga visual', value: themeMode == ThemeMode.dark, onChanged: (v) => ref.read(themeModeProvider.notifier).toggleTheme(v)),
                 const Divider(height: 1, indent: 70),
-                _Switch(icon: Icons.animation_rounded, iconColor: const Color(0xFF2F6AAE), title: 'Disminuir Animaciones', subtitle: 'Reduce los efectos de movimiento', value: reduce, onChanged: (v) => ref.read(reduceAnimationsProvider.notifier).toggleReduce(v)),
+                _Switch(icon: Icons.animation_rounded, iconColor: AppColors.secondary, title: 'Disminuir Animaciones', subtitle: 'Reduce los efectos de movimiento', value: reduce, onChanged: (v) => ref.read(reduceAnimationsProvider.notifier).toggleReduce(v)),
               ],
             ),
           ),
           const SizedBox(height: 26),
-          const Text('DATOS Y CATÁLOGOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1.1)),
+          const SectionLabel('Datos y catálogos'),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
+          InstitutionalCard(
+            padding: EdgeInsets.zero,
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFF1B396A).withValues(alpha: .13), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.sync_rounded, color: Color(0xFF1B396A))),
-              title: const Text('Actualizar catálogos', style: TextStyle(fontWeight: FontWeight.w900)),
-              subtitle: const Text('Descarga cambios aprobados del panel y los guarda en SQLite.'),
+              leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.blue50, borderRadius: BorderRadius.circular(AppMetrics.radiusMd)), child: Icon(Icons.sync_rounded, color: dark ? AppColors.primaryOnDark : AppColors.primary)),
+              title: Text('Actualizar catálogos', style: AppTypography.bodyStrong.copyWith(color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
+              subtitle: Text('Descarga cambios aprobados del panel y los guarda en SQLite.', style: AppTypography.caption.copyWith(color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () async {
                 final messenger = ScaffoldMessenger.of(context);
@@ -95,20 +100,25 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 26),
-          const Text('PRIVACIDAD Y SOPORTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1.1)),
+          const SectionLabel('Privacidad y soporte'),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(26)),
+          InstitutionalCard(
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
-                _Info(icon: Icons.lock_outline_rounded, iconColor: const Color(0xFF2F6AAE), title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza ${AppConstants.appName} y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
+                _Info(icon: Icons.lock_outline_rounded, iconColor: AppColors.secondary, title: 'Aviso de privacidad', subtitle: 'Consulta qué datos utiliza ${AppConstants.appName} y para qué fines.', onTap: () => showPrivacyNoticeDialog(context)),
                 const Divider(height: 1, indent: 70),
-                const _Info(icon: Icons.help_outline_rounded, iconColor: Color(0xFF7432CE), title: 'Ayuda', subtitle: '${AppConstants.appName} · Prototipo funcional'),
+                const _Info(icon: Icons.help_outline_rounded, iconColor: AppColors.secondary, title: 'Ayuda', subtitle: '${AppConstants.appName} · Prototipo funcional'),
               ],
             ),
           ),
-          const SizedBox(height: 28),
-          Center(child: Text('${AppConstants.appName} · TUXTEPEC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .55), letterSpacing: 1.4))),
+          const SizedBox(height: 36),
+          const Center(
+            child: InstitutionalFooter(
+              caption: '${AppConstants.appName} · TUXTEPEC',
+              scale: 1.25,
+            ),
+          ),
         ],
       ),
     );
@@ -124,15 +134,18 @@ class _Switch extends StatelessWidget {
   final ValueChanged<bool> onChanged;
   const _Switch({required this.icon, required this.iconColor, required this.title, required this.subtitle, required this.value, required this.onChanged});
   @override
-  Widget build(BuildContext context) => SwitchListTile.adaptive(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-        secondary: Container(width: 42, height: 42, decoration: BoxDecoration(color: iconColor.withValues(alpha: .13), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: iconColor)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        activeThumbColor: AppColors.primary,
-        value: value,
-        onChanged: onChanged,
-      );
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return SwitchListTile.adaptive(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      secondary: Container(width: 42, height: 42, decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.blue50, borderRadius: BorderRadius.circular(AppMetrics.radiusMd)), child: Icon(icon, color: iconColor)),
+      title: Text(title, style: AppTypography.bodyStrong.copyWith(color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
+      subtitle: Text(subtitle, style: AppTypography.caption.copyWith(color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
+      activeThumbColor: AppColors.primary,
+      value: value,
+      onChanged: onChanged,
+    );
+  }
 }
 
 class _Info extends StatelessWidget {
@@ -143,12 +156,15 @@ class _Info extends StatelessWidget {
   final VoidCallback? onTap;
   const _Info({required this.icon, required this.iconColor, required this.title, required this.subtitle, this.onTap});
   @override
-  Widget build(BuildContext context) => ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: iconColor.withValues(alpha: .13), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: iconColor)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right_rounded),
-      );
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.blue50, borderRadius: BorderRadius.circular(AppMetrics.radiusMd)), child: Icon(icon, color: iconColor)),
+      title: Text(title, style: AppTypography.bodyStrong.copyWith(color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
+      subtitle: Text(subtitle, style: AppTypography.caption.copyWith(color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
+      trailing: const Icon(Icons.chevron_right_rounded),
+    );
+  }
 }

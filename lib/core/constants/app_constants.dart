@@ -23,6 +23,16 @@ abstract class AppConstants {
   static const String keyThemeMode = 'theme_mode';
   static const String keyReduceAnimations = 'reduce_animations';
 
+  /// Canales oficiales de la institución (sitio y redes), usados por la
+  /// tarjeta de contacto y por la burbuja de ayuda del mapa vocacional.
+  static const String institutionSiteUrl = 'https://www.tuxtepec.tecnm.mx/';
+  static const String institutionFacebookUrl =
+      'https://www.facebook.com/tecnologicode.tuxtepec/';
+  static const String institutionInstagramUrl =
+      'https://www.instagram.com/tecnm_tuxtepec/';
+  static const String institutionWhatsAppUrl = 'https://wa.me/522871104437';
+  static const String institutionMailUrl = 'mailto:web_tuxtepec@tecnm.mx';
+
   static const Duration splashDuration = Duration(seconds: 3);
   static const Duration defaultAnimationDuration = Duration(milliseconds: 300);
 }

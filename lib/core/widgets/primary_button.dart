@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
+import '../../app/theme/app_metrics.dart';
+import '../../app/theme/app_typography.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -21,15 +22,15 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 54,
+      height: AppMetrics.buttonHeight,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
-          elevation: 2,
+          foregroundColor: AppColors.onPrimary,
+          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.45),
+          elevation: 1,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(AppMetrics.radiusButton),
           ),
         ),
         onPressed: isLoading ? null : onPressed,
@@ -38,17 +39,23 @@ class PrimaryButton extends StatelessWidget {
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                  color: Colors.white,
+                  color: AppColors.onPrimary,
                   strokeWidth: 2.5,
                 ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(text, style: AppTextStyles.buttonText),
+                  Text(
+                    text.toUpperCase(),
+                    style: AppTypography.button.copyWith(
+                      letterSpacing: .8,
+                      color: AppColors.onPrimary,
+                    ),
+                  ),
                   if (icon != null) ...[
-                    const SizedBox(width: 8),
-                    Icon(icon, color: Colors.white, size: 20),
+                    const SizedBox(width: AppMetrics.sm),
+                    Icon(icon, color: AppColors.onPrimary, size: 20),
                   ],
                 ],
               ),

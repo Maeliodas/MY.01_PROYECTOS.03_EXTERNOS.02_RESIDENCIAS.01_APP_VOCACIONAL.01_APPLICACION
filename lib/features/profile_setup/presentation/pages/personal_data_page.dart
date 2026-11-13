@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../avatar/presentation/providers/avatar_provider.dart';
 import '../../../../core/widgets/app_back_button.dart';
@@ -27,6 +29,7 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final avatar = ref.watch(avatarProvider);
     final local = avatar.avatarPath.startsWith('/') || avatar.avatarPath.contains('emulated');
     final image = local
@@ -35,7 +38,7 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
 
     return Scaffold(
       body: DecoratedBox(
-        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft,end: Alignment.bottomRight,colors: Theme.of(context).brightness == Brightness.dark ? const [Color(0xFF0B1526),Color(0xFF152845),Color(0xFF14243E)] : const [Color(0xFFEEF2F7),Color(0xFFEEF2F7),Color(0xFFEEF2F7)])),
+        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft,end: Alignment.bottomRight,colors: dark ? const [AppColors.backgroundDark, AppColors.blue900] : const [AppColors.white, AppColors.blue50])),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -43,19 +46,19 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
               children: [
                 const Align(alignment: Alignment.centerLeft, child: AppBackButton()),
                 const SizedBox(height: 8),
-                const Align(alignment: Alignment.centerLeft, child: Text('¡Te ves genial!', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, height: 1))),
+                const Align(alignment: Alignment.centerLeft, child: Text('¡Te ves genial!', style: AppTypography.display)),
                 const SizedBox(height: 8),
-                const Align(alignment: Alignment.centerLeft, child: Text('Tu camino profesional empieza aquí.', style: TextStyle(fontSize: 17, color: AppColors.textSecondary))),
+                const Align(alignment: Alignment.centerLeft, child: Text('Tu camino profesional empieza aquí.', style: TextStyle(fontSize: 17, height: 1.4, color: AppColors.textSecondary))),
                 const SizedBox(height: 28),
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Container(width: 210, height: 210, padding: const EdgeInsets.all(7), decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surface, border: Border.all(color: AppColors.primary, width: 3), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 24, offset: const Offset(0, 12))]), child: ClipOval(child: image)),
-                    Positioned(right: 5, bottom: 8, child: Container(width: 48, height: 48, decoration: const BoxDecoration(color: Color(0xFF7633D5), shape: BoxShape.circle), child: const Icon(Icons.check_circle_rounded, color: Colors.white))),
+                    Container(width: 210, height: 210, padding: const EdgeInsets.all(7), decoration: BoxDecoration(shape: BoxShape.circle, color: dark ? AppColors.cardBackgroundDark : AppColors.cardBackground, border: Border.all(color: AppColors.primary, width: 3), boxShadow: dark ? AppMetrics.shadowCardDark : AppMetrics.shadowFloat), child: ClipOval(child: image)),
+                    Positioned(right: 5, bottom: 8, child: Container(width: 48, height: 48, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: const Icon(Icons.check_circle_rounded, color: AppColors.onPrimary))),
                   ],
                 ),
                 const SizedBox(height: 34),
-                const Align(alignment: Alignment.centerLeft, child: Text('TU NOMBRE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1.4))),
+                Align(alignment: Alignment.centerLeft, child: Text('TU NOMBRE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: dark ? AppColors.primaryOnDark : AppColors.primary, letterSpacing: 1.4))),
                 const SizedBox(height: 8),
                 TextField(controller: nameController, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(prefixIcon: Icon(Icons.person_outline_rounded), hintText: 'Escribe tu nombre aquí...')),
                 const SizedBox(height: 14),
@@ -78,7 +81,7 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextButton.icon(onPressed: () => context.push('/choose-avatar'), icon: const Icon(Icons.edit_outlined), label: const Text('CAMBIAR AVATAR', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1))),
+                TextButton.icon(onPressed: () => context.push('/choose-avatar'), icon: const Icon(Icons.edit_outlined), label: const Text('CAMBIAR AVATAR', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 1))),
               ],
             ),
           ),

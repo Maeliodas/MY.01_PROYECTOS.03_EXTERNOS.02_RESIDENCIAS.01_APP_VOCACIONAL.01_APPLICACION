@@ -14,9 +14,12 @@ Future<void> showAppNoticeDialog(
     barrierDismissible: true,
     builder: (dialogContext) {
       final scheme = Theme.of(dialogContext).colorScheme;
+      final dark = Theme.of(dialogContext).brightness == Brightness.dark;
       return Dialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520, maxHeight: 680),
           child: Padding(
@@ -29,18 +32,23 @@ Future<void> showAppNoticeDialog(
                   height: 58,
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: AppColors.primary, size: 30),
+                  child: Icon(
+                    icon,
+                    color: dark ? AppColors.primaryOnDark : AppColors.primary,
+                    size: 30,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    height: 1.15,
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 14),

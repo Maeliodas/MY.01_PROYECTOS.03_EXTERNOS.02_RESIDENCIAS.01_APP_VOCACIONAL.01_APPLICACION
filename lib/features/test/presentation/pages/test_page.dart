@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../providers/test_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/widgets/app_back_button.dart';
+import '../../../../core/widgets/institutional_components.dart';
 
 class TestPage extends ConsumerStatefulWidget {
   const TestPage({super.key});
@@ -19,33 +22,118 @@ class _TestPageState extends ConsumerState<TestPage> {
     final state = ref.read(testProvider);
     final result = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 68, height: 68, decoration: const BoxDecoration(color: Color(0xFFEAD8FF), shape: BoxShape.circle), child: const Icon(Icons.pause_rounded, color: Color(0xFF6F24CB), size: 34)),
-              const SizedBox(height: 18),
-              const Text('¿Deseas salir?', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 7),
-              Text('Tu progreso se guardará automáticamente.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, height: 1.35, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68))),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                decoration: BoxDecoration(color: const Color(0xFFF1F9E8), borderRadius: BorderRadius.circular(22)),
-                child: Row(children: [const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('ESTADO ACTUAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: 1)), SizedBox(height: 3)])), Text('Pregunta ${state.currentIndex + 1} de ${state.questions.length}', style: const TextStyle(fontWeight: FontWeight.w700))]),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(width: double.infinity, height: 54, child: ElevatedButton(onPressed: () => Navigator.pop(dialogContext, false), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: const Color(0xFFFFFFFF), elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))), child: const Text('×  Cancelar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)))),
-              const SizedBox(height: 10),
-              SizedBox(width: double.infinity, height: 52, child: FilledButton.tonal(onPressed: () => Navigator.pop(dialogContext, true), style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))), child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.save_rounded, size: 20), SizedBox(width: 9), Text('Guardar y Salir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))]))),
-            ],
+      builder: (dialogContext) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        final titleColor =
+            dark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+        final secondaryColor =
+            dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+        final accentColor = dark ? AppColors.primaryOnDark : AppColors.primary;
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppMetrics.radiusLg)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: dark
+                        ? AppColors.primaryOnDarkContainer
+                        : AppColors.secondaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.pause_rounded, color: accentColor, size: 34),
+                ),
+                const SizedBox(height: 18),
+                Text('¿Deseas salir?',
+                    style: AppTypography.display.copyWith(color: titleColor)),
+                const SizedBox(height: 7),
+                Text(
+                  'Tu progreso se guardará automáticamente.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 16, height: 1.35, color: secondaryColor),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: dark
+                        ? AppColors.surfaceVariantDark
+                        : AppColors.blue50,
+                    borderRadius:
+                        BorderRadius.circular(AppMetrics.radiusLg),
+                  ),
+                  child: Row(children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('ESTADO ACTUAL',
+                              style: AppTypography.sectionLabel
+                                  .copyWith(color: accentColor)),
+                          const SizedBox(height: 3),
+                        ],
+                      ),
+                    ),
+                    Text(
+                        'Pregunta ${state.currentIndex + 1} de ${state.questions.length}',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, color: titleColor)),
+                  ]),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppMetrics.buttonHeight,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.onPrimary,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppMetrics.radiusButton)),
+                    ),
+                    child: const Text('×  Cancelar',
+                        style: TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppMetrics.buttonHeight,
+                  child: FilledButton.tonal(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                AppMetrics.radiusButton))),
+                    child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.save_rounded, size: 20),
+                          SizedBox(width: 9),
+                          Text('Guardar y Salir',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700)),
+                        ]),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
     return result ?? false;
   }
@@ -72,7 +160,26 @@ class _TestPageState extends ConsumerState<TestPage> {
         ),
       );
     }
-    final q = state.questions[state.currentIndex];
+    // Cuando el usuario ya contestó la última pregunta regular, el estado
+    // queda en `currentIndex == questions.length`: la siguiente pantalla es
+    // la pregunta abierta (o los resultados, si el test ya fue finalizado).
+    if (state.currentIndex >= state.questions.length) {
+      if (state.isCompleted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && context.mounted) context.go('/result-analysis');
+        });
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && context.mounted) context.go('/open-question');
+        });
+      }
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = dark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+    final accentColor = dark ? AppColors.primaryOnDark : AppColors.primary;
+    final qIndex = state.currentIndex.clamp(0, state.questions.length - 1).toInt();
+    final q = state.questions[qIndex];
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -85,9 +192,9 @@ class _TestPageState extends ConsumerState<TestPage> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: Theme.of(context).brightness == Brightness.dark
-                  ? const [Color(0xFF0B1526), Color(0xFF0E1A30), Color(0xFF13233D)]
-                  : const [Color(0xFFF7FFE9), Color(0xFFF4F8E9), Color(0xFFE7FFF8)],
+              colors: dark
+                  ? const [AppColors.backgroundDark, AppColors.blue900]
+                  : const [AppColors.white, AppColors.blue50],
             ),
           ),
           child: SafeArea(
@@ -95,39 +202,139 @@ class _TestPageState extends ConsumerState<TestPage> {
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
               child: Column(
                 children: [
-                  Row(children: [AppBackButton(onPressed: () async { if (await _confirmExit() && context.mounted) context.pop(); }), const Text(AppConstants.appName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1B396A)))]),
-                  const SizedBox(height: 20),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PROGRESO VOCACIONAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: .8)), Text('ETAPA ${state.currentIndex + 1} DE ${state.questions.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF1B396A), letterSpacing: .6))]),
+                  Row(children: [
+                    AppBackButton(onPressed: () async {
+                      if (await _confirmExit() && context.mounted) context.pop();
+                    }),
+                    Text(AppConstants.appName,
+                        style: AppTypography.headline
+                            .copyWith(fontSize: 18, color: accentColor)),
+                  ]),
+                  const SizedBox(height: AppMetrics.xl),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('PROGRESO VOCACIONAL',
+                            style: AppTypography.sectionLabel
+                                .copyWith(color: accentColor)),
+                        Text(
+                            'ETAPA ${state.currentIndex + 1} DE ${state.questions.length}',
+                            style: AppTypography.sectionLabel
+                                .copyWith(color: accentColor)),
+                      ]),
                   const SizedBox(height: 9),
-                  ClipRRect(borderRadius: BorderRadius.circular(12), child: LinearProgressIndicator(value: state.progress, minHeight: 10, backgroundColor: const Color(0xFFDCE3EF), valueColor: const AlwaysStoppedAnimation(Color(0xFF2F6AAE)))),
-                  const SizedBox(height: 28),
+                  ClipRRect(
+                    borderRadius:
+                        BorderRadius.circular(AppMetrics.radiusChip),
+                    child: LinearProgressIndicator(
+                      value: state.progress,
+                      minHeight: 10,
+                      backgroundColor:
+                          dark ? AppColors.borderDark : AppColors.blue100,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(accentColor),
+                    ),
+                  ),
+                  const SizedBox(height: AppMetrics.xxl + AppMetrics.sm),
                   Expanded(
                     child: Center(
-                      child: Container(
-                        width: double.infinity,
+                      child: InstitutionalCard(
                         padding: const EdgeInsets.fromLTRB(24, 38, 24, 32),
-                        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface.withValues(alpha: .96), borderRadius: BorderRadius.circular(34), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 22, offset: const Offset(0, 10))]),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(q.text, textAlign: TextAlign.center, style: TextStyle(fontSize: 25, height: 1.18, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onSurface)),
-                            const SizedBox(height: 34),
-                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [const _ScaleIcon(icon: Icons.block_rounded, label: 'NADA', active: false), const SizedBox(width: 28), Container(width: 78, height: 78, alignment: Alignment.center, decoration: const BoxDecoration(color: Color(0xFFDCE9F8), shape: BoxShape.circle), child: Text(value.round().toString(), style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: Color(0xFF1B396A)))), const SizedBox(width: 28), const _ScaleIcon(icon: Icons.input_rounded, label: 'MUCHO', active: true)]),
-                            const SizedBox(height: 22),
-                            SliderTheme(data: SliderTheme.of(context).copyWith(trackHeight: 8, activeTrackColor: AppColors.primary, inactiveTrackColor: const Color(0xFFCBD8EA), thumbColor: AppColors.primary, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 15), overlayShape: const RoundSliderOverlayShape(overlayRadius: 24)), child: Slider(value: value, min: 0, max: 10, divisions: 10, onChanged: (v) => setState(() => value = v))),
-                            const SizedBox(height: 26),
-                            SizedBox(width: double.infinity, height: 58, child: ElevatedButton(onPressed: () async {
-                              await ref.read(testProvider.notifier).answerQuestion(value);
-                              final done = await ref.read(testProvider.notifier).nextQuestion();
-                              if (!context.mounted) return;
-                              if (done) {
-                                context.go('/open-question');
-                              } else {
-                                final nextState = ref.read(testProvider);
-                                final nextId = nextState.questions[nextState.currentIndex].id;
-                                setState(() => value = nextState.answers[nextId] ?? 5);
-                              }
-                            }, style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: const Color(0xFFFFFFFF), elevation: 3, shadowColor: const Color(0xFF1B396A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), child: const Text('Continuar  ›', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)))),
+                            Text(q.text,
+                                textAlign: TextAlign.center,
+                                style: AppTypography.display
+                                    .copyWith(fontSize: 24, color: titleColor)),
+                            const SizedBox(height: AppMetrics.xxl + AppMetrics.sm),
+                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const _ScaleIcon(
+                                  icon: Icons.block_rounded,
+                                  label: 'NADA',
+                                  active: false),
+                              const SizedBox(width: AppMetrics.xxl + AppMetrics.sm),
+                              Container(
+                                width: 78,
+                                height: 78,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: dark
+                                      ? AppColors.primaryOnDarkContainer
+                                      : AppColors.blue100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(value.round().toString(),
+                                    style: TextStyle(
+                                        fontSize: 38,
+                                        fontWeight: FontWeight.w700,
+                                        color: accentColor)),
+                              ),
+                              const SizedBox(width: AppMetrics.xxl + AppMetrics.sm),
+                              const _ScaleIcon(
+                                  icon: Icons.input_rounded,
+                                  label: 'MUCHO',
+                                  active: true),
+                            ]),
+                            const SizedBox(height: AppMetrics.xl),
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 8,
+                                activeTrackColor: accentColor,
+                                inactiveTrackColor: dark
+                                    ? AppColors.borderDark
+                                    : AppColors.blue100,
+                                thumbColor: accentColor,
+                                thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 15),
+                                overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 24),
+                              ),
+                              child: Slider(
+                                  value: value,
+                                  min: 0,
+                                  max: 10,
+                                  divisions: 10,
+                                  onChanged: (v) => setState(() => value = v)),
+                            ),
+                            const SizedBox(height: AppMetrics.xl),
+                            SizedBox(
+                              width: double.infinity,
+                              height: AppMetrics.buttonHeight,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  await ref
+                                      .read(testProvider.notifier)
+                                      .answerQuestion(value);
+                                  final done = await ref
+                                      .read(testProvider.notifier)
+                                      .nextQuestion();
+                                  if (!context.mounted) return;
+                                  if (done) {
+                                    context.go('/open-question');
+                                  } else {
+                                    final nextState = ref.read(testProvider);
+                                    final nextId = nextState
+                                        .questions[nextState.currentIndex].id;
+                                    setState(() => value =
+                                        nextState.answers[nextId] ?? 5);
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.onPrimary,
+                                  elevation: 3,
+                                  shadowColor: AppColors.primary,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          AppMetrics.radiusButton)),
+                                ),
+                                child: const Text('Continuar  ›',
+                                    style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -149,5 +356,31 @@ class _ScaleIcon extends StatelessWidget {
   final bool active;
   const _ScaleIcon({required this.icon, required this.label, required this.active});
   @override
-  Widget build(BuildContext context) { final dark = Theme.of(context).brightness == Brightness.dark; final secondary = Theme.of(context).colorScheme.onSurface.withValues(alpha: .58); return Column(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: active ? (dark ? const Color(0xFF1A2A45) : const Color(0xFFDCE9F8)) : (dark ? const Color(0xFF223047) : const Color(0xFFEEF2F7)), shape: BoxShape.circle), child: Icon(icon, color: active ? AppColors.primary : secondary)), const SizedBox(height: 7), Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: active ? AppColors.primary : secondary))]); }
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = dark ? AppColors.primaryOnDark : AppColors.primary;
+    final secondaryColor =
+        dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    return Column(children: [
+      Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: active
+              ? (dark
+                  ? AppColors.primaryOnDarkContainer
+                  : AppColors.blue100)
+              : (dark
+                  ? AppColors.surfaceVariantDark
+                  : AppColors.blue50),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: active ? accentColor : secondaryColor),
+      ),
+      const SizedBox(height: 7),
+      Text(label,
+          style: AppTypography.micro
+              .copyWith(color: active ? accentColor : secondaryColor)),
+    ]);
+  }
 }

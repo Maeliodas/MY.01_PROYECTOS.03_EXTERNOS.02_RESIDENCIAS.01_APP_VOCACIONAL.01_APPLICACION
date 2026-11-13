@@ -6,6 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../core/widgets/institutional_components.dart';
+import '../../../../core/widgets/institutional_logos.dart';
+import '../../../../core/widgets/institutional_support_sheet.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/test_provider.dart';
 
@@ -19,14 +25,19 @@ class TestProgressTreePage extends ConsumerWidget {
     final test = ref.watch(testProvider);
     final profile = ref.watch(profileProvider);
     if (!test.restored || test.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
+      return const Scaffold(
+          body: Center(
+              child: CircularProgressIndicator(color: AppColors.primary)));
     }
     final complete = test.isCompleted;
     final answered = test.answers.length;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final totalQuestions = test.questions.length;
     final percentage = complete
         ? 100
-        : totalQuestions == 0 ? 0 : ((answered / totalQuestions) * 100).round().clamp(0, 100);
+        : totalQuestions == 0
+            ? 0
+            : ((answered / totalQuestions) * 100).round().clamp(0, 100);
 
     void continueTest() => context.push('/test');
     void showResult() {
@@ -43,226 +54,248 @@ class TestProgressTreePage extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: Theme.of(context).brightness == Brightness.dark
-                ? const [Color(0xFF0B1526), Color(0xFF0E1A30), Color(0xFF13233D)]
-                : const [Color(0xFFF7FFE9), Color(0xFFF4F8E9), Color(0xFFE9FFF8)],
+            colors: dark
+                ? const [AppColors.backgroundDark, AppColors.blue900]
+                : const [AppColors.white, AppColors.blue50],
           ),
         ),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(22, 16, 22, 28),
+          child: Stack(
             children: [
-              Row(
+              ListView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 92),
                 children: [
-                  _Avatar(path: profile?.avatarConfig.avatarPath),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      profile == null
-                          ? '¡Hola!'
-                          : '¡Hola, ${profile.name.split(' ').first}!',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1B396A),
-                      ),
-                    ),
-                  ),
-                  const Text(
-                    AppConstants.appName,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1B396A),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: .07),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'PROGRESO ACTUAL',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF2F6AAE),
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                        Icon(Icons.rocket_launch_rounded, color: Color(0xFF2F6AAE), size: 30),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      complete
-                          ? 'Tu viaje profesional\nestá despegando.'
-                          : answered == 0
-                              ? 'Tu viaje aún no\ncomienza.'
-                              : 'Tu viaje profesional\nsigue avanzando.',
-                      style: const TextStyle(
-                        fontSize: 25,
-                        height: 1.05,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: percentage / 100,
-                              minHeight: 9,
-                              backgroundColor: const Color(0xFFE1E7DB),
-                              valueColor: const AlwaysStoppedAnimation(
-                                Color(0xFF17A9D4),
+                  Row(
+                    children: [
+                      _Avatar(path: profile?.avatarConfig.avatarPath),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppConstants.appName.toUpperCase(),
+                              style: AppTypography.micro.copyWith(
+                                fontSize: 10,
+                                letterSpacing: 1.8,
+                                color: dark
+                                    ? AppColors.primaryOnDark
+                                    : AppColors.secondary,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 3),
+                            PageHeader(
+                              title: profile == null
+                                  ? '¡Hola!'
+                                  : '¡Hola, ${profile.name.split(' ').first}!',
+                              accentBar: false,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
+                      ),
+                      const SizedBox(width: 8),
+                      InstitutionalLogos.mark(height: 52),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  InstitutionalCard(
+                    padding: const EdgeInsets.all(AppMetrics.xl),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: SectionLabel('Progreso actual'),
+                            ),
+                            Icon(
+                              Icons.rocket_launch_rounded,
+                              color: dark
+                                  ? AppColors.primaryOnDark
+                                  : AppColors.secondary,
+                              size: 30,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
                         Text(
-                          '$percentage%',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
+                          complete
+                              ? 'Tu viaje profesional\nestá despegando.'
+                              : answered == 0
+                                  ? 'Tu viaje aún no\ncomienza.'
+                                  : 'Tu viaje profesional\nsigue avanzando.',
+                          style: AppTypography.display.copyWith(height: 1.05),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: percentage / 100,
+                                  minHeight: 9,
+                                  backgroundColor: dark
+                                      ? AppColors.borderDark
+                                      : AppColors.blue100,
+                                  valueColor: const AlwaysStoppedAnimation(
+                                    AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$percentage%',
+                              style: AppTypography.caption.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: dark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  if (answered == 0 && !complete) ...[
+                    Container(
+                      height: 280,
+                      decoration: BoxDecoration(
+                        borderRadius:
+                            BorderRadius.circular(AppMetrics.radiusLg),
+                        gradient: LinearGradient(
+                          colors: dark
+                              ? const [
+                                  AppColors.blue700,
+                                  AppColors.blue800,
+                                  AppColors.blue900,
+                                ]
+                              : const [
+                                  AppColors.blue50,
+                                  AppColors.blue100,
+                                  AppColors.blue200,
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Center(
+                        child: InkResponse(
+                          onTap: continueTest,
+                          radius: 60,
+                          child: CircleAvatar(
+                            radius: 48,
+                            backgroundColor: dark
+                                ? AppColors.surfaceVariantDark
+                                : AppColors.white,
+                            child: Icon(
+                              Icons.map_rounded,
+                              size: 48,
+                              color: dark
+                                  ? AppColors.primaryOnDark
+                                  : AppColors.secondary,
+                            ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              if (answered == 0 && !complete) ...[
-                Container(
-                  height: 280,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(34),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFFB8DD8E),
-                        Color(0xFF61A97A),
-                        Color(0xFF8ED0C4),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                    const SizedBox(height: 30),
+                    Text(
+                      'Tu viaje aún no\ncomienza.',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.display.copyWith(height: 1.05),
                     ),
-                  ),
-                  child: Center(
-                    child: InkResponse(
-                      onTap: continueTest,
-                      radius: 60,
-                      child: const CircleAvatar(
-                        radius: 48,
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.map_rounded,
-                          size: 48,
-                          color: Color(0xFF6C2BD0),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Descubre tu potencial hoy mismo.',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.body.copyWith(
+                        fontSize: 17,
+                        color: dark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    PrimaryButton(
+                      text: 'Iniciar Test',
+                      onPressed: continueTest,
+                      icon: Icons.play_arrow_rounded,
+                    ),
+                  ] else ...[
+                    _Node(
+                      icon: Icons.favorite_rounded,
+                      title: 'Intereses',
+                      done:
+                          answered >= ((totalQuestions / 3).ceil()) || complete,
+                      active:
+                          !complete && answered < ((totalQuestions / 3).ceil()),
+                      onTap: complete ? showResult : continueTest,
+                    ),
+                    const _Connector(),
+                    _Node(
+                      icon: Icons.psychology_rounded,
+                      title: 'Habilidades',
+                      done: answered >= ((totalQuestions * 2 / 3).ceil()) ||
+                          complete,
+                      active: !complete &&
+                          answered >= ((totalQuestions / 3).ceil()) &&
+                          answered < ((totalQuestions * 2 / 3).ceil()),
+                      onTap: answered >= ((totalQuestions / 3).ceil())
+                          ? (complete ? showResult : continueTest)
+                          : null,
+                    ),
+                    const _Connector(),
+                    _Node(
+                      icon: Icons.person_search_rounded,
+                      title: 'Personalidad',
+                      done: complete,
+                      active: !complete &&
+                          answered >= ((totalQuestions * 2 / 3).ceil()),
+                      onTap: answered >= ((totalQuestions * 2 / 3).ceil())
+                          ? (complete ? showResult : continueTest)
+                          : null,
+                    ),
+                    const _Connector(),
+                    _Node(
+                      icon: Icons.workspace_premium_rounded,
+                      title: 'Resultado',
+                      done: complete,
+                      active: false,
+                      onTap: complete ? showResult : null,
+                    ),
+                    const SizedBox(height: 26),
+                    PrimaryButton(
+                      text: complete ? 'Ver resultado  →' : 'Continuar Test  →',
+                      onPressed: complete ? showResult : continueTest,
+                    ),
+                    const SizedBox(height: 10),
+                    if (complete)
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          await ref.read(testProvider.notifier).resetTest();
+                        },
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Reiniciar Test'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppMetrics.radiusXl),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                const Text(
-                  'Tu viaje aún no\ncomienza.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 34,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Descubre tu potencial hoy mismo.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .68),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                _ActionButton(text: 'Iniciar Test', onTap: continueTest, icon: Icons.play_arrow_rounded),
-              ] else ...[
-                _Node(
-                  icon: Icons.favorite_rounded,
-                  title: 'Intereses',
-                  done: answered >= ((totalQuestions / 3).ceil()) || complete,
-                  active: !complete && answered < ((totalQuestions / 3).ceil()),
-                  onTap: complete ? showResult : continueTest,
-                ),
-                const _Connector(),
-                _Node(
-                  icon: Icons.psychology_rounded,
-                  title: 'Habilidades',
-                  done: answered >= ((totalQuestions * 2 / 3).ceil()) || complete,
-                  active: !complete && answered >= ((totalQuestions / 3).ceil()) && answered < ((totalQuestions * 2 / 3).ceil()),
-                  onTap: answered >= ((totalQuestions / 3).ceil())
-                      ? (complete ? showResult : continueTest)
-                      : null,
-                ),
-                const _Connector(),
-                _Node(
-                  icon: Icons.person_search_rounded,
-                  title: 'Personalidad',
-                  done: complete,
-                  active: !complete && answered >= ((totalQuestions * 2 / 3).ceil()),
-                  onTap: answered >= ((totalQuestions * 2 / 3).ceil())
-                      ? (complete ? showResult : continueTest)
-                      : null,
-                ),
-                const _Connector(),
-                _Node(
-                  icon: Icons.workspace_premium_rounded,
-                  title: 'Resultado',
-                  done: complete,
-                  active: false,
-                  onTap: complete ? showResult : null,
-                ),
-                const SizedBox(height: 26),
-                _ActionButton(
-                  text: complete ? 'Ver resultado  →' : 'Continuar Test  →',
-                  onTap: complete ? showResult : continueTest,
-                ),
-                const SizedBox(height: 10),
-                if (complete)
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await ref.read(testProvider.notifier).resetTest();
-                    },
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Reiniciar Test'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(26),
-                      ),
-                    ),
-                  ),
-              ],
+                  ],
+                ],
+              ),
+              const Positioned(
+                right: 18,
+                bottom: 14,
+                child: InstitutionalSupportBubble(),
+              ),
             ],
           ),
         ),
@@ -325,10 +358,11 @@ class _Node extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = Theme.of(context).colorScheme.onSurface.withValues(alpha: .58);
+    final secondary =
+        dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
     final circleColor = done || active
         ? AppColors.primary
-        : (dark ? const Color(0xFF2D3829) : const Color(0xFFDDE6D5));
+        : (dark ? AppColors.surfaceVariantDark : AppColors.blue100);
 
     return Semantics(
       button: enabled,
@@ -348,7 +382,7 @@ class _Node extends StatelessWidget {
                   color: circleColor,
                   shape: BoxShape.circle,
                   border: active
-                      ? Border.all(color: Colors.white, width: 5)
+                      ? Border.all(color: AppColors.onPrimary, width: 5)
                       : null,
                   boxShadow: done || active
                       ? [
@@ -362,7 +396,7 @@ class _Node extends StatelessWidget {
                 ),
                 child: Icon(
                   done ? Icons.check_rounded : icon,
-                  color: done || active ? Colors.white : secondary,
+                  color: done || active ? AppColors.onPrimary : secondary,
                   size: 32,
                 ),
               ),
@@ -371,7 +405,10 @@ class _Node extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             title,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            style: AppTypography.title.copyWith(
+              fontSize: 17,
+              color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+            ),
           ),
           Text(
             done
@@ -379,12 +416,9 @@ class _Node extends StatelessWidget {
                 : active
                     ? 'CONTINUAR'
                     : 'PENDIENTE',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
+            style: AppTypography.micro.copyWith(
               color: done || active
-                  ? AppColors.primary
+                  ? (dark ? AppColors.primaryOnDark : AppColors.primary)
                   : secondary,
             ),
           ),
@@ -399,44 +433,16 @@ class _Connector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Container(
         width: 6,
         height: 48,
         margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: dark ? AppColors.primaryOnDark : AppColors.primary,
           borderRadius: BorderRadius.circular(6),
         ),
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onTap;
-  final IconData? icon;
-
-  const _ActionButton({required this.text, required this.onTap, this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 58,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: const Color(0xFFFFFFFF),
-          elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[Icon(icon, size: 22), const SizedBox(width: 9)],
-          Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-        ]),
       ),
     );
   }

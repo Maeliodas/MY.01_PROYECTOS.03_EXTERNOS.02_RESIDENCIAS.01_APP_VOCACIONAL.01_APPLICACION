@@ -103,7 +103,7 @@ class CatalogSyncService {
     if (await NetworkInfo.hasBackendConnection()) {
       await _api.sendCatalogSuggestion(kind: 'escuela', name: clean, municipalityId: municipalityId);
     }
-    return rows.isEmpty ? null : (rows.first['id'] as num).toInt();
+    return rows.isEmpty ? null : (rows.first['id'] as num?)?.toInt();
   }
 
   Future<void> _flushSuggestionQueue() async {

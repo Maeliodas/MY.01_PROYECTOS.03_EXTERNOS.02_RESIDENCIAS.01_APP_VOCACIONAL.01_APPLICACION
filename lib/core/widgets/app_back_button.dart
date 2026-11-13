@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_metrics.dart';
 
 /// Botón de regreso único para toda la aplicación.
 class AppBackButton extends StatelessWidget {
@@ -12,8 +13,9 @@ class AppBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final background = dark
-        ? const Color(0xFF173C2A)
-        : const Color(0xFFE2F2E7);
+        ? AppColors.surfaceVariantDark
+        : AppColors.blue50;
+    final foreground = dark ? AppColors.primaryOnDark : AppColors.primary;
     return Padding(
       padding: const EdgeInsets.all(6),
       child: Material(
@@ -23,12 +25,12 @@ class AppBackButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTap: onPressed ?? () => context.pop(),
           child: SizedBox(
-            width: 40,
-            height: 40,
+            width: AppMetrics.touchTarget - 4,
+            height: AppMetrics.touchTarget - 4,
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 18,
-              color: dark ? const Color(0xFF70D89B) : AppColors.primary,
+              color: foreground,
             ),
           ),
         ),

@@ -21,6 +21,7 @@ dependencies:
   
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
@@ -28,8 +29,23 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
   assets:
     - assets/avatars/
     - assets/database/
     - assets/institution/
     - assets/branding/
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/branding/app_logo_light.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/branding/app_logo_light.png"
+  min_sdk_android: 21

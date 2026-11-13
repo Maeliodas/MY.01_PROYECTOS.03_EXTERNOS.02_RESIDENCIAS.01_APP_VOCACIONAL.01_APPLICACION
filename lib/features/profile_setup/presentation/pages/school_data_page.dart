@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../core/widgets/institutional_components.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../avatar/presentation/providers/avatar_provider.dart';
 import '../../../catalog/domain/models/catalog_models.dart';
@@ -59,7 +61,7 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
           children: [
             const Text(
               'Un último dato',
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+              style: AppTypography.display,
             ),
             const SizedBox(height: 8),
             Text(
@@ -160,12 +162,8 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
                 onChanged: (_) => setState(() {}),
               ),
             const SizedBox(height: 18),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-              ),
+            InstitutionalCard(
+              padding: EdgeInsets.zero,
               child: SwitchListTile.adaptive(
                 title: const Text(
                   '¿Hablas alguna lengua originaria o algún idioma adicional?',
@@ -185,7 +183,7 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
             ),
             if (speaksLanguages) ...[
               const SizedBox(height: 18),
-              const Text('Lenguas originarias', style: TextStyle(fontWeight: FontWeight.w800)),
+              const Text('Lenguas originarias', style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               languagesAsync.when(
                 data: (items) => _buildLanguageChips(
@@ -207,7 +205,7 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
                 _customChips('lengua'),
               ],
               const SizedBox(height: 22),
-              const Text('Idiomas', style: TextStyle(fontWeight: FontWeight.w800)),
+              const Text('Idiomas', style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               languagesAsync.when(
                 data: (items) => _buildLanguageChips(
@@ -261,7 +259,9 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
         return FilterChip(
           label: Text(language.name),
           selected: selected,
-          selectedColor: AppColors.primaryLight,
+          selectedColor: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.primaryOnDarkContainer
+              : AppColors.secondaryLight,
           onSelected: (value) => setState(() {
             if (value) {
               selectedLanguageIds.add(language.id);

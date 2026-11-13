@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../avatar/presentation/providers/avatar_provider.dart';
 import '../../../catalog/domain/models/catalog_models.dart';
@@ -92,17 +94,21 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                           width: 68, height: 68, padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Theme.of(context).colorScheme.surface,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.cardBackgroundDark
+                                : AppColors.cardBackground,
                             border: Border.all(
                               color: active
                                   ? AppColors.primary
-                                  : Theme.of(context).colorScheme.outlineVariant,
+                                  : Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.borderDark
+                                      : AppColors.borderGray,
                               width: active ? 3 : 1.5,
                             ),
                           ),
                           child: ClipOval(child: _avatarImage(path, fallbackSize: 34)),
                         ),
-                        if (active) Positioned(right: -3, bottom: -2, child: Container(width: 24, height: 24, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: const Icon(Icons.check_rounded, color: Colors.white, size: 17))),
+                        if (active) Positioned(right: -3, bottom: -2, child: Container(width: 24, height: 24, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: const Icon(Icons.check_rounded, color: AppColors.onPrimary, size: 17))),
                       ]),
                     );
                   }).toList(),
@@ -181,23 +187,22 @@ class _AvatarHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       height: 220,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
+        border: Border.all(color: dark ? AppColors.borderDark : AppColors.borderGray),
         gradient: LinearGradient(
           colors: dark
-              ? [
-                  colors.surfaceContainerHighest,
-                  AppColors.primary.withValues(alpha: .16),
+              ? const [
+                  AppColors.cardBackgroundDark,
+                  AppColors.blue900,
                 ]
               : const [
-                  Color(0xFFE5F7DC),
-                  Color(0xFFDDF2F8),
+                  AppColors.blue50,
+                  AppColors.blue100,
                 ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -212,7 +217,7 @@ class _AvatarHero extends StatelessWidget {
               height: 145,
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: colors.surface,
+                color: dark ? AppColors.cardBackgroundDark : AppColors.cardBackground,
                 shape: BoxShape.circle,
               ),
               child: Container(
@@ -228,7 +233,7 @@ class _AvatarHero extends StatelessWidget {
               right: -4,
               bottom: 7,
               child: Material(
-                color: const Color(0xFF42A5E3),
+                color: AppColors.primary,
                 shape: const CircleBorder(),
                 elevation: 3,
                 child: InkWell(
@@ -239,7 +244,7 @@ class _AvatarHero extends StatelessWidget {
                     height: 48,
                     child: Icon(
                       Icons.edit_rounded,
-                      color: Colors.white,
+                      color: AppColors.onPrimary,
                       size: 25,
                     ),
                   ),
@@ -265,14 +270,14 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.xl),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: colors.outlineVariant),
+        color: dark ? AppColors.cardBackgroundDark : AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
+        border: Border.all(color: dark ? AppColors.borderDark : AppColors.borderGray),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,19 +288,17 @@ class _SectionCard extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: .14),
-                  shape: BoxShape.circle,
+                  color: dark ? AppColors.surfaceVariantDark : AppColors.blue50,
+                  borderRadius: BorderRadius.circular(AppMetrics.radiusMd),
                 ),
-                child: Icon(icon, color: AppColors.primary, size: 21),
+                child: Icon(icon, color: dark ? AppColors.primaryOnDark : AppColors.primary, size: 21),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: colors.onSurface,
+                  style: AppTypography.headline.copyWith(
+                    color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -314,6 +317,6 @@ class _ReadOnlyField extends StatelessWidget {
   const _ReadOnlyField({required this.label, required this.value, required this.icon});
   @override Widget build(BuildContext context) => InputDecorator(
     decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
-    child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+    child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTypography.title),
   );
 }

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../providers/avatar_provider.dart';
 
@@ -36,19 +38,21 @@ class _SimpleAvatarEditorPageState extends ConsumerState<SimpleAvatarEditorPage>
   Widget build(BuildContext context) {
     final avatar = ref.watch(avatarProvider);
     final notifier = ref.read(avatarProvider.notifier);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final selectionColor = dark ? AppColors.primaryOnDark : AppColors.primary;
     return Scaffold(
       appBar: AppBar(title: const Text('Editar avatar o foto')),
       body: SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(24, 12, 24, 28), children: [
-        Center(child: Container(width: 150, height: 150, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primary, width: 4)), child: ClipOval(child: _preview(avatar.avatarPath)))),
+        Center(child: Container(width: 150, height: 150, padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: selectionColor, width: 4)), child: ClipOval(child: _preview(avatar.avatarPath)))),
         const SizedBox(height: 24),
-        const Text('Avatares de la app', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        Text('Avatares de la app', style: AppTypography.headline.copyWith(fontSize: 18, color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
         const SizedBox(height: 12),
         GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: avatars.length, gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12), itemBuilder: (_, i) {
           final path = avatars[i]; final selected = avatar.avatarPath == path;
-          return InkWell(onTap: () => notifier.selectAvatar(path), borderRadius: BorderRadius.circular(18), child: Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: selected ? AppColors.primary : Theme.of(context).colorScheme.outlineVariant, width: selected ? 3 : 1)), child: ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.asset(path, fit: BoxFit.cover))));
+          return InkWell(onTap: () => notifier.selectAvatar(path), borderRadius: BorderRadius.circular(AppMetrics.radiusMd), child: Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppMetrics.radiusMd), border: Border.all(color: selected ? selectionColor : (dark ? AppColors.borderDark : AppColors.borderGray), width: selected ? 3 : 1)), child: ClipRRect(borderRadius: BorderRadius.circular(AppMetrics.radiusMd), child: Image.asset(path, fit: BoxFit.cover))));
         }),
         const SizedBox(height: 24),
-        const Text('Usar una foto', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        Text('Usar una foto', style: AppTypography.headline.copyWith(fontSize: 18, color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: OutlinedButton.icon(onPressed: () => _pick(ImageSource.gallery), icon: const Icon(Icons.photo_library_outlined), label: const Text('Galería'), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)))),

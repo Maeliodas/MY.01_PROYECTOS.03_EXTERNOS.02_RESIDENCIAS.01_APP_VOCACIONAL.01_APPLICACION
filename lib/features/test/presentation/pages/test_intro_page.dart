@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../core/widgets/institutional_components.dart';
+import '../../../../core/widgets/institutional_logos.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../providers/test_provider.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -11,36 +15,53 @@ class TestIntroPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = dark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+    final secondaryColor =
+        dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final accentColor = dark ? AppColors.primaryOnDark : AppColors.primary;
+
     return Scaffold(
       appBar: AppBar(title: const Text(AppConstants.appName)),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppMetrics.xxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                height: 160,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: AppColors.primaryGreenLight.withValues(alpha: 0.2),
+              InstitutionalCard(
+                padding: EdgeInsets.zero,
+                radius: AppMetrics.radiusMd,
+                color: dark ? AppColors.surfaceVariantDark : AppColors.blue50,
+                child: SizedBox(
+                  height: 160,
+                  width: double.infinity,
+                  child: Icon(
+                    Icons.quiz_outlined,
+                    size: 80,
+                    color: accentColor,
+                  ),
                 ),
-                child: const Icon(Icons.quiz_outlined,
-                    size: 80, color: AppColors.primaryGreen),
               ),
-              const SizedBox(height: 32),
-              const Text(
+              const SizedBox(height: AppMetrics.xxl),
+              Text(
                 'Tu viaje aún no comienza.',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                style: AppTypography.headline.copyWith(
+                  fontSize: 22,
+                  color: titleColor,
+                ),
               ),
-              const SizedBox(height: 12),
-              const Text(
+              const SizedBox(height: AppMetrics.md),
+              Text(
                 'Descubre tu potencial e intereses con el Test Vocacional oficial.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textGrey, fontSize: 15),
+                style: AppTypography.body.copyWith(
+                  fontSize: 15,
+                  color: secondaryColor,
+                ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: AppMetrics.xxl + AppMetrics.sm),
               PrimaryButton(
                 text: '¡Iniciar Test!',
                 icon: Icons.play_arrow_rounded,
@@ -49,6 +70,8 @@ class TestIntroPage extends ConsumerWidget {
                   if (context.mounted) context.go('/test');
                 },
               ),
+              const SizedBox(height: 48),
+              const InstitutionalFooter(showNames: false, scale: .9),
             ],
           ),
         ),

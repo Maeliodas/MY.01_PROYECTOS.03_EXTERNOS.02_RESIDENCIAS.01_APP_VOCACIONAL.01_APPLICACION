@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../core/widgets/institutional_components.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../catalog/domain/models/catalog_models.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
@@ -68,6 +71,11 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
           ),
           data: (departmentQuestions) {
             final test = ref.watch(testProvider);
+            final dark = Theme.of(context).brightness == Brightness.dark;
+            final titleColor =
+                dark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+            final accentColor =
+                dark ? AppColors.primaryOnDark : AppColors.primary;
             final riasec = ResultCalculator.calculate(
               test.answers,
               test.questions,
@@ -129,13 +137,9 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
                 children: [
-                  const Text(
+                  Text(
                     'Una última pregunta',
-                    style: TextStyle(
-                      fontSize: 28,
-                      height: 1.15,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: AppTypography.display.copyWith(color: titleColor),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -146,43 +150,42 @@ class _OpenQuestionPageState extends ConsumerState<OpenQuestionPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Pregunta final',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                  InstitutionalCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pregunta final',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: accentColor,
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            departmentQuestion.questionText,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              height: 1.4,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          departmentQuestion.questionText,
+                          style: TextStyle(
+                            fontSize: 16,
+                            height: 1.4,
+                            fontWeight: FontWeight.w700,
+                            color: titleColor,
                           ),
-                          const SizedBox(height: 14),
-                          TextField(
-                            controller: _controller,
-                            minLines: 3,
-                            maxLines: 5,
-                            decoration: const InputDecoration(
-                              hintText: 'Escribe lo que te gustaría realizar...',
-                            ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _controller,
+                          minLines: 3,
+                          maxLines: 5,
+                          decoration: const InputDecoration(
+                            hintText: 'Escribe lo que te gustaría realizar...',
                           ),
-                          const SizedBox(height: 8),
-                          Text(_hasAnswer ? 'Respuesta lista para guardar.' : 'Esta respuesta es obligatoria para finalizar el test (mínimo $_minAnswerLength caracteres).', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _hasAnswer ? const Color(0xFF1B396A) : Theme.of(context).colorScheme.error)),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(_hasAnswer ? 'Respuesta lista para guardar.' : 'Esta respuesta es obligatoria para finalizar el test (mínimo $_minAnswerLength caracteres).', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _hasAnswer ? accentColor : Theme.of(context).colorScheme.error)),
                         ],
                       ),
-                    ),
                   ),
                   const SizedBox(height: 12),
                   PrimaryButton(

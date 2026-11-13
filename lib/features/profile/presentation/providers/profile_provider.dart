@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/profile_repository.dart';
@@ -19,8 +20,14 @@ class ProfileNotifier extends Notifier<UserProfile?> {
   }
 
   Future<void> loadProfile() async {
-    final profile = await _repository.getProfile();
-    state = profile;
+    try {
+      final profile = await _repository.getProfile();
+      state = profile;
+    } catch (_) {
+      // Un perfil dañado no debe impedir el uso de la aplicación; se
+      // conserva el estado anterior.
+      debugPrint('Profile: no se pudo cargar el perfil local.');
+    }
   }
 
   Future<void> saveProfile(UserProfile profile) async {

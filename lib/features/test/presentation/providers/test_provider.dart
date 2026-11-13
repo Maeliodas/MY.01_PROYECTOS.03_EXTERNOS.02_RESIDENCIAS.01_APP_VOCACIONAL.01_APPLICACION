@@ -98,10 +98,20 @@ class TestNotifier extends StateNotifier<TestState> {
           .map((id) => byId[id])
           .whereType<Question>()
           .toList();
-      final orderedQuestions = restoredQuestions.length == questions.length
-          ? restoredQuestions
-          : List<Question>.from(questions)..shuffle(Random.secure());
-      final maxIndex = orderedQuestions.isEmpty ? 0 : orderedQuestions.length - 1;
+      // Se conserva el orden conocido salvo que esté vacío (p. ej. sesión sin
+      // orden); en caso contrario se usa tal cual en vez de barajar, así el
+      // usuario continúa donde lo dejó.
+      List<Question> orderedQuestions;
+      if (restoredQuestions.isEmpty) {
+        orderedQuestions = List<Question>.from(questions)
+          ..shuffle(Random.secure());
+      } else {
+        orderedQuestions = restoredQuestions;
+      }
+      // Un currentIndex igual a la cantidad de preguntas significa "ya se
+      // avanzó más allá de las preguntas regulares" y debe conservarse; con
+      // clamp solo se recorta el valor cuando queda fuera de rango.
+      final maxIndex = orderedQuestions.length;
       state = TestState(
         sessionId: persisted.id,
         currentIndex: persisted.currentIndex.clamp(0, maxIndex).toInt(),
@@ -149,7 +159,7 @@ class TestNotifier extends StateNotifier<TestState> {
   Future<void> answerQuestion(double value) async {
     await _ensureSession();
     if (state.questions.isEmpty) return;
-    final q = state.questions[state.currentIndex];
+    final q = state.questions[state.currentIndex.clamp(0, state.questions.length - 1).toInt()];
     final normalized = value.clamp(0.0, 10.0).toDouble();
     final updated = Map<int, double>.from(state.answers)..[q.id] = normalized;
     state = state.copyWith(answers: updated);
@@ -171,11 +181,15 @@ class TestNotifier extends StateNotifier<TestState> {
       );
       return false;
     }
-    state = state.copyWith(isCompleted: true);
+    // El usuario ya contestó la última pregunta regular: se marca la
+    // posición final (una posición más allá de la lista) para que, al
+    // reanudar, se continúe con la pregunta abierta en lugar de volver
+    // al último reactivo. `isCompleted` solo se define cuando el usuario
+    // responde la pregunta abierta (`completeTest`).
+    state = state.copyWith(currentIndex: state.questions.length);
     await _local.updateProgress(
       sessionId: state.sessionId!,
-      currentIndex: state.currentIndex,
-      completed: true,
+      currentIndex: state.questions.length,
     );
     return true;
   }

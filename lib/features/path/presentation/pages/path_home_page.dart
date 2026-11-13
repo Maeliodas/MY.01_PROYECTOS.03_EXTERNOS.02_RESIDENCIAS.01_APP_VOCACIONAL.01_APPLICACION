@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_metrics.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../result/presentation/pages/result_unlocked_page.dart';
 import '../../../test/presentation/pages/test_progress_tree_page.dart';
@@ -73,17 +75,11 @@ class _FigmaTabBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         decoration: BoxDecoration(
           color: scheme.surface.withValues(alpha: .98),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: dark ? const Color(0xFF33402F) : const Color(0xFFE4ECD9),
+            color: dark ? AppColors.borderDark : AppColors.borderGray,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: dark ? .22 : .08),
-              blurRadius: 18,
-              offset: const Offset(0, 7),
-            ),
-          ],
+          boxShadow: dark ? AppMetrics.shadowCardDark : AppMetrics.shadowFloat,
         ),
         child: Row(
           children: [
@@ -138,14 +134,14 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final secondary =
-        scheme.onSurface.withValues(alpha: .55);
+        dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(AppMetrics.radiusMd),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
@@ -153,7 +149,7 @@ class _TabItem extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
             color: selected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(19),
+            borderRadius: BorderRadius.circular(AppMetrics.radiusMd),
             boxShadow: selected
                 ? [
                     BoxShadow(
@@ -173,18 +169,17 @@ class _TabItem extends StatelessWidget {
                 Icon(
                   selected ? selectedIcon : icon,
                   size: selected ? 23 : 21,
-                  color: selected ? const Color(0xFFFFFFFF) : secondary,
+                  color: selected ? AppColors.onPrimary : secondary,
                 ),
                 const SizedBox(height: 3),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.fade,
-                  style: TextStyle(
+                  style: AppTypography.badge.copyWith(
                     fontSize: label == 'RESULTADOS' ? 8.2 : 9.3,
-                    fontWeight: FontWeight.w900,
                     letterSpacing: .35,
-                    color: selected ? const Color(0xFFFFFFFF) : secondary,
+                    color: selected ? AppColors.onPrimary : secondary,
                   ),
                 ),
               ],

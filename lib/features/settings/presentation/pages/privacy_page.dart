@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/app_notice_dialog.dart';
+import '../../../../core/widgets/institutional_logos.dart';
 
 Widget _privacyContent(BuildContext context) {
-  final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  final bodyColor =
+      dark ? AppColors.textSecondaryDark : AppColors.textSecondary;
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text(
+      Text(
         '${AppConstants.appName} · Aviso de privacidad del prototipo',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        style: AppTypography.headline.copyWith(
+            color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary),
       ),
       const SizedBox(height: 10),
       Text(
         '${AppConstants.appName} utiliza únicamente la información necesaria para registrar tu perfil, aplicar el test vocacional, conservar tus resultados y sincronizarlos con el servidor institucional cuando está disponible.',
-        style: TextStyle(color: muted),
+        style: AppTypography.body.copyWith(color: bodyColor),
       ),
       const SizedBox(height: 16),
       const _Section(
@@ -41,7 +47,7 @@ Widget _privacyContent(BuildContext context) {
       const SizedBox(height: 4),
       Text(
         'Este texto adapta el contenido al funcionamiento de ${AppConstants.appName} y no sustituye el Aviso de Privacidad Integral vigente del Tecnológico Nacional de México.',
-        style: TextStyle(fontSize: 12, color: muted),
+        style: AppTypography.caption.copyWith(color: bodyColor),
       ),
     ],
   );
@@ -65,7 +71,11 @@ class PrivacyPage extends StatelessWidget {
         appBar: AppBar(title: const Text('Aviso de privacidad')),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(22, 16, 22, 32),
-          children: [_privacyContent(context)],
+          children: [
+            _privacyContent(context),
+            const SizedBox(height: 44),
+            const InstitutionalFooter(showNames: false, scale: .9),
+          ],
         ),
       );
 }
@@ -77,15 +87,29 @@ class _Section extends StatelessWidget {
   const _Section(this.title, this.body);
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 4),
-            Text(body),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: AppTypography.title.copyWith(
+                color:
+                    dark ? AppColors.textPrimaryDark : AppColors.textPrimary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            body,
+            style: AppTypography.body.copyWith(
+                color: dark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
 }
