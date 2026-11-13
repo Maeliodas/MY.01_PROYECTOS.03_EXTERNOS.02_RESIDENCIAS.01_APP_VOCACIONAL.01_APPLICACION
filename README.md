@@ -15,6 +15,7 @@
 
   <p>
     <a href="#-características">Características</a> •
+    <a href="#-rediseño-visual-institucional">Rediseño visual</a> •
     <a href="#-cómo-funciona">Cómo funciona</a> •
     <a href="#-instalación">Instalación</a> •
     <a href="#-api-del-panel">API</a> •
@@ -36,7 +37,7 @@
 | 📴 Offline-first | SQLite local precargado, verificación contra el backend (`/health`), colas de envío con tope de reintentos |
 | 🖥️ Panel web | CRUD de catálogos, dashboard en vivo (Socket.IO), filtros, revisión de sugerencias, reportes PDF y endpoint ligero de versión |
 | 🔒 Datos | UTF-8/utf8mb4 integral, bajas lógicas (`active=0`) que no rompen históricos, IDs de resultado UUID |
-| 🎨 Tema institucional | Azul TecNM Pantone 294 C `#1B396A`, claro/oscuro responsivo, `onPrimary` blanco |
+| 🎨 Tema institucional | Sistema de diseño TecNM Pantone 294 C `#1B396A`, claro/oscuro responsivo, tipografía **Noto Sans** y logotipos oficiales (ver [Rediseño visual](#-rediseño-visual-institucional)) |
 
 <div align="center">
   <img src="assets/avatars/avatar_01.png" width="64"/>
@@ -48,6 +49,36 @@
   <br/>
   <em>Avatares incluidos + editor con galería y cámara</em>
 </div>
+
+## 🎨 Rediseño visual institucional
+
+Rediseño integral de la interfaz conforme al **Manual de Identidad Gráfica TecNM 2026**, preservando al 100% la lógica, datos, rutas, sincronización y ambos temas (claro/oscuro). Cambios visuales únicamente.
+
+**Sistema de diseño** (fuente de verdad en `lib/app/theme/`)
+
+- `app_colors.dart` — paleta institucional: azul Pantone 294 C `#1B396A`, gris `#807E82`, negro, escalas neutras y tokens por tema. Eliminados verdes, cianes, morados y naranjas de todas las pantallas (242 literales de color duro migrados a tokens).
+- `app_typography.dart` — jerarquía tipográfica **Noto Sans** (Regular/SemiBold/Bold) empaquetada en `assets/fonts/` y registrada en `pubspec.yaml`.
+- `app_metrics.dart` + `app_theme.dart` — espaciados, radios, sombras y tematización completa de componentes (botones, inputs, nav, chips) para claro/oscuro.
+
+**Identidad y logotipos**
+
+- Uso exclusivo de los archivos oficiales de `assets/institution/` (sin redibujar ni recolorear): banda membrete, lockup TecNM + escudo ITTUX y pie institucional reutilizables (`lib/core/widgets/institutional_logos.dart`).
+- Los **mismos archivos se usan en claro y en oscuro** (sin variantes por tema ni cajas de protección).
+- Regla de no repetir logos por pantalla; pies institucionales en onboarding, intro del test, agradecimiento, resultado, ranking, privacidad y ajustes.
+
+**Componentes nuevos** (`lib/core/widgets/`)
+
+- `institutional_components.dart`: `PageHeader`, `SectionLabel`, `InstitutionalBand` (banda membrete con `FittedBox` — siempre cabe en pantallas estrechas y nunca queda bajo la barra de estado), `InstitutionalCard`.
+- `institutional_support_sheet.dart`: **burbuja flotante de ayuda** en el mapa vocacional que abre los canales oficiales del TecNM Tuxtepec (sitio, Facebook, Instagram, WhatsApp, correo) con colores de marca y `url_launcher`; URLs centralizadas en `AppConstants`.
+- Botones institucionales (`PrimaryButton`/`SecondaryButton` en mayúsculas), `AppBackButton`, `EmptyState`, `AppNoticeDialog` reestilizados.
+
+**Pantallas destacadas**
+
+- **Splash**: banda membrete en área segura + hero TecNM/ITTUX + línea "SISTEMA DE ORIENTACIÓN VOCACIONAL".
+- **Onboarding**: ilustración a todo lo ancho por paso — degradado por acento, círculos decorativos, anillo orbital, disco central con sombra de color, pastilla "PASO n DE 3" e insignias flotantes; encabezado adaptable (`FittedBox`).
+- **Elección de avatar**: rejilla de 3 columnas con anillo de selección + insignia de check, secciones rotuladas y tarjeta de galería con previsualización de la foto personal.
+- **Mapa vocacional**: encabezado con saludo y escudo ITTUX agrandado, y burbuja de apoyo institucional flotante.
+- **Ranking de carreras**: tarjeta de contacto TecNM con iconos de redes en sus colores de marca (excepción autorizada solo para redes).
 
 ## 🧭 Cómo funciona
 
@@ -83,7 +114,7 @@ flowchart LR
 ```
 app_vocacional/
 ├── lib/                  # App Flutter (app, core, features)
-│   ├── core/             # BD, red, sync, constantes
+│   ├── core/             # BD, red, sync, constantes, widgets de identidad
 │   └── features/         # test, result, profile, catalog, avatar…
 ├── assets/               # avatares, branding, seed SQLite, institución
 ├── admin_panel/          # Panel web + API (repo separado sugerido)
@@ -144,6 +175,7 @@ Detalle de esta versión en [`CAMBIOS.md`](CAMBIOS.md) (sección superior = revi
 
 - [x] Chequeo ligero de versión de catálogo + sync en vivo
 - [x] Paleta institucional azul TecNM 294 C `#1B396A` (claro/oscuro responsivo)
+- [x] Rediseño visual integral: sistema de diseño, Noto Sans, logotipos oficiales en todas las pantallas, onboarding y avatar rediseñados, burbuja de ayuda social
 - [ ] Generación del seed SQLite desde MySQL (`npm run export:seed`)
 - [ ] Actualización del APK por Drive (endpoint `app-status` + instalador)
 - [ ] Higiene del repo (sacar `node_modules` del tracking)
