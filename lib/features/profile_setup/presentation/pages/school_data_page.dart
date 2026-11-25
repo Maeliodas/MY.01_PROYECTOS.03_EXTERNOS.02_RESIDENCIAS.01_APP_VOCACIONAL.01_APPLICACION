@@ -185,6 +185,7 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
                         }),
               ),
             ),
+            const SizedBox(height: 16),
             if (_schoolNotListed)
               TextField(
                 controller: _customSchoolController,
