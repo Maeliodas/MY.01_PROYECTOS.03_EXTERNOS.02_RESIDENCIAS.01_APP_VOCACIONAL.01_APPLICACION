@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/institutional_components.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/searchable_dropdown_field.dart';
 import '../../../avatar/presentation/providers/avatar_provider.dart';
 import '../../../catalog/domain/models/catalog_models.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
@@ -73,82 +74,116 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
             ),
             const SizedBox(height: 26),
             statesAsync.when(
-              data: (states) => DropdownButtonFormField<String>(
-                isExpanded: true,
-                key: ValueKey('state-$stateId'),
-                initialValue: states.any((item) => item.id == stateId) ? stateId : null,
-                decoration: const InputDecoration(
-                  labelText: 'Estado de procedencia',
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
-                items: states
-                    .map((item) => DropdownMenuItem(value: item.id, child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis)))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    stateId = value;
-                    municipalityId = null;
-                    schoolId = null;
-                  });
-                },
+              data: (states) => SearchableDropdownField<StateCatalog, String>(
+                label: 'Estado de procedencia',
+                value: stateId,
+                prefixIcon: Icons.location_on_outlined,
+                items: states,
+                itemName: (s) => s.name,
+                itemId: (s) => s.id,
+                onChanged: (v) => setState(() {
+                  stateId = v;
+                  municipalityId = null;
+                  schoolId = null;
+                }),
               ),
               loading: () => const _LoadingField(label: 'Cargando estados…'),
               error: (_, __) => const _ErrorField(label: 'No se pudieron cargar los estados'),
             ),
             const SizedBox(height: 14),
             municipalitiesAsync.when(
-              data: (items) => DropdownButtonFormField<String>(
-                isExpanded: true,
-                key: ValueKey('municipality-$stateId-$municipalityId'),
-                initialValue: items.any((item) => item.id == municipalityId) ? municipalityId : null,
-                decoration: const InputDecoration(
-                  labelText: 'Municipio',
-                  prefixIcon: Icon(Icons.map_outlined),
-                ),
-                items: items
-                    .map((item) => DropdownMenuItem(value: item.id, child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis)))
-                    .toList(),
-                onChanged: stateId == null
-                    ? null
-                    : (value) {
-                        setState(() {
-                          municipalityId = value;
-                          schoolId = null;
-                        });
-                      },
+              data: (items) => SearchableDropdownField<Municipality, String>(
+                label: 'Municipio',
+                value: municipalityId,
+                prefixIcon: Icons.map_outlined,
+                items: items,
+                itemName: (m) => m.name,
+                itemId: (m) => m.id,
+                onChanged: (value) => setState(() {
+                  municipalityId = value;
+                  schoolId = null;
+                }),
               ),
               loading: () => const _LoadingField(label: 'Cargando municipios…'),
               error: (_, __) => const _ErrorField(label: 'No se pudieron cargar los municipios'),
             ),
             const SizedBox(height: 14),
             schoolsAsync.when(
-              data: (schools) => DropdownButtonFormField<String>(
-                isExpanded: true,
-                key: ValueKey('school-$municipalityId-$schoolId'),
-                initialValue: schools.any((item) => item.id == schoolId) ? schoolId : null,
-                decoration: const InputDecoration(
-                  labelText: 'Escuela de procedencia',
-                  prefixIcon: Icon(Icons.school_outlined),
-                  helperText: 'Las escuelas cambian según el municipio seleccionado.',
-                ),
-                items: schools
-                    .map((item) => DropdownMenuItem(value: item.id, child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis)))
-                    .toList(),
-                onChanged: municipalityId == null ? null : (value) => setState(() => schoolId = value),
+              data: (schools) => SearchableDropdownField<School, String>(
+                label: 'Escuela de procedencia',
+                value: schoolId,
+                prefixIcon: Icons.school_outlined,
+                items: schools,
+                itemName: (s) => s.name,
+                itemId: (s) => s.id,
+                onChanged: (value) => setState(() => schoolId = value),
               ),
               loading: () => const _LoadingField(label: 'Cargando escuelas…'),
               error: (_, __) => const _ErrorField(label: 'No se pudieron cargar las escuelas'),
             ),
             const SizedBox(height: 10),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('No encuentro mi escuela'),
-              subtitle: const Text('Puedes proponerla para que un administrador la revise.'),
-              value: _schoolNotListed,
-              onChanged: municipalityId == null ? null : (value) => setState(() {
-                _schoolNotListed = value ?? false;
-                if (_schoolNotListed) schoolId = null;
-              }),
+            Container(
+              decoration: BoxDecoration(
+                color: _schoolNotListed
+                    ? Theme.of(context).colorScheme.primaryContainer
+                        .withValues(alpha: 0.15)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: _schoolNotListed
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.outline,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: CheckboxListTile(
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.school_outlined,
+                      color: _schoolNotListed
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'No encuentro mi escuela',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: _schoolNotListed
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text(
+                  'Puedes proponerla para que un administrador la revise.',
+                  style: TextStyle(
+                    color: _schoolNotListed
+                        ? Theme.of(context).colorScheme.primary
+                            .withValues(alpha: 0.8)
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                value: _schoolNotListed,
+                checkColor: Colors.white,
+                onChanged: municipalityId == null
+                    ? null
+                    : (value) => setState(() {
+                          _schoolNotListed = value ?? false;
+                          if (_schoolNotListed) schoolId = null;
+                        }),
+              ),
             ),
             if (_schoolNotListed)
               TextField(
