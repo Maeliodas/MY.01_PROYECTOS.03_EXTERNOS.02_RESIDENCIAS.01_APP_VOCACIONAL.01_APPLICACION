@@ -44,9 +44,13 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
             child: Column(
               children: [
-                const Align(alignment: Alignment.centerLeft, child: AppBackButton()),
-                const SizedBox(height: 8),
-                const Align(alignment: Alignment.centerLeft, child: Text('¡Te ves genial!', style: AppTypography.display)),
+                const Row(
+                  children: [
+                    AppBackButton(),
+                    SizedBox(width: 12),
+                    Expanded(child: Text('¡Te ves genial!', style: AppTypography.display)),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 const Align(alignment: Alignment.centerLeft, child: Text('Tu camino profesional empieza aquí.', style: TextStyle(fontSize: 17, height: 1.4, color: AppColors.textSecondary))),
                 const SizedBox(height: 28),
@@ -58,14 +62,14 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
                   ],
                 ),
                 const SizedBox(height: 34),
-                Align(alignment: Alignment.centerLeft, child: Text('TU NOMBRE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: dark ? AppColors.primaryOnDark : AppColors.primary, letterSpacing: 1.4))),
+                Align(alignment: Alignment.centerLeft, child: Text('TU NOMBRE *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: dark ? AppColors.primaryOnDark : AppColors.primary, letterSpacing: 1.4))),
                 const SizedBox(height: 8),
                 TextField(controller: nameController, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(prefixIcon: Icon(Icons.person_outline_rounded), hintText: 'Escribe tu nombre aquí...')),
                 const SizedBox(height: 14),
                 Row(children: [
-                  Expanded(child: TextField(controller: ageController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Edad', prefixIcon: Icon(Icons.cake_outlined)))),
+                  Expanded(child: TextField(controller: ageController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Edad *', prefixIcon: Icon(Icons.cake_outlined)))),
                   const SizedBox(width: 12),
-                  Expanded(child: DropdownButtonFormField<String>(initialValue: gender, decoration: const InputDecoration(labelText: 'Género'), items: const [DropdownMenuItem(value: 'Masculino', child: Text('Masculino')), DropdownMenuItem(value: 'Femenino', child: Text('Femenino')), DropdownMenuItem(value: 'Otro', child: Text('Otro'))], onChanged: (v) => setState(() => gender = v ?? 'Otro'))),
+                  Expanded(child: DropdownButtonFormField<String>(initialValue: gender, decoration: const InputDecoration(labelText: 'Género *'), items: const [DropdownMenuItem(value: 'Masculino', child: Text('Masculino')), DropdownMenuItem(value: 'Femenino', child: Text('Femenino')), DropdownMenuItem(value: 'Otro', child: Text('Otro'))], onChanged: (v) => setState(() => gender = v ?? 'Otro'))),
                 ]),
                 const SizedBox(height: 26),
                 PrimaryButton(
@@ -73,11 +77,25 @@ class _PersonalDataPageState extends ConsumerState<PersonalDataPage> {
                   icon: Icons.arrow_forward_rounded,
                   onPressed: () {
                     final name = nameController.text.trim();
+                    final ageText = ageController.text.trim();
                     if (name.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escribe tu nombre para continuar.')));
                       return;
                     }
-                    context.push('/school-data', extra: {'name': name, 'age': int.tryParse(ageController.text.trim()) ?? 18, 'gender': gender});
+                    if (ageText.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escribe tu edad para continuar.')));
+                      return;
+                    }
+                    final age = int.tryParse(ageText);
+                    if (age == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La edad debe ser un número válido.')));
+                      return;
+                    }
+                    if (gender.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona tu género para continuar.')));
+                      return;
+                    }
+                    context.push('/school-data', extra: {'name': name, 'age': age, 'gender': gender});
                   },
                 ),
                 const SizedBox(height: 16),
