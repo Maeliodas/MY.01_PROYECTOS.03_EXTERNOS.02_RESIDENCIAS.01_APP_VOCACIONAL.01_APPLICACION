@@ -122,67 +122,74 @@ class _SchoolDataPageState extends ConsumerState<SchoolDataPage> {
               error: (_, __) => const _ErrorField(label: 'No se pudieron cargar las escuelas'),
             ),
             const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: _schoolNotListed
-                    ? Theme.of(context).colorScheme.primaryContainer
-                        .withValues(alpha: 0.15)
-                    : Colors.transparent,
-                border: Border.all(
-                  color: _schoolNotListed
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline,
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: CheckboxListTile(
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                title: Row(
-                  children: [
-                    Icon(
-                      Icons.school_outlined,
-                      color: _schoolNotListed
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'No encuentro mi escuela',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: _schoolNotListed
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.onSurface,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                subtitle: Text(
-                  'Puedes proponerla para que un administrador la revise.',
-                  style: TextStyle(
+            Material(
+              color: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
                     color: _schoolNotListed
                         ? Theme.of(context).colorScheme.primary
-                            .withValues(alpha: 0.8)
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                        : Theme.of(context).colorScheme.outline,
+                    width: 2,
                   ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                value: _schoolNotListed,
-                checkColor: Colors.white,
-                onChanged: municipalityId == null
-                    ? null
-                    : (value) => setState(() {
-                          _schoolNotListed = value ?? false;
-                          if (_schoolNotListed) schoolId = null;
-                        }),
+                child: CheckboxListTile(
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  tileColor: _schoolNotListed
+                      ? Theme.of(context).colorScheme.primaryContainer
+                          .withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  selectedTileColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.25),
+                  title: Row(
+                    children: [
+                      Icon(
+                        Icons.school_outlined,
+                        color: _schoolNotListed
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No encuentro mi escuela',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: _schoolNotListed
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  subtitle: Text(
+                    'Puedes proponerla para que un administrador la revise.',
+                    style: TextStyle(
+                      color: _schoolNotListed
+                          ? Theme.of(context).colorScheme.primary
+                              .withValues(alpha: 0.8)
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  value: _schoolNotListed,
+                  checkColor: Colors.white,
+                  onChanged: municipalityId == null
+                      ? null
+                      : (value) => setState(() {
+                            _schoolNotListed = value ?? false;
+                            if (_schoolNotListed) schoolId = null;
+                          }),
+                ),
               ),
             ),
             const SizedBox(height: 16),

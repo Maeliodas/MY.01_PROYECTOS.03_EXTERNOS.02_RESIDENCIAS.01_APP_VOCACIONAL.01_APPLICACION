@@ -41,8 +41,10 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 10),
           InstitutionalCard(
             padding: EdgeInsets.zero,
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.blue50, borderRadius: BorderRadius.circular(AppMetrics.radiusMd)), child: Icon(Icons.sync_rounded, color: dark ? AppColors.primaryOnDark : AppColors.primary)),
               title: Text('Actualizar catálogos', style: AppTypography.bodyStrong.copyWith(color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
               subtitle: Text('Descarga cambios aprobados del panel y los guarda en SQLite.', style: AppTypography.caption.copyWith(color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
@@ -97,7 +99,7 @@ class SettingsPage extends ConsumerWidget {
                 }
                 messenger.showSnackBar(SnackBar(content: Text(ok ? 'Catálogos actualizados.' : 'No fue posible actualizar. Se conservaron los datos locales.')));
               },
-            ),
+            )),
           ),
           const SizedBox(height: 26),
           const SectionLabel('Privacidad y soporte'),
@@ -158,13 +160,16 @@ class _Info extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.blue50, borderRadius: BorderRadius.circular(AppMetrics.radiusMd)), child: Icon(icon, color: iconColor)),
-      title: Text(title, style: AppTypography.bodyStrong.copyWith(color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
-      subtitle: Text(subtitle, style: AppTypography.caption.copyWith(color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
-      trailing: const Icon(Icons.chevron_right_rounded),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        leading: Container(width: 42, height: 42, decoration: BoxDecoration(color: dark ? AppColors.surfaceVariantDark : AppColors.blue50, borderRadius: BorderRadius.circular(AppMetrics.radiusMd)), child: Icon(icon, color: iconColor)),
+        title: Text(title, style: AppTypography.bodyStrong.copyWith(color: dark ? AppColors.textPrimaryDark : AppColors.textPrimary)),
+        subtitle: Text(subtitle, style: AppTypography.caption.copyWith(color: dark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
+        trailing: const Icon(Icons.chevron_right_rounded),
+      ),
     );
   }
 }

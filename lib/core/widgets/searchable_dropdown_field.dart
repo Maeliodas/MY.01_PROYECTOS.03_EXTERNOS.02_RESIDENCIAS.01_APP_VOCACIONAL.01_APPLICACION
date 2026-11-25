@@ -227,24 +227,27 @@ class SearchableDropdownField<TItem, TValue> extends StatelessWidget {
                               itemBuilder: (context, index) {
                                 final item = filtered[index];
                                 final isSelected = itemId(item) == selected;
-                                return ListTile(
-                                  dense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 4,
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: ListTile(
+                                    dense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 4,
+                                    ),
+                                    title: Text(itemName(item)),
+                                    trailing: isSelected
+                                        ? Icon(
+                                            Icons.check_circle_rounded,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          )
+                                        : null,
+                                    onTap: () {
+                                      selected = itemId(item);
+                                      Navigator.pop(dialogContext);
+                                      onChanged(selected);
+                                    },
                                   ),
-                                  title: Text(itemName(item)),
-                                  trailing: isSelected
-                                      ? Icon(
-                                          Icons.check_circle_rounded,
-                                          color: Theme.of(context).colorScheme.primary,
-                                        )
-                                      : null,
-                                  onTap: () {
-                                    selected = itemId(item);
-                                    Navigator.pop(dialogContext);
-                                    onChanged(selected);
-                                  },
                                 );
                               },
                             ),
