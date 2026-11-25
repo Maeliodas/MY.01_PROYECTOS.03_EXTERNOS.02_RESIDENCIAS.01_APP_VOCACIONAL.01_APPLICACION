@@ -218,7 +218,7 @@ class ProfileRepository {
 
       return UserProfile.fromMap(row, languageIds: ids);
     } catch (e) {
-      print('ProfileRepository: no se pudo cargar el perfil local ($e)');
+      // Perfil no disponible; se retorna null para que el splash maneje el caso
       return null;
     }
   }
