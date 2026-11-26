@@ -4,10 +4,23 @@
 > no se crean archivos nuevos por subversión. El `README.md` principal solo
 > resume los cambios principales de la versión actual.
 
-## 1.3.3-11 (actual)
+## 1.4.0-0 (actual)
 
-Versión **1**, sub modificación semigrande **3**, subcambios menores **3**, revisión **11**.
-Rediseño del módulo tema (suma a Z y R): misma lógica, rutas y esquema de BD (SQLite v16 / MySQL sin ALTERs).
+Versión **1**, sub modificación semigrande **4**, subcambios menores **0**, revisión **0**.
+Unificación de catálogos institucional (app y panel): misma estructura y datos en SQLite de la app y MySQL del panel.
+
+### Base de datos unificada (SQLite app + MySQL panel)
+- `assets/database/app_vocacional_catalog_v15.db` (nueva): 32 estados, 2,469 municipios, 13,347 escuelas, 29 idiomas, 30 preguntas RIASEC, 11 carreras, 6 preguntas departamentales, 66 pesos RIASEC, 55 relaciones carrera-pregunta. Generada desde `schema_clean_catalog.sql` y adaptada a la estructura SQLite de la app.
+- `admin_panel/sql/schema.sql` (panel): misma estructura y datos que la app SQLite. Tabla `students` con columnas `state_id` y `municipality_id` (sin FK de `school_id` para evitar error 1452 cuando el `school_id` de la app no existe en el panel).
+- El panel guarda `state_id` y `municipality_id` al recibir evaluación (`/api/evaluations`).
+- Las consultas del dashboard usan `COALESCE(s.municipality_id, sc.municipality_id)` y `COALESCE(s.state_id, m.state_id)` para obtener estado/municipio directamente de `students`, con fallback a JOIN por escuela.
+
+### Pantalla de editar perfil
+- `lib/features/profile/presentation/pages/edit_profile_page.dart`: campos nombre, edad y género ahora editables (antes edad y género eran de solo lectura).
+- Botón "Guardar cambios" desbloqueado: ya no requiere `state_id`, `municipality_id` ni `school_id` para habilitarse.
+- Validación: nombre obligatorio (SnackBar si está vacío); edad se parsea a entero (usa edad actual si no es válida); género usa valor actual si no se selecciona.
+
+## 1.3.3-11
 
 ### Tema institucional azul TecNM (Pantone 294 C, §§2.3–2.5)
 - Fuente: Manual de Identidad Gráfica TecNM 2026 — `Pantone 294 C / C100 M85 Y30 K20 / R27 G57 B106 / #1B396A`. Solo azul.
