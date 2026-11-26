@@ -173,19 +173,22 @@ class InstitutionalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = color ?? Theme.of(context).colorScheme.surface;
+    final bgColor = dark ? AppColors.cardBackgroundDark : AppColors.cardBackground;
+    final borderColor = dark ? AppColors.borderDark : null;
     final card = Container(
       padding: padding,
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        border: dark ? Border.all(color: AppColors.borderDark) : null,
+        border: dark ? Border.all(color: borderColor!) : null,
         boxShadow: dark ? AppMetrics.shadowCardDark : AppMetrics.shadowCard,
       ),
       child: child,
     );
     return Material(
-      color: cardColor,
+      color: bgColor,
+      borderRadius: BorderRadius.circular(radius),
+      clipBehavior: Clip.antiAlias,
       child: onTap == null
           ? card
           : InkWell(
