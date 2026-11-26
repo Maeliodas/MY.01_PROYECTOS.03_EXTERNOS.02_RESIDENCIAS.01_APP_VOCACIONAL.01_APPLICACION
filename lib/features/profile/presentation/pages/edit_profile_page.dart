@@ -10,7 +10,6 @@ import '../../../../app/theme/app_metrics.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../avatar/presentation/providers/avatar_provider.dart';
-import '../../../catalog/domain/models/catalog_models.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../../domain/entities/user_profile.dart';
 import '../providers/profile_provider.dart';
@@ -61,9 +60,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Widget build(BuildContext context) {
     final current = ref.watch(profileProvider);
     final avatar = ref.watch(avatarProvider);
-    final statesAsync = ref.watch(statesProvider);
-    final municipalitiesAsync = _stateId == null ? const AsyncData<List<Municipality>>([]) : ref.watch(municipalitiesProvider(_stateId!));
-    final schoolsAsync = _municipalityId == null ? const AsyncData<List<School>>([]) : ref.watch(schoolsByMunicipalityProvider(_municipalityId));
     if (current == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     return Scaffold(
@@ -131,27 +127,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 ]),
               ]),
             ),
-            const SizedBox(height: 18),
-            _SectionCard(
-              title: 'Procedencia académica',
-              icon: Icons.school_outlined,
-              child: Column(children: [
-                statesAsync.when(
-                  data: (states) => DropdownButtonFormField<String>(isExpanded: true, initialValue: states.any((x) => x.id == _stateId) ? _stateId : null, decoration: const InputDecoration(labelText: 'Estado', prefixIcon: Icon(Icons.location_on_outlined)), items: states.map((x) => DropdownMenuItem(value: x.id, child: Text(x.name, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _stateId = v; _municipalityId = null; _schoolId = null; })),
-                  loading: () => const LinearProgressIndicator(), error: (_, __) => const Text('No se pudieron cargar los estados.'),
-                ),
-                const SizedBox(height: 14),
-                municipalitiesAsync.when(
-                  data: (items) => DropdownButtonFormField<String>(isExpanded: true, initialValue: items.any((x) => x.id == _municipalityId) ? _municipalityId : null, decoration: const InputDecoration(labelText: 'Municipio', prefixIcon: Icon(Icons.map_outlined)), items: items.map((x) => DropdownMenuItem(value: x.id, child: Text(x.name, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _municipalityId = v; _schoolId = null; })),
-                  loading: () => const LinearProgressIndicator(), error: (_, __) => const Text('No se pudieron cargar los municipios.'),
-                ),
-                const SizedBox(height: 14),
-                schoolsAsync.when(
-                  data: (items) => DropdownButtonFormField<String>(isExpanded: true, initialValue: items.any((x) => x.id == _schoolId) ? _schoolId : null, decoration: const InputDecoration(labelText: 'Escuela de procedencia', prefixIcon: Icon(Icons.school_outlined)), items: items.map((x) => DropdownMenuItem(value: x.id, child: Text(x.name, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() => _schoolId = v)),
-                  loading: () => const LinearProgressIndicator(), error: (_, __) => const Text('No se pudieron cargar las escuelas.'),
-                ),
-              ]),
-            ),
+            
             const SizedBox(height: 22),
             PrimaryButton(
               text: 'Guardar cambios', icon: Icons.save_rounded,

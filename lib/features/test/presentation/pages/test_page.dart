@@ -118,6 +118,7 @@ class _TestPageState extends ConsumerState<TestPage> {
                             borderRadius: BorderRadius.circular(
                                 AppMetrics.radiusButton))),
                     child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.save_rounded, size: 20),
@@ -125,7 +126,8 @@ class _TestPageState extends ConsumerState<TestPage> {
                           Text('Guardar y Salir',
                               style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w700)),
+                                  fontWeight: FontWeight.w700,
+                                  overflow: TextOverflow.visible)),
                         ]),
                   ),
                 ),
